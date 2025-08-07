@@ -1,19 +1,5 @@
 import Doc from "../models/Doc.js";
-
-function areAllObjectFieldsEmpty(obj) {
-    if (typeof obj !== 'object' || obj === null) {
-        return false; // Not a valid object to check
-    }
-
-    const values = Object.values(obj);
-
-    for (const value of values) {
-        if (value !== null && value !== undefined && String(value).trim() !== '') {
-            return false; // Found a non-empty value
-        }
-    }
-    return true; // All values are considered empty
-}
+import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 
 export async function getAllDocs(_, res) {
     try {

@@ -8,10 +8,12 @@
  */
 // Import necessary modules
 import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 import docsRoutes from "./routes/docsRoutes.js";
 import { connectDB } from "./config/db.js";
-import dotenv from "dotenv";
 import rateLimiter from "./middleware/rateLimiter.js";
+
 // Choose environment configuration based on NODE_ENV
 if (process.env.NODE_ENV === 'development') {
     dotenv.config({ path: '.env.dev' });
@@ -25,6 +27,11 @@ const nodePort = process.env.NODE_PORT;
 // Initialize Express app
 const app = express();
 // Middleware
+app.use(
+    cors({
+    origin:"http://localhost:5173", // Enable CORS for all routes to allow requests from the frontend development server
+    })
+);
 app.use(express.json()); // Parse JSON request bodies
 app.use(rateLimiter); // Apply rate limiting middleware
 // Declare endpoints
