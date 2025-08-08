@@ -8,12 +8,16 @@ A list of features I plan on implementing into the application.
 
 1. File Uploads
    1. The ability to upload documentation in many formats, including:
-      1. Word
-      2. PDF
-      3. TXT
-      4. MD
-      5. XLS
-      6. RTF
+      1.  DOC/DOCX
+      2.  PDF
+      3.  HTML
+      4.  XML
+      5.  RTF
+      6.  TXT
+      7.  MD
+      8.  XLS/XLSX
+      9.  CSV
+      10. PPTX
 2. User system, authentication and security
    1. Some sort of authentication system
       1. Should I build a custom solution or use a 3rd party?
@@ -37,3 +41,4 @@ A list of features I plan on implementing into the application.
 3. Add the navbar to all pages
 4. Add a footer
 5. Create a sidebar menu
+6. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
