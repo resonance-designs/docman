@@ -28,7 +28,7 @@ const DocCard = ({ doc, setDocs }) => {
     >
       <div className="card-body">
         <h3 className="card-title text-base-content">{doc.title}</h3>
-        <p className="text-base-content/70 line-clamp-3">{doc.content}</p>
+        <p className="text-base-content/70 line-clamp-3">{doc.description}</p>
         <div className="card-actions justify-between items-center mt-4">
           <span className="text-sm text-base-content/60">
             {formatDate(new Date(doc.createdAt))}

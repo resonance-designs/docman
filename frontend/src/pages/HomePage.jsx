@@ -24,8 +24,6 @@ const HomePage = () => {
         console.log(error.response);
         if (error.response?.status === 429) {
           setIsRateLimited(true);
-        } else {
-          toast.error("Failed to load documents");
         }
       } finally {
         setLoading(false);
