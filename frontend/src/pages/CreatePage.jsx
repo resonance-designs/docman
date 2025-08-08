@@ -59,10 +59,11 @@ const CreatePage = () => {
               <h2 className="card-title text-2xl mb-4">Create New Document</h2>
               <form onSubmit={handleSubmit}>
                 <div className="form-control mb-4">
-                  <label className="label">
+                  <label className="label" htmlFor="title">
                     <span className="label-text">Title</span>
                   </label>
                   <input
+                    id="title"
                     type="text"
                     placeholder="Document Title"
                     className="input input-bordered"
@@ -72,10 +73,11 @@ const CreatePage = () => {
                 </div>
 
                 <div className="form-control mb-4">
-                  <label className="label">
+                  <label className="label" htmlFor="author">
                     <span className="label-text">Author</span>
                   </label>
                   <input
+                    id="author"
                     type="text"
                     placeholder="Document Author"
                     className="input input-bordered"
@@ -85,10 +87,11 @@ const CreatePage = () => {
                 </div>
 
                 <div className="form-control mb-4">
-                  <label className="label">
-                    <span className="label-text">Content</span>
+                  <label className="label" htmlFor="description">
+                    <span className="label-text">Description</span>
                   </label>
                   <textarea
+                    id="description"
                     placeholder="Write your description here..."
                     className="textarea textarea-bordered h-32"
                     value={description}
