@@ -1,14 +1,39 @@
 {
-  "name": "frontend",
+  "name": "rd-docman-frontend",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "A simple Node.js backend for the DocMan application",
+  "keywords": [
+    "Document Management",
+    "Resonance Designs",
+    "Richard Bakos",
+    "MERN",
+    "frontend"
+  ],
+  "author": "Richard Bakos",
+  "contributors": [
+    {
+      "name": "Richard Bakos",
+      "email": "info@resonancedesigns.dev"
+    }
+  ],
+  "organization": {
+    "name": "Resonance Designs",
+    "url": "https://resonancedesigns.dev"
+  },
+  "homepage": "https://resonancedesigns.dev/docman",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/resonance-designs/docman.git"
+  },
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "type": "module",
   "dependencies": {
     "axios": "^1.11.0",
     "lucide-react": "^0.536.0",

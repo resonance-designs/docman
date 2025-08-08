@@ -1,18 +1,14 @@
 {
   "name": "rd-docman-backend",
-  "version": "0.1.1",
+  "private": true,
+  "version": "1.0.0",
   "description": "A simple Node.js backend for the DocMan application",
-  "main": "src/server.js",
-  "scripts": {
-    "dev": "NODE_ENV=development nodemon -L src/server.js",
-    "prod": "NODE_ENV=production node src/server.js"
-  },
-  "type": "module",
   "keywords": [
     "Document Management",
     "Resonance Designs",
     "Richard Bakos",
-    "MERN"
+    "MERN",
+    "backend"
   ],
   "author": "Richard Bakos",
   "contributors": [
@@ -31,6 +27,12 @@
     "url": "https://github.com/resonance-designs/docman.git"
   },
   "license": "UNLICENSED",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "NODE_ENV=development nodemon -L src/server.js",
+    "prod": "NODE_ENV=production node src/server.js"
+  },
+  "type": "module",
   "dependencies": {
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.34.9",
