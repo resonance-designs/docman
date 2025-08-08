@@ -31,10 +31,10 @@
   "scripts": {
     "dev": "ATLAS=no NODE_ENV=development nodemon -L src/server.js",
     "prod": "ATLAS=no NODE_ENV=production node src/server.js",
-    "start": "ATLAS=no NODE_ENV=production node src/server.js",
+    "start": "ATLAS=no NODE_ENV=render node src/server.js",
     "atlasdev": "ATLAS=yes NODE_ENV=production nodemon -L src/server.js",
     "atlasprod": "ATLAS=yes NODE_ENV=production node src/server.js",
-    "atlasstart": "ATLAS=yes NODE_ENV=production node src/server.js"
+    "atlasstart": "ATLAS=yes NODE_ENV=render node src/server.js"
   },
   "type": "module",
   "dependencies": {
