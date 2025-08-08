@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { ArrowLeftIcon, LoaderIcon, Trash2Icon } from "lucide-react";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
-import { ArrowLeftIcon, LoaderIcon, Trash2Icon } from "lucide-react";
 
 const DocDetailPage = () => {
     const [doc, setDoc] = useState(null);

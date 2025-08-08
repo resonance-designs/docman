@@ -24,6 +24,7 @@ import path from "path";
 import docsRoutes from "./routes/docsRoutes.js";
 import { connectDB } from "./config/db.js";
 import rateLimiter from "./middleware/rateLimiter.js";
+import authRoutes from "./routes/authRoutes.js";
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -64,6 +65,7 @@ app.use(
 app.use(express.json()); // Parse JSON request bodies
 app.use(rateLimiter); // Apply rate limiting middleware
 app.use("/api/docs", docsRoutes); // Declare endpoints
+app.use("/api/auth", authRoutes); // Declare authentication endpoints
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
     // Serve static files from the React frontend app in production

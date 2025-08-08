@@ -1,20 +1,26 @@
 import { Route, Routes } from "react-router";
-
 import HomePage from "./pages/HomePage";
 import CreatePage from "./pages/CreatePage";
 import DocDetailsPage from "./pages/DocDetailsPage";
-import toast from "react-hot-toast";
+import LoginPage from "./pages/LoginPage";
+import RegPage from "./pages/RegPage";
+import ForgotPassPage from "./pages/ForgotPassPage";
+import ResetPassPage from "./pages/ResetPassPage";
 
 const App = () => {
-  return (
-    <div className="relative h-full w-full">
-      <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_60%,#00FF9D40_100%)]" />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/create" element={<CreatePage />} />
-        <Route path="/doc/:id" element={<DocDetailsPage />} />
-      </Routes>
-    </div>
-  );
+    return (
+        <div className="relative h-full w-full">
+            <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_60%,#00FF9D40_100%)]" />
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/create" element={<CreatePage />} />
+                <Route path="/doc/:id" element={<DocDetailsPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegPage />} />
+                <Route path="/forgot" element={<ForgotPassPage />} />
+                <Route path="/reset" element={<ResetPassPage />} />
+            </Routes>
+        </div>
+    );
 }
 export default App
