@@ -2,3 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 @plugin "daisyui";
+
+@theme {
+    --color-resdes-orange: #DF6D20;
+}

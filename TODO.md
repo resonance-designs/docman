@@ -33,12 +33,10 @@ A list of features I plan on implementing into the application.
    1. Authors, contributors, and stake-holders can be scheduled to review documentation.
    2. Can set review deadlines
    3. If review determines updates are needed, can assign to authors and contributors.
-4. Update color scheme to go with the RD brand
-5. Work on UI in general
-6. Add the navbar to all pages
-7. Add a footer
-8. Create a sidebar menu
-9. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
+4. Work on UI in general
+5. Create a sidebar menu
+6. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
+7. Create search, filtering, and sorting features for results
 
 ## Authentication System Suggestions & Improvements
 

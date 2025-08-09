@@ -24,19 +24,20 @@ const DocCard = ({ doc, setDocs }) => {
         <Link
             to={`/doc/${doc._id}`}
             className="card bg-base-100 hover:shadow-lg transition-all duration-200 
-            border-t-4 border-solid border-[#00FF9D]"
+            border-t-4 border-solid border-resdes-orange"
         >
             <div className="card-body">
                 <h3 className="card-title text-base-content">{doc.title}</h3>
+                <p className="text-base-content/70 line-clamp-3 text-xs">By <i>{doc.author}</i></p>
                 <p className="text-base-content/70 line-clamp-3">{doc.description}</p>
                 <div className="card-actions justify-between items-center mt-4">
                     <span className="text-sm text-base-content/60">
-                        {formatDate(new Date(doc.createdAt))}
+                        Added On: {formatDate(new Date(doc.createdAt))}
                     </span>
                     <div className="flex items-center gap-1">
-                        <PenSquareIcon className="size-4" />
+                        <PenSquareIcon className="size-4 text-resdes-teal" />
                         <button
-                            className="btn btn-ghost btn-xs text-error"
+                            className="btn btn-ghost btn-xs text-resdes-teal"
                             onClick={(e) => handleDelete(e, doc._id)}
                         >
                             <Trash2Icon className="size-4" />
@@ -52,8 +53,9 @@ import PropTypes from "prop-types";
 DocCard.propTypes = {
     doc: PropTypes.shape({
         _id: PropTypes.string.isRequired,
-        title: PropTypes.string,
-        description: PropTypes.string,
+        title: PropTypes.string.isRequired,
+        author: PropTypes.string.isRequired,
+        description: PropTypes.string.isRequired,
         createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     }).isRequired,
     setDocs: PropTypes.func.isRequired,

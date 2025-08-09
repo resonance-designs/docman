@@ -42,10 +42,10 @@ const CreatePage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-base-200">
+        <div className="min-h-screen">
             <div className="container mx-auto px-4 py-8">
-                <div className="max-w-2xl mx-auto">
-                    <Link to={"/"} className="btn btn-ghost mb-6">
+                <div className="max-w-screen-lg mx-auto">
+                    <Link to={"/view"} className="btn btn-ghost mb-6">
                         <ArrowLeftIcon className="size-5" />
                         Back to Documents
                     </Link>
@@ -96,7 +96,7 @@ const CreatePage = () => {
                                 </div>
 
                                 <div className="card-actions justify-end">
-                                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                                    <button type="submit" className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300" disabled={loading}>
                                         {loading ? "Creating..." : "Create Document"}
                                     </button>
                                 </div>

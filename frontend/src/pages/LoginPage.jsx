@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router";
+import { ShieldQuestionMark } from 'lucide-react';
 
 function LoginPage() {
     const [loading] = useState(false);
@@ -31,9 +33,14 @@ function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-base-200">
+        <div className="min-h-screen">
             <div className="container mx-auto px-4 py-8">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-screen-lg mx-auto">
+                    <Link to={"/forgot-password"} className="btn btn-ghost mb-6">
+                        <ShieldQuestionMark className="size-5" />
+                        Forgot Password
+                    </Link>
+
                     <div className="card bg-base-100">
                         <div className="card-body">
                             <h2 className="card-title text-2xl mb-4">Login</h2>
@@ -70,7 +77,7 @@ function LoginPage() {
                                     />
                                 </div>
                                 <div className="card-actions justify-end">
-                                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                                    <button type="submit" className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300" disabled={loading}>
                                         {loading ? "Logging in..." : "Login"}
                                     </button>
                                 </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { ShieldQuestionMark } from 'lucide-react';
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
@@ -41,9 +42,13 @@ function RegPage() {
     };
 
     return (
-        <div className="min-h-screen bg-base-200">
+        <div className="min-h-screen">
             <div className="container mx-auto px-4 py-8">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-screen-lg mx-auto">
+                    <Link to={"/forgot-password"} className="btn btn-ghost mb-6">
+                        <ShieldQuestionMark className="size-5" />
+                        Forgot Password
+                    </Link>
                     <div className="card bg-base-100">
                         <div className="card-body">
                             <h2 className="card-title text-2xl mb-4">Register</h2>
@@ -96,7 +101,7 @@ function RegPage() {
                                     />
                                 </div>
                                 <div className="card-actions justify-end">
-                                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                                    <button type="submit" className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300" disabled={loading}>
                                         {loading ? "Registering..." : "Register"}
                                     </button>
                                 </div>
