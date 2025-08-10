@@ -7,3 +7,5 @@ frontend/node_modules/*
 backend/.env.dev
 
 backend/.env.prod
+
+retrothemeidea.md
