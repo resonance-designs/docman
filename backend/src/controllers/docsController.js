@@ -1,4 +1,5 @@
 import Doc from "../models/Doc.js";
+import File from "../models/File.js"; // Make sure you have this model defined
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 
 export async function getAllDocs(_, res) {
@@ -29,19 +30,39 @@ export async function getDocById(req, res) {
 }
 
 export async function createDoc(req, res) {
-    try {
+  try {
         const { title, description, author } = req.body;
+        const file = req.file;
+
         if (!title || !description || !author) {
-            return res.status(400).json({message: "All fields are required."});
+            return res.status(400).json({ message: "All fields are required." });
         }
+
+        // Create the document entry
         const newDoc = new Doc({ title, description, author });
         await newDoc.save();
-        res.status(201).json({ message: "Document created successfully", doc: newDoc});
+
+        // If a file was uploaded, save the file metadata
+        if (file) {
+            const newFile = new File({
+                filename: file.filename,
+                originalname: file.originalname,
+                path: file.path,
+                mimetype: file.mimetype,
+                size: file.size,
+                documentId: newDoc._id,
+                uploadedAt: new Date(),
+            });
+            await newFile.save();
+        }
+
+        res.status(201).json({ message: "Document created successfully", doc: newDoc });
     } catch (error) {
         console.error("Error creating document:", error);
         res.status(500).send("Internal Server Error");
     }
 }
+
 
 export async function updateDoc(req, res) {
     try {

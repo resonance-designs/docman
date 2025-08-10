@@ -17,14 +17,16 @@
  * - connectDB: Function to connect to MongoDB
  * - rateLimiter: Middleware to limit the rate of requests to the API
  */
+import { connectDB } from "./config/db.js";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 import docsRoutes from "./routes/docsRoutes.js";
-import { connectDB } from "./config/db.js";
-import rateLimiter from "./middleware/rateLimiter.js";
 import authRoutes from "./routes/authRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
+import usersRoutes from "./routes/usersRoutes.js";
+import rateLimiter from "./middleware/rateLimiter.js";
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -56,16 +58,19 @@ const app = express(); // Initialize Express app
  */
 // Enable CORS for all routes to allow requests from the frontend development server
 if (process.env.NODE_ENV !== 'production') {
-app.use(
-    cors({
-    origin:"http://localhost:5173",
-    })
-);
+    app.use(
+        cors({
+            origin:"http://localhost:5173",
+        })
+    );
 }
 app.use(express.json()); // Parse JSON request bodies
 app.use(rateLimiter); // Apply rate limiting middleware
-app.use("/api/docs", docsRoutes); // Declare endpoints
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
+app.use("/api/docs", docsRoutes); // Declare docs endpoints
 app.use("/api/auth", authRoutes); // Declare authentication endpoints
+app.use("/api/users", usersRoutes); // Declare user endpoints
+app.use("/upload", uploadRoutes); // Declare uploads endpoints
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
     // Serve static files from the React frontend app in production

@@ -6,18 +6,18 @@ import { createSecretToken } from "../lib/secretToken.js";
 
 export async function register(req, res) {
     try {
-        const { email, username, password } = req.body;
+        const { email, firstname, lastname, username, password } = req.body;
         const existingUser = await User.findOne({ email });
-        if (!email || !username || !password) {
+        if (!email || !firstname || !lastname || !username || !password) {
             return res.status(400).json({ message: "All fields are required." });
         }
         if (existingUser) {
             return res.status(409).json({ message: "Email already in use." });
         }
-        const user = new User({ email, username, password });
+        const user = new User({ email, firstname, lastname, username, password });
         await user.save();
         const token = createSecretToken(user._id);
-        res.status(201).json({ token, user: { id: user._id, email, username } });
+        res.status(201).json({ token, user: { id: user._id, email, firstname, lastname, username } });
     } catch (error) {
         console.error("Registration error:", error);
         res.status(500).json({ message: "Registration failed." });
