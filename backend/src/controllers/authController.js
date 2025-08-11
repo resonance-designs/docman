@@ -2,7 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import nodemailer from "nodemailer";
-import { createSecretToken } from "../lib/secretToken.js";
+import { createAccessToken, createSecretToken } from "../lib/secretToken.js";
 
 export async function register(req, res) {
     try {
@@ -26,16 +26,25 @@ export async function register(req, res) {
 
 export async function login(req, res) {
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: "All fields are required." });
-    }
+    if (!email || !password) return res.status(400).json({ message: "All fields are required." });
     try {
         const user = await User.findOne({ email });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ message: "Invalid credentials." });
-        }
-        const token = createSecretToken(user._id);
-        res.status(200).json({ token, user: { id: user._id, email, username: user.username } });
+        if (!user || !(await bcrypt.compare(password, user.password))) return res.status(401).json({ message: "Invalid credentials." });
+
+        const accessToken = createAccessToken(user._id);
+        const refreshToken = crypto.randomBytes(64).toString('hex');
+        const hashed = await bcrypt.hash(refreshToken, 12);
+        user.refreshTokenHash = hashed;
+        await user.save();
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        res.status(200).json({ token: accessToken, user: { id: user._id, email, username: user.username } });
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ message: "Login failed." });
@@ -93,4 +102,52 @@ export async function resetPassword(req, res) {
     await user.save();
 
     res.json({ message: "Password has been reset." });
+}
+
+export async function refreshToken(req, res) {
+    try {
+        const cookieToken = req.cookies?.refreshToken;
+        if (!cookieToken) return res.status(401).json({ message: "No refresh token provided." });
+
+        const users = await User.find({ refreshTokenHash: { $exists: true } });
+        let user = null;
+        for (const u of users) {
+            if (u.refreshTokenHash && await bcrypt.compare(cookieToken, u.refreshTokenHash)) { user = u; break; }
+        }
+        if (!user) return res.status(401).json({ message: "Invalid refresh token." });
+
+        const newRefresh = crypto.randomBytes(64).toString('hex');
+        const newHash = await bcrypt.hash(newRefresh, 12);
+        user.refreshTokenHash = newHash;
+        await user.save();
+
+        const newAccess = createAccessToken(user._id);
+        res.cookie('refreshToken', newRefresh, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        res.json({ token: newAccess });
+    } catch (error) {
+        console.error("Refresh token error:", error);
+        res.status(403).json({ message: "Could not refresh token." });
+    }
+}
+
+export async function logout(req, res) {
+    try {
+        const cookieToken = req.cookies?.refreshToken;
+        if (cookieToken) {
+            const users = await User.find({ refreshTokenHash: { $exists: true } });
+            for (const u of users) {
+                if (u.refreshTokenHash && await bcrypt.compare(cookieToken, u.refreshTokenHash)) { u.refreshTokenHash = undefined; await u.save(); break; }
+            }
+        }
+        res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production' });
+        res.json({ message: "Logged out." });
+    } catch (error) {
+        console.error("Logout error:", error);
+        res.status(500).json({ message: "Logout failed." });
+    }
 }

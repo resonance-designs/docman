@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router";
-import { Eye, PlusIcon, LogIn, UserPlus  } from "lucide-react";
+import { Eye, RotateCcwKey, PlusIcon, LogIn, LogOut, UserPlus  } from "lucide-react";
 import LogoPic from "../assets/imgs/logo.png";
 
 const Navbar = () => {
@@ -12,7 +12,7 @@ const Navbar = () => {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        navigate("/login");
+        navigate("/");
     };
 
     return (
@@ -28,17 +28,9 @@ const Navbar = () => {
                         </div>
                         <div className="float-right">
                             <div className="flex items-center gap-4">
-                                <Link to="/view" className={getLinkClass("/view")}>
-                                    <Eye className="size-5" />
-                                    <span>View Documents</span>
-                                </Link>
-                                <Link to="/create" className={getLinkClass("/create")}>
-                                    <PlusIcon className="size-5" />
-                                    <span>Create Document</span>
-                                </Link>
                                 {!isAuthenticated && (
                                 <>
-                                    <Link to="/login" className={getLinkClass("/login")}>
+                                    <Link to="/" className={getLinkClass("/login")}>
                                         <LogIn className="size-5" />
                                         <span>Login</span>
                                     </Link>
@@ -50,8 +42,22 @@ const Navbar = () => {
                                 )}
                                 {isAuthenticated && (
                                 <>
-                                    <Link to="/reset-password" className={getLinkClass("/reset-password")}>Reset Password</Link>
-                                    <button onClick={handleLogout} className="btn btn-error">Logout</button>
+                                    {/*<Link to="/view" className={getLinkClass("/view")}>
+                                        <Eye className="size-5" />
+                                        <span>View Documents</span>
+                                    </Link>*/}
+                                    <Link to="/create" className={getLinkClass("/create")}>
+                                        <PlusIcon className="size-5" />
+                                        <span>Create Document</span>
+                                    </Link>
+                                    <Link to="/reset-password" className={getLinkClass("/reset-password")}>
+                                        <RotateCcwKey className="size-5" />
+                                        Reset Password
+                                    </Link>
+                                    <button onClick={handleLogout} className="btn bg-resdes-yellow text-slate-950 hover:bg-resdes-yellow hover:opacity-[.8] transition-opacity duration-300">
+                                        <LogOut className="size-5" />
+                                        Logout
+                                    </button>
                                 </>
                                 )}
                             </div>

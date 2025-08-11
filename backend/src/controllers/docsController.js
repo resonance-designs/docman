@@ -2,13 +2,23 @@ import Doc from "../models/Doc.js";
 import File from "../models/File.js"; // Make sure you have this model defined
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 
-export async function getAllDocs(_, res) {
+export async function getAllDocs(req, res) {
     try {
-        // Fetch documents from the database
-        const docs = await Doc.find().sort({createdAt:-1});
-        // Check if documents exist
+        // Read optional ?limit=5 from the query string
+        const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+
+        // Build the query
+        let query = Doc.find().sort({ createdAt: -1 });
+
+        // Apply limit only if provided
+        if (limit && !isNaN(limit)) {
+            query = query.limit(limit);
+        }
+
+        const docs = await query;
+
         if (!docs || docs.length === 0) {
-            return res.status(404).json({message: "No documents found."});
+            return res.status(404).json({ message: "No documents found." });
         } else {
             res.status(200).json(docs);
         }
@@ -17,6 +27,7 @@ export async function getAllDocs(_, res) {
         res.status(500).send("Internal Server Error");
     }
 }
+
 
 export async function getDocById(req, res) {
     try {
@@ -55,7 +66,6 @@ export async function createDoc(req, res) {
             });
             await newFile.save();
         }
-
         res.status(201).json({ message: "Document created successfully", doc: newDoc });
     } catch (error) {
         console.error("Error creating document:", error);
