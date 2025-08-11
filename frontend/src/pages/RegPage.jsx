@@ -6,6 +6,8 @@ import api from "../lib/axios";
 
 function RegPage() {
     const [email, setEmail] = useState("");
+    const [firstname, setFirstName] = useState("");
+    const [lastname, setLastName] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -21,6 +23,8 @@ function RegPage() {
         try {
             await api.post("/auth/register", {
                 email,
+                firstname,
+                lastname,
                 username,
                 password,
             });
@@ -53,6 +57,39 @@ function RegPage() {
                         <div className="card-body">
                             <h2 className="card-title text-2xl mb-4">Register</h2>
                             <form onSubmit={handleSubmit}>
+
+                                <div className="form-control mb-4">
+                                    <label className="label" htmlFor="firstname">
+                                        <span className="label-text">First Name</span>
+                                    </label>
+                                    <input
+                                        id="firstname"
+                                        type="test"
+                                        name="firstname"
+                                        placeholder="Enter your first name"
+                                        className="input input-bordered"
+                                        value={firstname}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-control mb-4">
+                                    <label className="label" htmlFor="lastname">
+                                        <span className="label-text">Last Name</span>
+                                    </label>
+                                    <input
+                                        id="lastname"
+                                        type="test"
+                                        name="lastname"
+                                        placeholder="Enter your last name"
+                                        className="input input-bordered"
+                                        value={lastname}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
                                 <div className="form-control mb-4">
                                     <label className="label" htmlFor="email">
                                         <span className="label-text">Email</span>

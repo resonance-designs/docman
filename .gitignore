@@ -4,6 +4,12 @@ backend/node_modules
 backend/node_modules/*
 frontend/node_modules
 frontend/node_modules/*
+backend/uploads
+backend/uploads/*
 backend/.env.dev
-
 backend/.env.prod
+
+
+retrothemeidea.md
+
+docman.zip
