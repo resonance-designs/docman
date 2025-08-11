@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router";
 import HomePage from "./pages/HomePage";
-import ViewPage from "./pages/ViewPage";
+// import ViewPage from "./pages/ViewPage";
 import CreatePage from "./pages/CreatePage";
 import DocDetailsPage from "./pages/DocDetailsPage";
 import LoginPage from "./pages/LoginPage";
@@ -17,7 +17,7 @@ const App = () => {
             <Navbar />
             <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/view" element={<ViewPage />} />
+                {/* <Route path="/view" element={<ViewPage />} /> */}
                 <Route path="/create" element={<CreatePage />} />
                 <Route path="/doc/:id" element={<DocDetailsPage />} />
                 <Route path="/login" element={<LoginPage />} />

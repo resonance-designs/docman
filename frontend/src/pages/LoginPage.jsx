@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState } from "react";
 import { Link } from "react-router";
 import { ShieldQuestionMark } from 'lucide-react';
@@ -5,7 +6,7 @@ import { ShieldQuestionMark } from 'lucide-react';
 function LoginPage() {
     const [loading] = useState(false);
     const [form, setForm] = useState({ email: "", password: "" });
-    const [setMessage] = useState("");
+    const [message, setMessage] = useState("");
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });

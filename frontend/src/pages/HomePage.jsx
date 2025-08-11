@@ -1,11 +1,14 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import RateLimitedUI from "../components/RateLimitedUI";
 import api from "../lib/axios";
-// import toast from "react-hot-toast"; # Not sure if this is needed here
+import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
+import DocTable from "../components/DocTable";
 import DocsNotFound from "../components/DocsNotFound";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { ShieldQuestionMark } from 'lucide-react';
+
 
 const HomePage = () => {
     const isAuthenticated = !!localStorage.getItem("token");
@@ -13,8 +16,9 @@ const HomePage = () => {
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
-    const [setMessage] = useState("");
-
+    const [message, setMessage] = useState("");
+    const navigate = useNavigate();
+    const limitDocCard = 6;
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
@@ -32,8 +36,11 @@ const HomePage = () => {
         if (res.ok) {
             localStorage.setItem("token", data.token);
             setMessage("Login successful!");
+            toast.success("Login successful!");
+            navigate("/");
         } else {
             setMessage(data.message || "Login failed.");
+            toast.error(data.message || "Login failed.");
         }
         } catch (err) {
         setMessage(`Network error: ${err.message}`);
@@ -43,7 +50,7 @@ const HomePage = () => {
     useEffect(() => {
         const fetchDocs = async () => {
             try {
-                const res = await api.get("/docs");
+                const res = await api.get("/docs?limit=6");
                 console.log(res.data);
                 setDocs(res.data);
                 setIsRateLimited(false);
@@ -65,13 +72,12 @@ const HomePage = () => {
             {isRateLimited && <RateLimitedUI />}
             <div className="container mx-auto px-4 py-8">
                 <div className="max-w-screen-lg mx-auto">
-                    {!isAuthenticated && (
+                    {!isAuthenticated && ( // If the user is not authenticated, display the login form
                     <>
                         <Link to={"/forgot-password"} className="btn btn-ghost mb-6">
                             <ShieldQuestionMark className="size-5" />
                             Forgot Password
                         </Link>
-
                         <div className="card bg-base-100">
                             <div className="card-body">
                                 <h2 className="card-title text-2xl mb-4">Login</h2>
@@ -117,21 +123,52 @@ const HomePage = () => {
                         </div>
                     </>
                     )}
-                    {isAuthenticated && (
-                    <div className="max-w-7xl mx-auto p-4 mt-6">
-                        <Link to={"/forgot-password"} className="btn btn-ghost mb-6">
-                            <ShieldQuestionMark className="size-5" />
-                            Forgot Password
-                        </Link>
+                    {isAuthenticated && ( // If the user is authenticated, display the documents
+                    <>
+                        <h2 className="text-3xl mb-6">Documents That Need Review</h2>
                         {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
                         {docs.length === 0 && !isRateLimited && <DocsNotFound />}
                         {docs.length > 0 && !isRateLimited && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {docs.map((doc) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                            {docs.slice(0, limitDocCard).map((doc) => (
                                 <DocCard key={doc._id} doc={doc} setDocs={setDocs} />
                             ))}
                         </div>)}
-                    </div>
+                        <h2 className="text-3xl mb-6">All Documents</h2>
+                        <div className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md rounded-xl bg-clip-border">
+                            <table className="w-full text-left table-auto min-w-max border-b border-resdes-orange">
+                                <thead className="bg-resdes-orange text-slate-950 font-mono font-bold">
+                                    <tr>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">
+                                                Title
+                                            </p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">
+                                                Author
+                                            </p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">
+                                                Added On
+                                            </p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none float-right">
+                                                Actions
+                                            </p>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="border border-resdes-orange">
+                                    {docs.map((doc) => (
+                                        <DocTable key={doc._id} doc={doc} setDocs={setDocs} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                     )}
                 </div>
             </div>

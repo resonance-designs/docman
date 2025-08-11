@@ -37,7 +37,7 @@ const DocTable = ({ doc, setDocs }) => {
                     {formatDate(new Date(doc.createdAt))}
                 </p>
             </td>
-            <td className="p-4 flex items-center gap-1">
+            <td className="p-4 flex items-center gap-1 float-right">
                 <Link
                     to={`/doc/${doc._id}`}
                     className="card hover:shadow-lg transition-all duration-200"
