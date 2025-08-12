@@ -3,7 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router";
 import { Eye, RotateCcwKey, PlusIcon, LogIn, LogOut, UserPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import LogoPic from "../assets/imgs/logo.png";
-import { decodeJWT } from "../lib/utils"
+import { decodeJWT } from "../lib/utils";
+import useAutoLogout from "../hooks/useAutoLogout";
 
 const getUserRole = () => {
     const token = localStorage.getItem("token");
@@ -22,11 +23,25 @@ const Navbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    // Auto logout functionality
+    const handleAutoLogout = () => {
+        localStorage.removeItem("token");
+        setIsAuthenticated(false);
+        setRole(null);
+        fetch('/api/logout', { method: 'POST' });
+        window.dispatchEvent(new Event('authStateChanged'));
+        navigate("/");
+    };
+
+    // Use auto logout hook (30 minutes timeout)
+    useAutoLogout(isAuthenticated, handleAutoLogout, 30);
+
     // Function to check and update auth state
     const updateAuthState = () => {
         const token = localStorage.getItem("token");
         const authenticated = !!token;
         setIsAuthenticated(authenticated);
+        
         if (token) {
             const r = getUserRole();
             setRole(r);
@@ -70,10 +85,11 @@ const Navbar = () => {
         setRole(null);
         fetch('/api/logout', { method: 'POST' });
         toast.success("You have been logged out");
+        
         // Dispatch custom event to notify other components (like HomePage)
         window.dispatchEvent(new Event('authStateChanged'));
+        
         navigate("/");
-        // Remove the setTimeout and window.location.reload - not needed anymore!
     };
 
     return (

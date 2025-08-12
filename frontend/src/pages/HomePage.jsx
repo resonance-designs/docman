@@ -6,8 +6,9 @@ import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
 import DocTable from "../components/DocTable";
 import DocsNotFound from "../components/DocsNotFound";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { LogIn, ShieldQuestionMark } from 'lucide-react';
+import useAutoLogout from "../hooks/useAutoLogout";
 
 const HomePage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
@@ -16,7 +17,21 @@ const HomePage = () => {
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
     const [message, setMessage] = useState("");
+    const navigate = useNavigate();
     const limitDocCard = 6;
+
+    // Auto logout functionality
+    const handleAutoLogout = () => {
+        localStorage.removeItem("token");
+        setIsAuthenticated(false);
+        setForm({ email: "", password: "" });
+        setMessage("");
+        window.dispatchEvent(new Event('authStateChanged'));
+        navigate("/");
+    };
+
+    // Use auto logout hook (30 minutes timeout)
+    useAutoLogout(isAuthenticated, handleAutoLogout, 30);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -35,12 +50,13 @@ const HomePage = () => {
             if (res.ok) {
                 localStorage.setItem("token", data.token);
                 setIsAuthenticated(true); // This will trigger the useEffect
-
+                
                 // Dispatch custom event to notify other components (like Navbar)
                 window.dispatchEvent(new Event('authStateChanged'));
-
+                
                 setMessage("Login successful!");
                 toast.success("Login successful!");
+                // Don't navigate here - let the useEffect handle the content update
             } else {
                 setMessage(data.message || "Login failed.");
                 toast.error(data.message || "Login failed.");
@@ -56,9 +72,9 @@ const HomePage = () => {
             const token = localStorage.getItem("token");
             const wasAuthenticated = isAuthenticated;
             const nowAuthenticated = !!token;
-
+            
             setIsAuthenticated(nowAuthenticated);
-
+            
             // If user just logged out, clear the form
             if (wasAuthenticated && !nowAuthenticated) {
                 setForm({ email: "", password: "" });
@@ -78,7 +94,7 @@ const HomePage = () => {
                 // Get fresh token and headers inside the effect
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
+                
                 const res = await api.get("/docs?limit=10", { headers });
                 console.log(res.data);
                 setDocs(res.data);
