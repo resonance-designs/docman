@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: [true, "Your password is required"],
         },
+        role: {
+            type: String,
+            enum: ["admin", "editor", "viewer"],
+            default: "viewer", // New users are read-only by default
+        },
         resetPasswordToken: String,
         resetPasswordExpires: Date,
         refreshTokenHash: { type: String },
@@ -42,3 +47,5 @@ userSchema.pre("save", async function(next) {
 const User = mongoose.model("User", userSchema);
 
 export default User;
+
+

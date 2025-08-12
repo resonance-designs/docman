@@ -2,10 +2,12 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeftIcon } from "lucide-react";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -16,6 +18,7 @@ const schema = z.object({
     title: z.string().min(1, { message: "Title is required" }),
     author: z.string().optional(),
     description: z.string().optional(),
+    reviewDate: z.date({ required_error: "Review date is required" }),
     file: z
         .any()
         .refine((f) => f?.length === 1, "File is required")
@@ -29,7 +32,7 @@ const CreatePage = () => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [loading, setLoading] = useState(false);
 
-    const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    const { register, handleSubmit, control, formState: { errors }, reset } = useForm({
         resolver: zodResolver(schema),
     });
 
@@ -45,22 +48,69 @@ const CreatePage = () => {
         loadUsers();
     }, []);
 
+    // const onSubmit = async (data) => {
+    //     setLoading(true);
+    //         try {
+    //         const formData = new FormData();
+    //         formData.append("title", data.title);
+    //         formData.append("author", data.author || "");
+    //         formData.append("description", data.description || "");
+    //         if (data.reviewDate) {
+    //             formData.append("reviewDate", data.reviewDate.toISOString());
+    //         }
+    //         formData.append("file", data.file[0]);
+
+    //         const res = await api.post("/docs", formData, {
+    //             headers: { "Content-Type": "multipart/form-data" },
+    //             onUploadProgress: (progressEvent) => {
+    //                 const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+    //                 setUploadProgress(percentCompleted);
+    //             },
+    //         });
+    //         toast.success("Document uploaded");
+    //         reset();
+    //         navigate("/");
+    //     } catch (err) {
+    //         console.error("Upload failed", err);
+    //         toast.error(err?.response?.data?.message || "Upload failed");
+    //     } finally {
+    //         setLoading(false);
+    //         setUploadProgress(0);
+    //     }
+    // };
+
     const onSubmit = async (data) => {
         setLoading(true);
-            try {
+        try {
             const formData = new FormData();
             formData.append("title", data.title);
             formData.append("author", data.author || "");
             formData.append("description", data.description || "");
-            formData.append("file", data.file[0]);
 
+            // Append reviewDate only if set; send as ISO string
+            if (data.reviewDate) {
+                formData.append("reviewDate", data.reviewDate.toISOString());
+            }
+
+            // File
+            if (data.file && data.file.length) {
+                formData.append("file", data.file[0]);
+            }
+
+            // Debug: list what you're sending (open console)
+            // NOTE: FormData entries for files will list a File object
+            for (const [key, value] of formData.entries()) {
+                console.log("formData", key, value);
+            }
+
+            // DO NOT set Content-Type manually — let the browser/axios add the boundary
             const res = await api.post("/docs", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                     setUploadProgress(percentCompleted);
                 },
             });
+
             toast.success("Document uploaded");
             reset();
             navigate("/");
@@ -72,6 +122,7 @@ const CreatePage = () => {
             setUploadProgress(0);
         }
     };
+
 
     return (
         <div className="min-h-screen">
@@ -99,6 +150,22 @@ const CreatePage = () => {
                                     <label className="label" htmlFor="description">Description</label>
                                     <textarea id="description" {...register("description")} className="textarea textarea-bordered" rows="4" />
                                     {errors.description && <p className="text-red-500 mt-1">{errors.description.message}</p>}
+                                </div>
+                                <div className="form-control mb-4">
+                                    <label className="label" htmlFor="reviewDate">Review For</label>
+                                    <Controller
+                                        name="reviewDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <DatePicker
+                                                placeholderText="Select review date"
+                                                selected={field.value}
+                                                onChange={(date) => field.onChange(date)}
+                                                className="input input-bordered w-full"
+                                            />
+                                        )}
+                                    />
+                                    {errors.reviewDate && <p className="text-red-500 mt-1">{errors.reviewDate.message}</p>}
                                 </div>
                                 <div className="form-control mb-4">
                                     <label className="label" htmlFor="file">File</label>

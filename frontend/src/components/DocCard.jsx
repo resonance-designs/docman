@@ -30,6 +30,7 @@ const DocCard = ({ doc, setDocs }) => {
                 <h3 className="card-title text-base-content">{doc.title}</h3>
                 <p className="text-base-content/70 line-clamp-3 text-xs">By <i>{doc.author}</i></p>
                 <p className="text-base-content/70 line-clamp-3">{doc.description}</p>
+                <p className="text-base-content/70 line-clamp-3">{formatDate(new Date(doc.reviewDate))}</p>
                 <div className="card-actions justify-between items-center mt-4">
                     <span className="text-sm text-base-content/60">
                         Added On: {formatDate(new Date(doc.createdAt))}
