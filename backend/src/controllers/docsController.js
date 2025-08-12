@@ -28,7 +28,6 @@ export async function getAllDocs(req, res) {
     }
 }
 
-
 export async function getDocById(req, res) {
     try {
         const doc = await Doc.findById(req.params.id);
@@ -42,15 +41,15 @@ export async function getDocById(req, res) {
 
 export async function createDoc(req, res) {
   try {
-        const { title, description, author } = req.body;
+        const { title, description, reviewDate, author } = req.body;
         const file = req.file;
 
-        if (!title || !description || !author) {
+        if (!title || !description || !reviewDate || !author) {
             return res.status(400).json({ message: "All fields are required." });
         }
 
         // Create the document entry
-        const newDoc = new Doc({ title, description, author });
+        const newDoc = new Doc({ title, description, reviewDate, author });
         await newDoc.save();
 
         // If a file was uploaded, save the file metadata
@@ -73,16 +72,15 @@ export async function createDoc(req, res) {
     }
 }
 
-
 export async function updateDoc(req, res) {
     try {
-        const { title, description, author } = req.body;
+        const { title, description, reviewDate, author } = req.body;
         const docObject = req.body;
         const objectIsEmpty = areAllObjectFieldsEmpty(docObject);
         if (objectIsEmpty) {
             return res.status(400).json({message: "No fields were changed."});
         }
-        const updatedDoc = await Doc.findByIdAndUpdate(req.params.id, { title, description, author }, {new: true});
+        const updatedDoc = await Doc.findByIdAndUpdate(req.params.id, { title, description, reviewDate, author }, {new: true});
         if (!updatedDoc) {
             return res.status(404).json({ message: "Document not found."});
         }

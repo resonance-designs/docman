@@ -11,7 +11,7 @@ import { ShieldQuestionMark } from 'lucide-react';
 
 
 const HomePage = () => {
-    const isAuthenticated = !!localStorage.getItem("token");
+    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
     const [isRateLimited, setIsRateLimited] = useState(false);
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -35,6 +35,7 @@ const HomePage = () => {
         const data = await res.json();
         if (res.ok) {
             localStorage.setItem("token", data.token);
+            setIsAuthenticated(true);
             setMessage("Login successful!");
             toast.success("Login successful!");
             navigate("/");
@@ -50,7 +51,7 @@ const HomePage = () => {
     useEffect(() => {
         const fetchDocs = async () => {
             try {
-                const res = await api.get("/docs?limit=6");
+                const res = await api.get("/docs?limit=10");
                 console.log(res.data);
                 setDocs(res.data);
                 setIsRateLimited(false);

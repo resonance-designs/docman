@@ -10,6 +10,10 @@ const docSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        reviewDate: {
+            type: Date,
+            required: true
+        },
         author: {
             type: String,
             required: true

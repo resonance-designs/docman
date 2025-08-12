@@ -16,8 +16,8 @@ export async function register(req, res) {
         }
         const user = new User({ email, firstname, lastname, username, password });
         await user.save();
-        const token = createSecretToken(user._id);
-        res.status(201).json({ token, user: { id: user._id, email, firstname, lastname, username } });
+        const token = createSecretToken(user._id, user.role);
+        res.status(201).json({ token, user: { id: user._id, email, firstname, lastname, username, role } });
     } catch (error) {
         console.error("Registration error:", error);
         res.status(500).json({ message: "Registration failed." });
@@ -31,7 +31,8 @@ export async function login(req, res) {
         const user = await User.findOne({ email });
         if (!user || !(await bcrypt.compare(password, user.password))) return res.status(401).json({ message: "Invalid credentials." });
 
-        const accessToken = createAccessToken(user._id);
+        const accessToken = createAccessToken(user._id, user.role);
+        console.log("Created access token with role:", user.role);
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashed = await bcrypt.hash(refreshToken, 12);
         user.refreshTokenHash = hashed;
@@ -44,7 +45,7 @@ export async function login(req, res) {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        res.status(200).json({ token: accessToken, user: { id: user._id, email, username: user.username } });
+        res.status(200).json({ token: accessToken, user: { id: user._id, email, username: user.username, role: user.role } });
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ message: "Login failed." });
@@ -121,7 +122,7 @@ export async function refreshToken(req, res) {
         user.refreshTokenHash = newHash;
         await user.save();
 
-        const newAccess = createAccessToken(user._id);
+        const newAccess = createAccessToken(user._id, user.role);
         res.cookie('refreshToken', newRefresh, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
