@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { Eye, RotateCcwKey, PlusIcon, LogIn, LogOut, UserPlus } from "lucide-react";
-import * as jwtDecode from "jwt-decode";
 import LogoPic from "../assets/imgs/logo.png";
+import { decodeJWT } from "../lib/utils"
 
 const getUserRole = () => {
     const token = localStorage.getItem("token");
     if (!token) return null;
     try {
-        const decoded = jwtDecode(token);
-        return decoded.role || null;
+        const decoded = decodeJWT(token);
+        return decoded?.role ?? null;
     } catch {
         return null;
     }

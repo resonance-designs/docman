@@ -13,6 +13,8 @@ import { ShieldQuestionMark } from 'lucide-react';
 const HomePage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
     const [isRateLimited, setIsRateLimited] = useState(false);
+    const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const [docs, setDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
@@ -51,7 +53,7 @@ const HomePage = () => {
     useEffect(() => {
         const fetchDocs = async () => {
             try {
-                const res = await api.get("/docs?limit=10");
+                const res = await api.get("/docs?limit=10", { headers });
                 console.log(res.data);
                 setDocs(res.data);
                 setIsRateLimited(false);
