@@ -1,3 +1,4 @@
+// backend/src/models/Doc.js
 import mongoose from "mongoose";
 
 const docSchema = new mongoose.Schema(
@@ -15,9 +16,23 @@ const docSchema = new mongoose.Schema(
             required: true
         },
         author: {
-            type: String,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
             required: true
-        }
+        },
+        category: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Category',
+            required: true
+        },
+        stakeholders: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
+        owners: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }]
     },
     { timestamps: true } // createdAt and updatedAt fields
 );

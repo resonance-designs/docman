@@ -6,9 +6,11 @@ import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
 import DocTable from "../components/DocTable";
 import DocsNotFound from "../components/DocsNotFound";
+import NavAdmin from "../components/NavAdmin";
 import { Link, useNavigate } from "react-router";
 import { LogIn, ShieldQuestionMark } from 'lucide-react';
 import useAutoLogout from "../hooks/useAutoLogout";
+import { decodeJWT } from "../lib/utils";
 
 const HomePage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
@@ -17,6 +19,7 @@ const HomePage = () => {
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
     const [message, setMessage] = useState("");
+    const [userRole, setUserRole] = useState(null);
     const navigate = useNavigate();
     const limitDocCard = 6;
 
@@ -24,6 +27,7 @@ const HomePage = () => {
     const handleAutoLogout = () => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);
+        setUserRole(null);
         setForm({ email: "", password: "" });
         setMessage("");
         window.dispatchEvent(new Event('authStateChanged'));
@@ -32,6 +36,28 @@ const HomePage = () => {
 
     // Use auto logout hook (30 minutes timeout)
     useAutoLogout(isAuthenticated, handleAutoLogout, 30);
+
+    // Helper function to get user role
+    const getUserRole = () => {
+        const token = localStorage.getItem("token");
+        if (!token) return null;
+        try {
+            const decoded = decodeJWT(token);
+            return decoded?.role ?? null;
+        } catch {
+            return null;
+        }
+    };
+
+    // Update user role when authentication changes
+    useEffect(() => {
+        if (isAuthenticated) {
+            const role = getUserRole();
+            setUserRole(role);
+        } else {
+            setUserRole(null);
+        }
+    }, [isAuthenticated]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -178,6 +204,7 @@ const HomePage = () => {
                     )}
                     {isAuthenticated && ( // If the user is authenticated, display the documents
                         <>
+                            <NavAdmin role={userRole} />
                             <h2 className="text-3xl mb-6">Documents That Need Review</h2>
                             {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
                             {docs.length === 0 && !loading && !isRateLimited && <DocsNotFound />}
