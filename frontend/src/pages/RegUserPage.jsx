@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ShieldQuestionMark } from 'lucide-react';
+import { ArrowLeftIcon, UserPlus } from 'lucide-react';
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
-function RegPage() {
+function RegisterUser() {
     const [email, setEmail] = useState("");
     const [firstname, setFirstName] = useState("");
     const [lastname, setLastName] = useState("");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [role, setRole] = useState("viewer");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -27,6 +28,7 @@ function RegPage() {
                 lastname,
                 username,
                 password,
+                role,
             });
             toast.success("User registered successfully!");
             navigate("/");
@@ -47,15 +49,21 @@ function RegPage() {
 
     return (
         <div className="min-h-screen">
-            <div className="container mx-auto px-4 py-8">
-                <div className="max-w-screen-lg mx-auto">
-                    <Link to={"/forgot-password"} className="btn btn-ghost mb-6">
-                        <ShieldQuestionMark className="size-5" />
-                        Forgot Password
+            <div className="container mx-auto px-4 py-4">
+                <div className="max-w-screen-xl mx-auto">
+                    {/* Header */}
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
+                            <UserPlus className="size-8 text-resdes-orange" />
+                            Register User
+                        </h1>
+                    </div>
+                    <Link to={"/users"} className="btn btn-ghost mb-6">
+                        <ArrowLeftIcon className="size-5" />
+                        Back To Users
                     </Link>
                     <div className="card bg-base-100">
                         <div className="card-body">
-                            <h2 className="card-title text-2xl mb-4">Register</h2>
                             <form onSubmit={handleSubmit}>
 
                                 <div className="form-control mb-4">
@@ -66,7 +74,7 @@ function RegPage() {
                                         id="firstname"
                                         type="test"
                                         name="firstname"
-                                        placeholder="Enter your first name"
+                                        placeholder="Enter the  users first name"
                                         className="input input-bordered"
                                         value={firstname}
                                         onChange={(e) => setFirstName(e.target.value)}
@@ -82,7 +90,7 @@ function RegPage() {
                                         id="lastname"
                                         type="test"
                                         name="lastname"
-                                        placeholder="Enter your last name"
+                                        placeholder="Enter the users last name"
                                         className="input input-bordered"
                                         value={lastname}
                                         onChange={(e) => setLastName(e.target.value)}
@@ -98,7 +106,7 @@ function RegPage() {
                                         id="email"
                                         type="email"
                                         name="email"
-                                        placeholder="Enter your email"
+                                        placeholder="Enter the users email"
                                         className="input input-bordered"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -137,6 +145,24 @@ function RegPage() {
                                         required
                                     />
                                 </div>
+
+                                <div className="form-control mb-4">
+                                    <label className="label" htmlFor="role">
+                                        <span className="label-text">Role</span>
+                                    </label>
+                                    <select
+                                        id="role"
+                                        name="role"
+                                        className="select select-bordered w-full"
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        required
+                                    >
+                                        <option value="viewer">Viewer</option>
+                                        <option value="editor">Editor</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
                                 <div className="card-actions justify-end">
                                     <button type="submit" className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300" disabled={loading}>
                                         {loading ? "Registering..." : "Register"}
@@ -151,4 +177,4 @@ function RegPage() {
     );
 }
 
-export default RegPage;
+export default RegisterUser;

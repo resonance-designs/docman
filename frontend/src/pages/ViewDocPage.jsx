@@ -1,0 +1,248 @@
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon } from "lucide-react";
+import toast from "react-hot-toast";
+import api from "../lib/axios";
+import { formatDate, decodeJWT } from "../lib/utils";
+
+const ViewDocPage = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+
+    const [doc, setDoc] = useState(null);
+    const [files, setFiles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState(null);
+
+    // Get user role from token
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            const decoded = decodeJWT(token);
+            setUserRole(decoded?.role);
+        }
+    }, []);
+
+    // Helper function to get full name
+    const getFullName = (user) => {
+        if (!user) return "Unknown";
+        if (typeof user === "string") return user;
+        return `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Unknown";
+    };
+
+    // Helper function to format file size
+    const formatFileSize = (bytes) => {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const sizes = ["Bytes", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    };
+
+    // Load document data
+    useEffect(() => {
+        const fetchDocument = async () => {
+            try {
+                const docRes = await api.get(`/docs/${id}`);
+                setDoc(docRes.data);
+
+                // Fetch files for this document
+                try {
+                    const filesRes = await api.get(`/docs/${id}/files`);
+                    setFiles(filesRes.data || []);
+                } catch (fileError) {
+                    // If files endpoint doesn't exist, we'll handle it gracefully
+                    console.log("Files endpoint not available:", fileError);
+                    setFiles([]);
+                }
+            } catch (err) {
+                console.error("Failed to load document", err);
+                toast.error(err?.response?.data?.message || "Failed to load document");
+                navigate("/");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchDocument();
+        }
+    }, [id, navigate]);
+
+    // Check if user can edit (editor or admin)
+    const canEdit = userRole === "editor" || userRole === "admin";
+
+    // Check if document needs review (review date is today or in the past)
+    const needsReview = doc && new Date(doc.reviewDate) <= new Date();
+
+    if (loading) {
+        return (
+            <div className="min-h-screen">
+                <div className="container mx-auto px-4 py-8">
+                    <p className="text-center text-resdes-teal">Loading document…</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!doc) {
+        return (
+            <div className="min-h-screen">
+                <div className="container mx-auto px-4 py-8">
+                    <p className="text-center text-red-500">Document not found</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen">
+            <div className="container mx-auto px-4 py-8">
+                <div className="max-w-screen-lg mx-auto">
+                    {/* Header with navigation */}
+                    <div className="flex justify-between items-center mb-6">
+                        <Link to="/" className="btn btn-ghost">
+                            <ArrowLeftIcon />
+                            Back To Documents
+                        </Link>
+
+                        {canEdit && (
+                            <Link to={`/edit/${id}`} className="btn bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80">
+                                <PenSquareIcon size={16} />
+                                Edit Document
+                            </Link>
+                        )}
+                    </div>
+
+                    {/* Document Details Card */}
+                    <div className="card bg-base-100 shadow-lg mb-6">
+                        <div className="card-body">
+                            {/* Title */}
+                            <h1 className="card-title text-3xl mb-4 text-base-content">{doc.title}</h1>
+
+                            {/* Metadata Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                {/* Author */}
+                                <div className="flex items-center gap-3">
+                                    <UserIcon className="text-resdes-orange" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Author</p>
+                                        <p className="font-medium">{getFullName(doc.author)}</p>
+                                    </div>
+                                </div>
+
+                                {/* Category */}
+                                <div className="flex items-center gap-3">
+                                    <TagIcon className="text-resdes-orange" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Category</p>
+                                        <p className="font-medium">{doc.category?.name || "Uncategorized"}</p>
+                                    </div>
+                                </div>
+
+                                {/* Review Date */}
+                                <div className="flex items-center gap-3">
+                                    <CalendarIcon className={needsReview ? "text-red-600" : "text-resdes-orange"} size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Review Date</p>
+                                        <p className={`font-medium ${needsReview ? "text-red-600 font-bold" : ""}`}>
+                                        {formatDate(new Date(doc.reviewDate))}
+                                        {needsReview && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">OVERDUE</span>}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Created Date */}
+                                <div className="flex items-center gap-3">
+                                    <CalendarIcon className="text-resdes-orange" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Created</p>
+                                        <p className="font-medium">{formatDate(new Date(doc.createdAt))}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold mb-2">Description</h3>
+                                <p className="text-base-content/80 leading-relaxed">{doc.description}</p>
+                            </div>
+
+                            {/* Stakeholders */}
+                            {doc.stakeholders && doc.stakeholders.length > 0 && (
+                                <div className="mb-6">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UsersIcon className="text-resdes-orange" size={20} />
+                                        <h3 className="text-lg font-semibold">Stakeholders</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.stakeholders.map((stakeholder) => (
+                                            <div key={stakeholder._id} className="badge badge-primary">
+                                                {getFullName(stakeholder)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Owners */}
+                            {doc.owners && doc.owners.length > 0 && (
+                                <div className="mb-6">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <CrownIcon className="text-resdes-orange" size={20} />
+                                        <h3 className="text-lg font-semibold">Owners</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.owners.map((owner) => (
+                                            <div key={owner._id} className="badge badge-secondary">
+                                                {getFullName(owner)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Files Section */}
+                    <div className="card bg-base-100 shadow-lg">
+                        <div className="card-body">
+                            <h3 className="card-title text-xl mb-4">Attached Files</h3>
+
+                            {files.length === 0 ? (
+                                <p className="text-gray-500 text-center py-8">No files attached to this document</p>
+                            ) : (
+                                <div className="space-y-3">
+                                {files.map((file) => (
+                                    <div key={file._id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                        <div className="flex items-center gap-3">
+                                            <FileIcon className="text-resdes-orange" size={24} />
+                                            <div>
+                                                <p className="font-medium">{file.originalname}</p>
+                                                <p className="text-sm text-gray-500">
+                                                    {formatFileSize(file.size)} • Uploaded {formatDate(new Date(file.uploadedAt))}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <a
+                                            href={`/uploads/${file.filename}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="btn btn-sm bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                        >
+                                            <DownloadIcon size={16} />
+                                            Download
+                                        </a>
+                                    </div>
+                                ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ViewDocPage;

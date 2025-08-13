@@ -1,10 +1,22 @@
-import { PenSquareIcon, Trash2Icon } from "lucide-react";
+import { EyeIcon, Trash2Icon } from "lucide-react";
 import { Link } from "react-router";
-import { formatDate } from "../lib/utils";
+import { formatDate, decodeJWT } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import { useEffect, useState } from "react";
 
 const DocTable = ({ doc, setDocs }) => {
+    const [userRole, setUserRole] = useState(null);
+
+    // Get user role from token
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            const decoded = decodeJWT(token);
+            setUserRole(decoded?.role);
+        }
+    }, []);
+
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
         if (!window.confirm("Are you sure you want to delete this document?")) return;
@@ -29,6 +41,12 @@ const DocTable = ({ doc, setDocs }) => {
         return 'Unknown Author'; // Fallback
     };
 
+    // Check if document needs review (review date is today or in the past)
+    const needsReview = new Date(doc.reviewDate) <= new Date();
+
+    // Check if user is admin
+    const isAdmin = userRole === "admin";
+
     return (
         <tr className="bg-base-100 p-4 border-b border-resdes-orange text-base-content text-sm antialiased font-normal leading-normal">
             <td className="p-4">
@@ -46,19 +64,28 @@ const DocTable = ({ doc, setDocs }) => {
                     {formatDate(new Date(doc.createdAt))}
                 </p>
             </td>
+            <td className="p-4">
+                <p className={`block ${needsReview ? 'text-resdes-red font-semibold' : ''}`}>
+                    {formatDate(new Date(doc.reviewDate))}
+                    {needsReview && <span className="ml-2 text-xs bg-red-100 text-resdes-red px-1 py-0.5 rounded">OVERDUE</span>}
+                </p>
+            </td>
             <td className="p-4 flex items-center gap-1 float-right">
                 <Link
                     to={`/doc/${doc._id}`}
                     className="card hover:shadow-lg transition-all duration-200"
+                    title="View Document"
                 >
-                    <PenSquareIcon className="size-4 text-resdes-teal" />
+                    <EyeIcon className="size-4 text-resdes-teal" />
                 </Link>
-                <button
-                    className="btn btn-ghost btn-xs text-resdes-teal"
-                    onClick={(e) => handleDelete(e, doc._id)}
-                >
-                    <Trash2Icon className="size-4" />
-                </button>
+                {isAdmin && (
+                    <button
+                        className="btn btn-ghost btn-xs text-resdes-teal"
+                        onClick={(e) => handleDelete(e, doc._id)}
+                    >
+                        <Trash2Icon className="size-4" />
+                    </button>
+                )}
             </td>
         </tr>
     );
@@ -81,6 +108,7 @@ DocTable.propTypes = {
         ]).isRequired,
         description: PropTypes.string.isRequired,
         createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
+        reviewDate: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     }).isRequired,
     setDocs: PropTypes.func.isRequired,
 };

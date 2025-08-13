@@ -30,6 +30,31 @@ const userSchema = new mongoose.Schema(
             enum: ["admin", "editor", "viewer"],
             default: "viewer", // New users are read-only by default
         },
+        telephone: {
+            type: String,
+            required: false,
+        },
+        title: {
+            type: String,
+            required: false,
+        },
+        department: {
+            type: String,
+            required: false,
+        },
+        profilePicture: {
+            type: String,
+            required: false,
+        },
+        backgroundImage: {
+            type: String,
+            required: false,
+        },
+        bio: {
+            type: String,
+            required: false,
+            maxlength: 500,
+        },
         resetPasswordToken: String,
         resetPasswordExpires: Date,
         refreshTokenHash: { type: String },

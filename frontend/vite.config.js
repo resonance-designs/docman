@@ -10,6 +10,7 @@ export default defineConfig({
         },
         proxy: {
             '/api': 'http://localhost:5001', // your backend port
+            '/uploads': 'http://localhost:5001', // proxy uploads to backend
         }
     }
 });

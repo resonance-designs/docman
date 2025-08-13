@@ -1,0 +1,62 @@
+import { ChevronUpIcon, ChevronDownIcon, ChevronsUpDownIcon } from "lucide-react";
+import PropTypes from "prop-types";
+
+const SortableHeader = ({
+    children,
+    sortKey,
+    currentSort,
+    onSort,
+    className = ""
+}) => {
+    const handleSort = () => {
+        if (currentSort.key === sortKey) {
+            // If already sorting by this key, toggle direction
+            const newDirection = currentSort.direction === "asc" ? "desc" : "asc";
+            onSort({ key: sortKey, direction: newDirection });
+        } else {
+            // If not sorting by this key, start with ascending
+            onSort({ key: sortKey, direction: "asc" });
+        }
+    };
+
+    const getSortIcon = () => {
+        if (currentSort.key !== sortKey) {
+            return <ChevronsUpDownIcon className="h-4 w-4 text-resdes-teal" />;
+        }
+
+        if (currentSort.direction === "asc") {
+            return <ChevronUpIcon className="h-4 w-4 text-slate-950" />;
+        } else {
+            return <ChevronDownIcon className="h-4 w-4 text-slate-950" />;
+        }
+    };
+
+    const isActive = currentSort.key === sortKey;
+
+    return (
+        <th 
+            className={`p-4 cursor-pointer hover:bg-black/5 transition-colors ${className}`}
+            onClick={handleSort}
+        >
+            <div className="flex items-center justify-between">
+                <p className={`block text-sm antialiased leading-none ${isActive ? 'font-bold' : ''}`}>
+                    {children}
+                </p>
+                {getSortIcon()}
+            </div>
+        </th>
+    );
+};
+
+SortableHeader.propTypes = {
+    children: PropTypes.node.isRequired,
+    sortKey: PropTypes.string.isRequired,
+    currentSort: PropTypes.shape({
+        key: PropTypes.string.isRequired,
+        direction: PropTypes.oneOf(["asc", "desc"]).isRequired
+    }).isRequired,
+    onSort: PropTypes.func.isRequired,
+    className: PropTypes.string
+};
+
+export default SortableHeader;

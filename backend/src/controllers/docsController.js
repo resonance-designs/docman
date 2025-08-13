@@ -5,29 +5,112 @@ import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 
 export async function getAllDocs(req, res) {
     try {
-        // Read optional ?limit=5 from the query string
-        const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+        const {
+            limit,
+            search,
+            category,
+            author,
+            overdue,
+            startDate,
+            endDate,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.query;
 
-        // Build the query with population
-        let query = Doc.find()
+        // Build filter object
+        const filter = {};
+
+        // Search filter - search in title and description
+        if (search) {
+            filter.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Category filter
+        if (category) {
+            filter.category = category;
+        }
+
+        // Author filter
+        if (author) {
+            filter.author = author;
+        }
+
+        // Overdue filter
+        if (overdue === 'true') {
+            filter.reviewDate = { $lt: new Date() };
+        }
+
+        // Date range filter (for createdAt)
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) {
+                filter.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                // Add one day to include the end date
+                const endDateTime = new Date(endDate);
+                endDateTime.setDate(endDateTime.getDate() + 1);
+                filter.createdAt.$lt = endDateTime;
+            }
+        }
+
+        // Build sort object
+        const sortObj = {};
+        const validSortFields = ['title', 'createdAt', 'reviewDate', 'author', 'category'];
+        const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortDirection = sortOrder === 'asc' ? 1 : -1;
+
+        // Handle special sorting for populated fields
+        if (sortField === 'author') {
+            sortObj['author.firstname'] = sortDirection;
+        } else if (sortField === 'category') {
+            sortObj['category.name'] = sortDirection;
+        } else {
+            sortObj[sortField] = sortDirection;
+        }
+
+        // Build the query with population and filtering
+        let query = Doc.find(filter)
             .populate('author', 'firstname lastname email')
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email')
-            .sort({ createdAt: -1 });
+            .populate('owners', 'firstname lastname email');
+
+        // Apply sorting
+        if (sortField === 'author' || sortField === 'category') {
+            // For populated fields, we need to sort after population
+            query = query.sort(sortObj);
+        } else {
+            query = query.sort(sortObj);
+        }
 
         // Apply limit only if provided
-        if (limit && !isNaN(limit)) {
-            query = query.limit(limit);
+        const limitNum = limit ? parseInt(limit, 10) : null;
+        if (limitNum && !isNaN(limitNum)) {
+            query = query.limit(limitNum);
         }
 
         const docs = await query;
 
-        if (!docs || docs.length === 0) {
-            return res.status(404).json({ message: "No documents found." });
-        } else {
-            res.status(200).json(docs);
+        // If sorting by populated fields, sort in memory
+        if (sortField === 'author') {
+            docs.sort((a, b) => {
+                const aName = `${a.author?.firstname || ''} ${a.author?.lastname || ''}`.trim();
+                const bName = `${b.author?.firstname || ''} ${b.author?.lastname || ''}`.trim();
+                return sortDirection === 1 ? aName.localeCompare(bName) : bName.localeCompare(aName);
+            });
+        } else if (sortField === 'category') {
+            docs.sort((a, b) => {
+                const aName = a.category?.name || '';
+                const bName = b.category?.name || '';
+                return sortDirection === 1 ? aName.localeCompare(bName) : bName.localeCompare(aName);
+            });
         }
+
+        res.status(200).json(docs);
     } catch (error) {
         console.error("Error fetching documents:", error);
         res.status(500).send("Internal Server Error");
@@ -179,6 +262,26 @@ export async function deleteDoc(req, res) {
         res.status(200).json({ message: "Document deleted successfully" });
     } catch (error) {
         console.error("Error deleting document:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
+export async function getDocFiles(req, res) {
+    try {
+        const docId = req.params.id;
+
+        // Verify the document exists
+        const doc = await Doc.findById(docId);
+        if (!doc) {
+            return res.status(404).json({ message: "Document not found." });
+        }
+
+        // Get all files for this document
+        const files = await File.find({ documentId: docId }).sort({ uploadedAt: -1 });
+
+        res.status(200).json(files);
+    } catch (error) {
+        console.error("Error fetching document files:", error);
         res.status(500).send("Internal Server Error");
     }
 }

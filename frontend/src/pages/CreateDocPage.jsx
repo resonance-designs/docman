@@ -1,25 +1,31 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowLeftIcon, X } from "lucide-react";
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import { ArrowLeftIcon, FilePlus2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 
+// Review interval options
+const REVIEW_INTERVALS = [
+    { value: "1mo", label: "1 Month", months: 1 },
+    { value: "3mo", label: "3 Months", months: 3 },
+    { value: "6mo", label: "6 Months", months: 6 },
+    { value: "1yr", label: "1 Year", months: 12 }
+];
+
 const schema = z.object({
     title: z.string().min(1, { message: "Title is required" }),
     author: z.string().min(1, { message: "Author is required" }),
     description: z.string().min(1, { message: "Description is required" }),
     category: z.string().min(1, { message: "Category is required" }),
-    reviewDate: z.date({ required_error: "Review date is required" }),
+    reviewInterval: z.string().min(1, { message: "Review interval is required" }),
     stakeholders: z.array(z.string()).optional(),
     owners: z.array(z.string()).optional(),
     file: z
@@ -35,12 +41,12 @@ const CreateDocPage = () => {
     const [categories, setCategories] = useState([]);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [loading, setLoading] = useState(false);
-    
+
     // State for multi-select stakeholders and owners
     const [selectedStakeholders, setSelectedStakeholders] = useState([]);
     const [selectedOwners, setSelectedOwners] = useState([]);
 
-    const { register, handleSubmit, control, formState: { errors }, reset, setValue } = useForm({
+    const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
             stakeholders: [],
@@ -55,7 +61,7 @@ const CreateDocPage = () => {
                 // Load users - using your existing endpoint
                 const usersRes = await api.get("/users");
                 setUsers(usersRes.data || []);
-                
+
                 // Load categories - new endpoint
                 const categoriesRes = await api.get("/categories");
                 setCategories(categoriesRes.data || []);
@@ -70,6 +76,16 @@ const CreateDocPage = () => {
     // Helper function to get full name from your User model
     const getFullName = (user) => {
         return `${user.firstname || ''} ${user.lastname || ''}`.trim();
+    };
+
+    // Calculate review date based on interval
+    const calculateReviewDate = (intervalValue) => {
+        const interval = REVIEW_INTERVALS.find(i => i.value === intervalValue);
+        if (!interval) return new Date();
+
+        const reviewDate = new Date();
+        reviewDate.setMonth(reviewDate.getMonth() + interval.months);
+        return reviewDate;
     };
 
     // Handle stakeholder selection
@@ -113,10 +129,9 @@ const CreateDocPage = () => {
             formData.append("description", data.description);
             formData.append("category", data.category);
 
-            // Append reviewDate as ISO string
-            if (data.reviewDate) {
-                formData.append("reviewDate", data.reviewDate.toISOString());
-            }
+            // Calculate and append reviewDate based on interval
+            const reviewDate = calculateReviewDate(data.reviewInterval);
+            formData.append("reviewDate", reviewDate.toISOString());
 
             // Append stakeholders and owners as JSON strings
             if (data.stakeholders && data.stakeholders.length > 0) {
@@ -159,26 +174,32 @@ const CreateDocPage = () => {
 
     return (
         <div className="min-h-screen">
-            <div className="container mx-auto px-4 py-8">
-                <div className="max-w-screen-lg mx-auto">
+            <div className="container mx-auto px-4 py-4">
+                <div className="max-w-screen-xl mx-auto">
+                    {/* Header */}
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
+                            <FilePlus2 className="size-8 text-resdes-orange" />
+                            Create Document
+                        </h1>
+                    </div>
                     <Link to="/" className="btn btn-ghost mb-4">
                         <ArrowLeftIcon />
                         Back To Documents
                     </Link>
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
-                            <h2 className="card-title text-2xl mb-4">Create Document</h2>
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 {/* Title */}
                                 <div className="form-control mb-4">
-                                    <label className="label" htmlFor="title">Title</label>
-                                    <input id="title" {...register("title")} className="input input-bordered" />
+                                    <label className="label font-semibold" htmlFor="title">Title</label>
+                                    <input id="title" {...register("title")} className="input input-bordered" placeholder="Enter document title" />
                                     {errors.title && <p className="text-red-500 mt-1">{errors.title.message}</p>}
                                 </div>
 
                                 {/* Author Dropdown */}
                                 <div className="form-control mb-4">
-                                    <label className="label" htmlFor="author">Author</label>
+                                    <label className="label font-semibold" htmlFor="author">Author</label>
                                     <select id="author" {...register("author")} className="select select-bordered">
                                         <option value="">Select an author</option>
                                         {users.map((user) => (
@@ -192,7 +213,7 @@ const CreateDocPage = () => {
 
                                 {/* Category Dropdown */}
                                 <div className="form-control mb-4">
-                                    <label className="label" htmlFor="category">Category</label>
+                                    <label className="label font-semibold" htmlFor="category">Category</label>
                                     <select id="category" {...register("category")} className="select select-bordered">
                                         <option value="">Select a category</option>
                                         {categories.map((category) => (
@@ -204,17 +225,31 @@ const CreateDocPage = () => {
                                     {errors.category && <p className="text-red-500 mt-1">{errors.category.message}</p>}
                                 </div>
 
+                                {/* Review Interval Dropdown */}
+                                <div className="form-control mb-4">
+                                    <label className="label font-semibold" htmlFor="reviewInterval">Review Every</label>
+                                    <select id="reviewInterval" {...register("reviewInterval")} className="select select-bordered">
+                                        <option value="">Select review interval</option>
+                                        {REVIEW_INTERVALS.map((interval) => (
+                                            <option key={interval.value} value={interval.value}>
+                                                {interval.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.reviewInterval && <p className="text-red-500 mt-1">{errors.reviewInterval.message}</p>}
+                                </div>
+
                                 {/* Description */}
                                 <div className="form-control mb-4">
-                                    <label className="label" htmlFor="description">Description</label>
-                                    <textarea id="description" {...register("description")} className="textarea textarea-bordered" rows="4" />
+                                    <label className="label font-semibold" htmlFor="description">Description</label>
+                                    <textarea id="description" {...register("description")} className="textarea textarea-bordered" rows="4" placeholder="Enter document description" />
                                     {errors.description && <p className="text-red-500 mt-1">{errors.description.message}</p>}
                                 </div>
 
                                 {/* Stakeholders Multi-select */}
                                 <div className="form-control mb-4">
-                                    <label className="label">Stakeholders</label>
-                                    <select 
+                                    <label className="label font-semibold">Stakeholders</label>
+                                    <select
                                         className="select select-bordered"
                                         onChange={(e) => {
                                             if (e.target.value) {
@@ -232,7 +267,7 @@ const CreateDocPage = () => {
                                                 </option>
                                             ))}
                                     </select>
-                                    
+
                                     {/* Selected Stakeholders */}
                                     {selectedStakeholders.length > 0 && (
                                         <div className="mt-2">
@@ -260,8 +295,8 @@ const CreateDocPage = () => {
 
                                 {/* Owners Multi-select */}
                                 <div className="form-control mb-4">
-                                    <label className="label">Owners</label>
-                                    <select 
+                                    <label className="label font-semibold">Owners</label>
+                                    <select
                                         className="select select-bordered"
                                         onChange={(e) => {
                                             if (e.target.value) {
@@ -279,7 +314,7 @@ const CreateDocPage = () => {
                                                 </option>
                                             ))}
                                     </select>
-                                    
+
                                     {/* Selected Owners */}
                                     {selectedOwners.length > 0 && (
                                         <div className="mt-2">
@@ -305,27 +340,9 @@ const CreateDocPage = () => {
                                     )}
                                 </div>
 
-                                {/* Review Date */}
-                                <div className="form-control mb-4">
-                                    <label className="label" htmlFor="reviewDate">Review For</label>
-                                    <Controller
-                                        name="reviewDate"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <DatePicker
-                                                placeholderText="Select review date"
-                                                selected={field.value}
-                                                onChange={(date) => field.onChange(date)}
-                                                className="input input-bordered w-full"
-                                            />
-                                        )}
-                                    />
-                                    {errors.reviewDate && <p className="text-red-500 mt-1">{errors.reviewDate.message}</p>}
-                                </div>
-
                                 {/* File Upload */}
                                 <div className="form-control mb-4">
-                                    <label className="label" htmlFor="file">File</label>
+                                    <label className="label font-semibold" htmlFor="file">File</label>
                                     <input id="file" type="file" {...register("file")} className="file-input" />
                                     {errors.file && <p className="text-red-500 mt-1">{errors.file.message}</p>}
                                 </div>

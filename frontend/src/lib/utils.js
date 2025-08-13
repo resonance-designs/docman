@@ -25,3 +25,16 @@ export function decodeJWT(token) {
         return null;
     }
 };
+
+// Helper function to generate navigation link classes
+export const getLinkClass = (currentPath, targetPath, base = "btn px-3 py-3 font-semibold text-sm") =>
+    currentPath === targetPath
+        ? `${base} bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300`
+        : `${base} btn-ghost`;
+
+// Truncate text to a specified length with ellipsis
+export function truncate(text, maxLength = 100, suffix = '...') {
+    if (!text || typeof text !== 'string') return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + suffix;
+}
