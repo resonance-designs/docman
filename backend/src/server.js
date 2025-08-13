@@ -32,6 +32,8 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 import systemRoutes from "./routes/systemRoutes.js";
 import teamsRoutes from "./routes/teamsRoutes.js";
 import projectsRoutes from "./routes/projectsRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
+import customChartsRoutes from "./routes/customChartsRoutes.js";
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -74,6 +76,8 @@ app.use("/api/categories", categoriesRoutes); // Declare category endpoints
 app.use("/api/teams", teamsRoutes); // Declare teams endpoints
 app.use("/api/projects", projectsRoutes); // Declare projects endpoints
 app.use("/api/system", systemRoutes); // Declare system endpoints
+app.use("/api/analytics", analyticsRoutes); // Declare analytics endpoints
+app.use("/api/custom-charts", customChartsRoutes); // Declare custom charts endpoints
 app.use("/upload", uploadRoutes); // Declare uploads endpoints
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
 // Static file serving for production

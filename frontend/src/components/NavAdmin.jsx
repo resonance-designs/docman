@@ -1,5 +1,6 @@
 import { Link } from "react-router";
-import { UserPlus, FolderPlus, Shield, MonitorIcon } from "lucide-react";
+import { UserPlus, FolderPlus, Shield, MonitorIcon, BarChartIcon } from "lucide-react";
+import PropTypes from "prop-types";
 
 const NavAdmin = ({ role }) => {
     // Only render if user is admin
@@ -35,9 +36,21 @@ const NavAdmin = ({ role }) => {
                     <MonitorIcon className="size-4" />
                     <span>System Info</span>
                 </Link>
+                <Link
+                    to="/custom-charts"
+                    className="btn btn-sm bg-slate-950 text-resdes-orange hover:bg-slate-800 transition-colors duration-300"
+                >
+                    <BarChartIcon className="size-4" />
+                    <span>Custom Charts</span>
+                </Link>
+
             </div>
         </div>
     );
+};
+
+NavAdmin.propTypes = {
+    role: PropTypes.string.isRequired
 };
 
 export default NavAdmin;

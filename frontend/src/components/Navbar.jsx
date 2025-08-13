@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
-import { LogOut, FolderIcon, UsersIcon, FileTextIcon, UserIcon, MenuIcon, XIcon, Users2Icon } from "lucide-react";
+import { LogOut, FolderIcon, UsersIcon, FileTextIcon, UserIcon, MenuIcon, XIcon, Users2Icon, BarChart3Icon } from "lucide-react";
 import toast from "react-hot-toast";
 import LogoPic from "../assets/imgs/logo.png";
 import { decodeJWT, getLinkClass } from "../lib/utils";
@@ -122,6 +122,10 @@ const Navbar = () => {
                                     <UsersIcon className="size-5" />
                                     <span>Users</span>
                                 </Link>
+                                <Link to="/analytics" className={getLinkClass(location.pathname, "/analytics")}>
+                                    <BarChart3Icon className="size-5" />
+                                    <span>Analytics</span>
+                                </Link>
                                 {(role === "editor" || role === "admin") && (
                                     <>
                                         <Link to="/teams" className={getLinkClass(location.pathname, "/teams")}>
@@ -190,6 +194,14 @@ const Navbar = () => {
                             >
                                 <UsersIcon className="size-5" />
                                 <span>Users</span>
+                            </Link>
+                            <Link
+                                to="/analytics"
+                                className={getLinkClass(location.pathname, "/analytics", "btn w-full justify-start")}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <BarChart3Icon className="size-5" />
+                                <span>Analytics</span>
                             </Link>
                             {(role === "editor" || role === "admin") && (
                                 <>
