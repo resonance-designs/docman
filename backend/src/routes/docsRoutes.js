@@ -25,7 +25,7 @@ router.post("/", verifyAccessToken, requireRole("editor", "admin"), uploadMid.si
 router.post("/:id/upload", verifyAccessToken, requireRole("editor", "admin"), uploadMid.single("file"), uploadFileVersion);
 
 // Restricted: Only editors & admins can update
-router.put("/:id", verifyAccessToken, requireRole("editor", "admin"), updateDoc);
+router.put("/:id", verifyAccessToken, requireRole("editor", "admin"), uploadMid.none(), updateDoc);
 router.put("/:id/review", verifyAccessToken, requireRole("editor", "admin"), markDocAsReviewed);
 
 // Restricted: Only admins can delete

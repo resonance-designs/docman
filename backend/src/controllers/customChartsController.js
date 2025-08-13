@@ -13,7 +13,7 @@ export async function getAllCustomCharts(req, res) {
             .sort({ createdAt: -1 });
         
         // Also include charts created by the current user
-        const userCharts = await CustomChart.find({ createdBy: req.user.id })
+        const userCharts = await CustomChart.find({ createdBy: req.user._id.toString() })
             .populate('createdBy', 'firstname lastname email')
             .sort({ createdAt: -1 });
         
@@ -40,7 +40,7 @@ export async function getCustomChartById(req, res) {
         }
         
         // Check if user has permission to view this chart
-        if (!chart.isPublic && chart.createdBy._id.toString() !== req.user.id) {
+        if (!chart.isPublic && chart.createdBy._id.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Access denied to this chart" });
         }
         
@@ -67,7 +67,7 @@ export async function createCustomChart(req, res) {
             filters,
             colorPalette,
             isPublic,
-            createdBy: req.user.id
+            createdBy: req.user._id.toString()
         });
         
         await newChart.save();
@@ -96,7 +96,7 @@ export async function updateCustomChart(req, res) {
         }
         
         // Check if user is the creator
-        if (chart.createdBy.toString() !== req.user.id) {
+        if (chart.createdBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Access denied: You can only update your own charts" });
         }
         
@@ -139,7 +139,7 @@ export async function deleteCustomChart(req, res) {
         }
         
         // Check if user is the creator
-        if (chart.createdBy.toString() !== req.user.id) {
+        if (chart.createdBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Access denied: You can only delete your own charts" });
         }
         
@@ -163,7 +163,7 @@ export async function getChartData(req, res) {
         }
         
         // Check if user has permission to view this chart
-        if (!chart.isPublic && chart.createdBy.toString() !== req.user.id) {
+        if (!chart.isPublic && chart.createdBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: "Access denied to this chart" });
         }
         

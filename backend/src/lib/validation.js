@@ -1,5 +1,4 @@
 // Server-side validation utilities
-
 export const validateEmail = (email) => {
     // More robust email regex
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -38,29 +37,29 @@ export const validateUsername = (username) => {
     const trimmedUsername = username.trim();
     if (trimmedUsername.length < 3) return "Username must be at least 3 characters long";
     if (trimmedUsername.length > 30) return "Username must be less than 30 characters";
-    
+
     // Check for reserved words or patterns
     const reservedWords = ['admin', 'administrator', 'root', 'system', 'null', 'undefined', 'api', 'auth', 'login', 'register'];
     const lowerUsername = trimmedUsername.toLowerCase();
     if (reservedWords.includes(lowerUsername)) {
         return "Username is reserved and cannot be used";
     }
-    
+
     // Check for invalid characters
     if (!/^[a-zA-Z0-9._-]+$/.test(trimmedUsername)) {
         return "Username can only contain letters, numbers, periods, underscores, and hyphens";
     }
-    
+
     // Check for consecutive periods, underscores, or hyphens
     if (/[._-]{2,}/.test(trimmedUsername)) {
         return "Username cannot contain consecutive periods, underscores, or hyphens";
     }
-    
+
     // Check for leading or trailing periods, underscores, or hyphens
     if (/^[._-]|[._-]$/.test(trimmedUsername)) {
         return "Username cannot start or end with a period, underscore, or hyphen";
     }
-    
+
     return null;
 };
 
@@ -127,6 +126,35 @@ export const validateRole = (role) => {
     return null;
 };
 
+export const validateTeamName = (name) => {
+    console.log("Validating team name:", name);
+    if (!name) {
+        console.log("Team name is falsy");
+        return "Team name is required";
+    }
+    if (typeof name !== 'string') {
+        console.log("Team name is not a string");
+        return "Team name must be a string";
+    }
+    const trimmedName = name.trim();
+    console.log("Trimmed team name:", trimmedName);
+    if (trimmedName.length < 2) {
+        console.log("Team name is too short");
+        return "Team name must be at least 2 characters long";
+    }
+    if (trimmedName.length > 100) {
+        console.log("Team name is too long");
+        return "Team name must be less than 100 characters";
+    }
+    // Allow more characters for team names including numbers, underscores, etc.
+    if (!/^[a-zA-Z0-9\s\-_.'@#&]+$/.test(trimmedName)) {
+        console.log("Team name contains invalid characters");
+        return "Team name contains invalid characters";
+    }
+    console.log("Team name validation passed");
+    return null;
+};
+
 export const validateObjectId = (id, fieldName = "ID") => {
     if (!id) return `${fieldName} is required`;
     if (typeof id !== 'string') return `${fieldName} must be a string`;
@@ -154,7 +182,7 @@ export const validateFormData = (data, validationRules) => {
     Object.keys(validationRules).forEach(field => {
         const rules = validationRules[field];
         const value = data[field];
-        
+
         for (const rule of rules) {
             const error = rule(value);
             if (error) {
@@ -172,7 +200,7 @@ export const validateFormData = (data, validationRules) => {
 export const createValidationMiddleware = (validationRules) => {
     return (req, res, next) => {
         const { isValid, errors } = validateFormData(req.body, validationRules);
-        
+
         if (!isValid) {
             return res.status(400).json({
                 message: "Validation failed",
@@ -182,7 +210,7 @@ export const createValidationMiddleware = (validationRules) => {
                 }, {})
             });
         }
-        
+
         next();
     };
 };

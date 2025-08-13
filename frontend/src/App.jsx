@@ -17,6 +17,9 @@ import TeamsPage from "./pages/TeamsPage";
 import TeamDetailPage from "./pages/TeamDetailPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import CreateProjectPage from "./pages/CreateProjectPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
+import EditProjectPage from "./pages/EditProjectPage";
+import EditTeamPage from "./pages/EditTeamPage";
 import LoginPage from "./pages/LoginPage";
 import RegUserPage from "./pages/RegUserPage";
 import ForgotPassPage from "./pages/ForgotPassPage";
@@ -169,21 +172,45 @@ const App = () => {
                     }
                 />
                 <Route
-                    path="/projects"
+                    path="/teams/:id/edit"
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ProjectsPage />
+                            <EditTeamPage />
                         </ProtectedRoute>
                     }
                 />
                 <Route
-                    path="/projects/create"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <CreateProjectPage />
-                        </ProtectedRoute>
-                    }
-                />
+                                    path="/projects"
+                                    element={
+                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                            <ProjectsPage />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/projects/create"
+                                    element={
+                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                            <CreateProjectPage />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                                    path="/projects/:id"
+                                                    element={
+                                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                                            <ProjectDetailPage />
+                                                        </ProtectedRoute>
+                                                    }
+                                                />
+                                                <Route
+                                                    path="/projects/:id/edit"
+                                                    element={
+                                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                                            <EditProjectPage />
+                                                        </ProtectedRoute>
+                                                    }
+                                                />
                 <Route
                     path="/my-profile"
                     element={

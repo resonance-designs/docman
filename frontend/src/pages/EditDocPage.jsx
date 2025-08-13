@@ -460,12 +460,20 @@ const EditDocPage = () => {
                                     {/* Review Due Date */}
                                     <div className="form-control mb-4">
                                         <label className="label" htmlFor="reviewDueDate">Review Due Date</label>
-                                        <input
-                                            id="reviewDueDate"
-                                            type="date"
-                                            {...register("reviewDueDate")}
-                                            onChange={(e) => handleReviewDueDateChange(e.target.value ? new Date(e.target.value) : null)}
-                                            className="input input-bordered"
+                                        <Controller
+                                            name="reviewDueDate"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <DatePicker
+                                                    placeholderText="Select review due date"
+                                                    selected={field.value}
+                                                    onChange={(date) => {
+                                                        field.onChange(date);
+                                                        handleReviewDueDateChange(date);
+                                                    }}
+                                                    className="input input-bordered w-full"
+                                                />
+                                            )}
                                         />
                                     </div>
                                     

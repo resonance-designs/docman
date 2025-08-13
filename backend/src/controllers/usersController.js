@@ -69,9 +69,16 @@ export async function getUserById(req, res) {
 
 export async function updateUser(req, res) {
     try {
+        console.log("Update user request received");
+        console.log("Request body:", req.body);
+
+        console.log("Current user ID:", req.user._id.toString());
+        console.log("Current user role:", req.user.role);
+
         const { firstname, lastname, email, telephone, title, department, bio, password, role } = req.body;
         const userId = req.params.id;
-        const currentUserId = req.user.id;
+        console.log("User ID from params:", req.params.id);
+        const currentUserId = req.user._id.toString();
         const currentUserRole = req.user.role;
 
         // Validation
@@ -129,6 +136,7 @@ export async function updateUser(req, res) {
         }
 
         // Return validation errors if any
+        console.log("Validation errors:", validationErrors);
         if (validationErrors.length > 0) {
             return res.status(400).json({
                 message: "Validation failed",
@@ -139,12 +147,15 @@ export async function updateUser(req, res) {
             });
         }
 
+        console.log("Checking if user exists with ID:", userId);
         // Check if user exists
         const user = await User.findById(userId);
+        console.log("User found:", user);
         if (!user) {
             return res.status(404).json({ message: "User not found." });
         }
 
+        console.log("Authorization check - userId:", userId, "currentUserId:", currentUserId, "currentUserRole:", currentUserRole);
         // Authorization check: users can only edit themselves, admins can edit anyone
         if (userId !== currentUserId && currentUserRole !== "admin") {
             return res.status(403).json({ message: "You can only edit your own profile." });
@@ -155,16 +166,16 @@ export async function updateUser(req, res) {
 
         if (userId === currentUserId) {
             // User editing their own profile - can edit all fields except role
-            if (firstname) updateData.firstname = sanitizeString(firstname);
-            if (lastname) updateData.lastname = sanitizeString(lastname);
-            if (email) updateData.email = sanitizeEmail(email);
+            if (firstname !== undefined) updateData.firstname = sanitizeString(firstname);
+            if (lastname !== undefined) updateData.lastname = sanitizeString(lastname);
+            if (email !== undefined) updateData.email = sanitizeEmail(email);
             if (telephone !== undefined) updateData.telephone = sanitizeString(telephone);
             if (title !== undefined) updateData.title = sanitizeString(title);
             if (department !== undefined) updateData.department = sanitizeString(department);
             if (bio !== undefined) updateData.bio = sanitizeString(bio);
         } else if (currentUserRole === "admin") {
             // Admin editing another user - can only edit role and password
-            if (role) updateData.role = role;
+            if (role !== undefined) updateData.role = role;
         }
 
         // Handle password update (both self and admin can update passwords)
@@ -172,20 +183,30 @@ export async function updateUser(req, res) {
             updateData.password = await bcrypt.hash(password, 12);
         }
 
+        console.log("Checking email uniqueness - email:", email, "user.email:", user.email);
         // Check for email uniqueness if email is being changed
         if (email && email !== user.email) {
             const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+            console.log("Existing user with same email:", existingUser);
             if (existingUser) {
                 return res.status(409).json({ message: "Email already in use." });
             }
         }
 
+        console.log("Update data being sent to database:", updateData);
+
+        // Add last updated by field
+        updateData.lastUpdatedBy = currentUserId;
+
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             updateData,
-            { new: true, select: "_id firstname lastname email telephone title department bio role profilePicture backgroundImage createdAt updatedAt" }
+            { new: true, select: "_id firstname lastname email telephone title department bio role profilePicture backgroundImage createdAt updatedAt lastUpdatedBy" }
         );
 
+        console.log("Updated user:", updatedUser);
+
+        console.log("User updated successfully:", updatedUser);
         res.status(200).json({
             message: "User updated successfully",
             user: updatedUser
