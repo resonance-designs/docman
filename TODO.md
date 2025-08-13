@@ -32,14 +32,17 @@ A list of features I plan on implementing into the application.
    3. Users should be able to download previous versions of the document
    4. Users should be able to compare previous versions of the document
    5. Users should be able to view the change log for the document
-5. Work on UI in general
+5. Create a theme switcher
 6. Create a sidebar menu
 7. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
 8. Notification System
 9.  IT Contacts in CreateDocPage
 10. Universal debugging function(s)
 11. Add unit tests, update any existing unit tests
-12. Add comments
+12. Create a fork with local storage for data and bundle into an Electron app for desktop use
+13. Create internal messaging system
+14. Be able to invite members already in the system to teams.
+15. Add comments
 
 ## Authentication System Suggestions & Improvements
 

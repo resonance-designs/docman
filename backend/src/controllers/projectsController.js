@@ -11,7 +11,7 @@ import {
 export async function getTeamProjects(req, res) {
     try {
         const teamId = req.params.teamId;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
         const { search, status, priority, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
         // Check if user has access to the team
@@ -26,7 +26,7 @@ export async function getTeamProjects(req, res) {
 
         // Build filter object
         const filter = { team: teamId };
-        
+
         // Search filter
         if (search) {
             filter.$or = [
@@ -67,7 +67,7 @@ export async function getTeamProjects(req, res) {
 // Get user's projects across all teams
 export async function getUserProjects(req, res) {
     try {
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
         const { search, status, priority, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
         // Build filter object
@@ -77,7 +77,7 @@ export async function getUserProjects(req, res) {
                 { 'collaborators.user': userId }
             ]
         };
-        
+
         // Search filter
         if (search) {
             filter.$and = filter.$and || [];
@@ -123,7 +123,7 @@ export async function getUserProjects(req, res) {
 export async function getProjectById(req, res) {
     try {
         const projectId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
 
         const project = await Project.findById(projectId)
             .populate('team', 'name')
@@ -155,23 +155,28 @@ export async function getProjectById(req, res) {
 export async function createProject(req, res) {
     try {
         const { name, description, teamId, status, priority, startDate, endDate, tags } = req.body;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
 
         // Validation
-        const validationErrors = [];
-        
-        if (!name || !validateName(name)) {
-            validationErrors.push("Valid project name is required");
-        }
+                const validationErrors = [];
+
+                if (!name) {
+                    validationErrors.push("Project name is required");
+                } else {
+                    const nameValidationError = validateName(name, "Project name");
+                    if (nameValidationError) {
+                        validationErrors.push(nameValidationError);
+                    }
+                }
 
         if (!teamId) {
             validationErrors.push("Team ID is required");
         }
 
         if (validationErrors.length > 0) {
-            return res.status(400).json({ 
-                message: "Validation failed", 
-                errors: validationErrors 
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: validationErrors
             });
         }
 
@@ -236,7 +241,7 @@ export async function createProject(req, res) {
 export async function updateProject(req, res) {
     try {
         const projectId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
         const { name, description, status, priority, startDate, endDate, tags, settings } = req.body;
 
         const project = await Project.findById(projectId);
@@ -252,8 +257,11 @@ export async function updateProject(req, res) {
         // Validation
         const validationErrors = [];
 
-        if (name && !validateName(name)) {
-            validationErrors.push("Valid project name is required");
+        if (name) {
+            const nameValidationError = validateName(name, "Project name");
+            if (nameValidationError) {
+                validationErrors.push(nameValidationError);
+            }
         }
 
         if (validationErrors.length > 0) {
@@ -303,7 +311,7 @@ export async function updateProject(req, res) {
 export async function deleteProject(req, res) {
     try {
         const projectId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
 
         const project = await Project.findById(projectId);
         if (!project) {
@@ -334,7 +342,7 @@ export async function deleteProject(req, res) {
 export async function addCollaborator(req, res) {
     try {
         const projectId = req.params.id;
-        const userId = req.user.id;
+                const userId = req.user._id.toString();
         const { collaboratorId, role = 'contributor' } = req.body;
 
         if (!['viewer', 'contributor', 'manager'].includes(role)) {
@@ -382,7 +390,7 @@ export async function removeCollaborator(req, res) {
     try {
         const projectId = req.params.id;
         const collaboratorId = req.params.userId;
-        const currentUserId = req.user.id;
+        const currentUserId = req.user._id.toString();
 
         const project = await Project.findById(projectId);
         if (!project) {
@@ -421,7 +429,7 @@ export async function removeCollaborator(req, res) {
 export async function addDocument(req, res) {
     try {
         const projectId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
         const { documentId } = req.body;
 
         const project = await Project.findById(projectId);
@@ -467,7 +475,7 @@ export async function removeDocument(req, res) {
     try {
         const projectId = req.params.id;
         const documentId = req.params.documentId;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
 
         const project = await Project.findById(projectId);
         if (!project) {

@@ -5,9 +5,11 @@ import { ArrowLeftIcon, FilePlus2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = [
@@ -66,7 +68,7 @@ const CreateDocPage = () => {
     const [selectedStakeholders, setSelectedStakeholders] = useState([]);
     const [selectedOwners, setSelectedOwners] = useState([]);
 
-    const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm({
+    const { register, handleSubmit, control, formState: { errors }, reset, setValue } = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
             stakeholders: [],
@@ -417,12 +419,20 @@ const CreateDocPage = () => {
                                     {/* Review Due Date */}
                                     <div className="form-control mb-4">
                                         <label className="label" htmlFor="reviewDueDate">Review Due Date</label>
-                                        <input
-                                            id="reviewDueDate"
-                                            type="date"
-                                            {...register("reviewDueDate")}
-                                            onChange={(e) => handleReviewDueDateChange(e.target.value ? new Date(e.target.value) : null)}
-                                            className="input input-bordered"
+                                        <Controller
+                                            name="reviewDueDate"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <DatePicker
+                                                    placeholderText="Select review due date"
+                                                    selected={field.value}
+                                                    onChange={(date) => {
+                                                        field.onChange(date);
+                                                        handleReviewDueDateChange(date);
+                                                    }}
+                                                    className="input input-bordered w-full"
+                                                />
+                                            )}
                                         />
                                     </div>
                                     

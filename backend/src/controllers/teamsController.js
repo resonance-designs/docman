@@ -2,17 +2,18 @@
 import Team from "../models/Team.js";
 import User from "../models/User.js";
 import crypto from "crypto";
-import { 
-    validateName, 
-    validateEmail, 
-    sanitizeString 
+import {
+    validateName,
+    validateTeamName,
+    validateEmail,
+    sanitizeString
 } from "../lib/validation.js";
 
 // Get all teams for the current user
 export async function getUserTeams(req, res) {
     try {
-        const userId = req.user.id;
-        
+        const userId = req.user._id.toString();
+
         const teams = await Team.find({
             $or: [
                 { owner: userId },
@@ -34,10 +35,10 @@ export async function getUserTeams(req, res) {
 export async function getAllTeams(req, res) {
     try {
         const { search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
-        
+
         // Build filter object
         const filter = {};
-        
+
         // Search filter
         if (search) {
             filter.$or = [
@@ -68,8 +69,8 @@ export async function getAllTeams(req, res) {
 export async function getTeamById(req, res) {
     try {
         const teamId = req.params.id;
-        const userId = req.user.id;
-        
+        const userId = req.user._id.toString();
+
         const team = await Team.findById(teamId)
             .populate('owner', 'firstname lastname email')
             .populate('members.user', 'firstname lastname email')
@@ -95,19 +96,35 @@ export async function getTeamById(req, res) {
 export async function createTeam(req, res) {
     try {
         const { name, description } = req.body;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
+
+        // Debug logging
+        console.log("Request body:", req.body);
+        console.log("Name:", name);
+        console.log("Description:", description);
+        console.log("User ID:", userId);
 
         // Validation
         const validationErrors = [];
-        
-        if (!name || !validateName(name)) {
-            validationErrors.push("Valid team name is required");
-        }
+
+        if (!name) {
+                    console.log("Name is falsy");
+                    validationErrors.push("Team name is required");
+                } else {
+                    const nameValidationError = validateTeamName(name);
+                    if (nameValidationError) {
+                        console.log("Team name validation failed:", nameValidationError);
+                        validationErrors.push(nameValidationError);
+                    } else {
+                        console.log("Team name validation passed");
+                    }
+                }
 
         if (validationErrors.length > 0) {
-            return res.status(400).json({ 
-                message: "Validation failed", 
-                errors: validationErrors 
+            console.log("Validation errors:", validationErrors);
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: validationErrors
             });
         }
 
@@ -116,7 +133,7 @@ export async function createTeam(req, res) {
             name: sanitizeString(name),
             owner: userId 
         });
-        
+
         if (existingTeam) {
             return res.status(409).json({ 
                 message: "You already have a team with this name" 
@@ -151,7 +168,7 @@ export async function createTeam(req, res) {
 export async function updateTeam(req, res) {
     try {
         const teamId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
         const { name, description, settings } = req.body;
 
         const team = await Team.findById(teamId);
@@ -166,15 +183,18 @@ export async function updateTeam(req, res) {
 
         // Validation
         const validationErrors = [];
-        
-        if (name && !validateName(name)) {
-            validationErrors.push("Valid team name is required");
+
+        if (name) {
+            const nameValidationError = validateTeamName(name);
+            if (nameValidationError) {
+                validationErrors.push(nameValidationError);
+            }
         }
 
         if (validationErrors.length > 0) {
-            return res.status(400).json({ 
-                message: "Validation failed", 
-                errors: validationErrors 
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: validationErrors
             });
         }
 
@@ -185,16 +205,16 @@ export async function updateTeam(req, res) {
         if (settings) updateData.settings = { ...team.settings, ...settings };
 
         const updatedTeam = await Team.findByIdAndUpdate(
-            teamId, 
-            updateData, 
+            teamId,
+            updateData,
             { new: true }
         )
         .populate('owner', 'firstname lastname email')
         .populate('members.user', 'firstname lastname email');
 
-        res.status(200).json({ 
-            message: "Team updated successfully", 
-            team: updatedTeam 
+        res.status(200).json({
+            message: "Team updated successfully",
+            team: updatedTeam
         });
     } catch (error) {
         console.error("Error updating team:", error);
@@ -206,7 +226,7 @@ export async function updateTeam(req, res) {
 export async function deleteTeam(req, res) {
     try {
         const teamId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
 
         const team = await Team.findById(teamId);
         if (!team) {
@@ -231,7 +251,7 @@ export async function deleteTeam(req, res) {
 export async function inviteToTeam(req, res) {
     try {
         const teamId = req.params.id;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
         const { email, role = 'member' } = req.body;
 
         // Validation
@@ -300,7 +320,7 @@ export async function inviteToTeam(req, res) {
 export async function acceptInvitation(req, res) {
     try {
         const { token } = req.params;
-        const userId = req.user.id;
+        const userId = req.user._id.toString();
 
         const team = await Team.findOne({ 'invitations.token': token });
         if (!team) {
@@ -346,7 +366,7 @@ export async function removeMember(req, res) {
     try {
         const teamId = req.params.id;
         const memberUserId = req.params.userId;
-        const currentUserId = req.user.id;
+        const currentUserId = req.user._id.toString();
 
         const team = await Team.findById(teamId);
         if (!team) {
@@ -386,7 +406,7 @@ export async function updateMemberRole(req, res) {
     try {
         const teamId = req.params.id;
         const memberUserId = req.params.userId;
-        const currentUserId = req.user.id;
+        const currentUserId = req.user._id.toString();
         const { role } = req.body;
 
         if (!['member', 'admin'].includes(role)) {

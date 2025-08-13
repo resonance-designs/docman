@@ -17,6 +17,11 @@ import {
     validateImageDimensions
 } from "../lib/validation";
 
+// Helper function to get user ID from JWT (handles different field names)
+const getUserId = (user) => {
+    return user?.id || user?._id || user?.userId || user?.sub;
+};
+
 const MyProfilePage = () => {
     const { userId } = useParams(); // For admin editing other users
     const navigate = useNavigate();
@@ -33,7 +38,6 @@ const MyProfilePage = () => {
     const [backgroundImagePreview, setBackgroundImagePreview] = useState(null);
     const [uploadingBackground, setUploadingBackground] = useState(false);
     const [errors, setErrors] = useState({});
-    const [touched, setTouched] = useState({});
 
     const [formData, setFormData] = useState({
         firstname: "",
@@ -54,9 +58,11 @@ const MyProfilePage = () => {
         if (token) {
             try {
                 const decoded = decodeJWT(token);
+                console.log("Decoded JWT:", decoded); // Debug log
+                console.log("User ID from JWT:", getUserId(decoded)); // Debug log
                 setCurrentUser(decoded);
                 setIsAdmin(decoded?.role === "admin");
-                setIsEditingOther(userId && userId !== decoded?.id);
+                setIsEditingOther(userId && userId !== getUserId(decoded));
             } catch (error) {
                 console.error("Invalid token:", error);
                 navigate("/");
@@ -76,12 +82,27 @@ const MyProfilePage = () => {
                 const token = localStorage.getItem("token");
                 const headers = { Authorization: `Bearer ${token}` };
 
-                // If editing another user (admin only), fetch that user's data
-                const targetUserId = isEditingOther ? userId : currentUser.id;
+                const currentUserId = getUserId(currentUser);
+                console.log("Current user ID:", currentUserId); // Debug log
+                console.log("Is editing other:", isEditingOther); // Debug log
+                console.log("User ID from params:", userId); // Debug log
+
+                // Check if we have a valid user ID
+                if (!isEditingOther && !currentUserId) {
+                    console.error("Current user ID is not available");
+                    toast.error("User information not available. Please refresh the page.");
+                    navigate("/");
+                    return;
+                }
+
+                const targetUserId = isEditingOther ? userId : currentUserId;
+                console.log("Target user ID:", targetUserId); // Debug log
+                
                 const res = await api.get(`/users/${targetUserId}`, { headers });
 
                 const userData = res.data;
                 setFormData({
+                    id: userData.id || userData._id || "",
                     firstname: userData.firstname || "",
                     lastname: userData.lastname || "",
                     email: userData.email || "",
@@ -122,12 +143,6 @@ const MyProfilePage = () => {
         setFormData(prev => ({
             ...prev,
             [name]: value
-        }));
-
-        // Mark field as touched
-        setTouched(prev => ({
-            ...prev,
-            [name]: true
         }));
 
         // Validate field in real-time
@@ -297,11 +312,18 @@ const MyProfilePage = () => {
             const token = localStorage.getItem("token");
             const headers = { Authorization: `Bearer ${token}` };
 
-            const formData = new FormData();
-            formData.append('profilePicture', profilePicture);
+            const formDataUpload = new FormData();
+            formDataUpload.append('profilePicture', profilePicture);
 
-            const targetUserId = isEditingOther ? userId : currentUser.id;
-            const response = await api.post(`/users/${targetUserId}/profile-picture`, formData, {
+            const currentUserId = getUserId(currentUser);
+            if (!currentUserId && !isEditingOther) {
+                toast.error("User information not available. Please refresh the page.");
+                setUploadingPicture(false);
+                return;
+            }
+
+            const targetUserId = isEditingOther ? userId : currentUserId;
+            const response = await api.post(`/users/${targetUserId}/profile-picture`, formDataUpload, {
                 headers: {
                     ...headers,
                     'Content-Type': 'multipart/form-data'
@@ -331,7 +353,14 @@ const MyProfilePage = () => {
             const token = localStorage.getItem("token");
             const headers = { Authorization: `Bearer ${token}` };
 
-            const targetUserId = isEditingOther ? userId : currentUser.id;
+            const currentUserId = getUserId(currentUser);
+            if (!currentUserId && !isEditingOther) {
+                toast.error("User information not available. Please refresh the page.");
+                setUploadingPicture(false);
+                return;
+            }
+
+            const targetUserId = isEditingOther ? userId : currentUserId;
             await api.delete(`/users/${targetUserId}/profile-picture`, { headers });
 
             toast.success("Profile picture deleted successfully");
@@ -397,11 +426,18 @@ const MyProfilePage = () => {
             const token = localStorage.getItem("token");
             const headers = { Authorization: `Bearer ${token}` };
 
-            const formData = new FormData();
-            formData.append('backgroundImage', backgroundImage);
+            const formDataUpload = new FormData();
+            formDataUpload.append('backgroundImage', backgroundImage);
 
-            const targetUserId = isEditingOther ? userId : currentUser.id;
-            const response = await api.post(`/users/${targetUserId}/background-image`, formData, {
+            const currentUserId = getUserId(currentUser);
+            if (!currentUserId && !isEditingOther) {
+                toast.error("User information not available. Please refresh the page.");
+                setUploadingBackground(false);
+                return;
+            }
+
+            const targetUserId = isEditingOther ? userId : currentUserId;
+            const response = await api.post(`/users/${targetUserId}/background-image`, formDataUpload, {
                 headers: {
                     ...headers,
                     'Content-Type': 'multipart/form-data'
@@ -431,7 +467,14 @@ const MyProfilePage = () => {
             const token = localStorage.getItem("token");
             const headers = { Authorization: `Bearer ${token}` };
 
-            const targetUserId = isEditingOther ? userId : currentUser.id;
+            const currentUserId = getUserId(currentUser);
+            if (!currentUserId && !isEditingOther) {
+                toast.error("User information not available. Please refresh the page.");
+                setUploadingBackground(false);
+                return;
+            }
+
+            const targetUserId = isEditingOther ? userId : currentUserId;
             await api.delete(`/users/${targetUserId}/background-image`, { headers });
 
             toast.success("Background image deleted successfully");
@@ -459,29 +502,43 @@ const MyProfilePage = () => {
             const token = localStorage.getItem("token");
             const headers = { Authorization: `Bearer ${token}` };
 
-            // Prepare update data
-            const updateData = {
-                firstname: formData.firstname,
-                lastname: formData.lastname,
-                email: formData.email,
-                telephone: formData.telephone,
-                title: formData.title,
-                department: formData.department,
-                bio: formData.bio
-            };
+            const currentUserId = getUserId(currentUser);
+
+            // Check if we have a valid user ID
+            if (!isEditingOther && !currentUserId) {
+                toast.error("User information not available. Please refresh the page.");
+                setSaving(false);
+                return;
+            }
+
+            // Prepare update data based on who is editing
+            const updateData = {};
+
+            if (!isEditingOther) {
+                // User editing their own profile - send all fields
+                updateData.firstname = formData.firstname;
+                updateData.lastname = formData.lastname;
+                updateData.email = formData.email;
+                updateData.telephone = formData.telephone;
+                updateData.title = formData.title;
+                updateData.department = formData.department;
+                updateData.bio = formData.bio;
+            } else if (isEditingOther && isAdmin) {
+                // Admin editing another user - only send role
+                updateData.role = formData.role;
+            }
 
             // Add password if provided
             if (formData.password) {
                 updateData.password = formData.password;
             }
 
-            // Add role if admin editing another user
-            if (isEditingOther && isAdmin) {
-                updateData.role = formData.role;
-            }
-
-            const targetUserId = isEditingOther ? userId : currentUser.id;
-            await api.put(`/users/${targetUserId}`, updateData, { headers });
+            const targetUserId = isEditingOther ? userId : currentUserId;
+            console.log("Sending update data:", updateData);
+            console.log("Target user ID:", targetUserId);
+            
+            const response = await api.put(`/users/${targetUserId}`, updateData, { headers });
+            console.log("Update response:", response);
 
             toast.success(isEditingOther ? "User updated successfully" : "Profile updated successfully");
 
@@ -494,7 +551,7 @@ const MyProfilePage = () => {
 
             // If editing own profile and email changed, might need to re-login
             if (!isEditingOther && formData.email !== currentUser.email) {
-                toast.info("Email updated. You may need to log in again.");
+                toast.success("Email updated. You may need to log in again.");
             }
 
         } catch (error) {
@@ -538,15 +595,15 @@ const MyProfilePage = () => {
                         </div>
 
                         {/* View My Profile Button - Only for self-editing */}
-                        {!isEditingOther && (
-                            <Link
-                                to={`/user/${currentUser.id}`}
-                                className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
-                            >
-                                <EyeIcon size={16} />
-                                View My Profile
-                            </Link>
-                        )}
+                        {!isEditingOther && currentUser && (
+    <Link
+        to={`/user/${getUserId(currentUser)}`}
+        className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
+    >
+        <EyeIcon size={16} />
+        View My Profile
+    </Link>
+)}
                     </div>
 
                     {/* Profile Form */}
