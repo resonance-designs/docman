@@ -3,7 +3,7 @@ import Category from "../models/Category.js";
 
 export async function getAllCategories(req, res) {
     try {
-        const categories = await Category.find({}, "_id name description").sort({ name: 1 });
+        const categories = await Category.find({}, "_id name description createdAt").sort({ name: 1 });
         res.status(200).json(categories);
     } catch (error) {
         console.error("Error fetching categories:", error);
@@ -30,6 +30,19 @@ export async function createCategory(req, res) {
         res.status(201).json({ message: "Category created successfully", category: newCategory });
     } catch (error) {
         console.error("Error creating category:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export async function deleteCategory(req, res) {
+    try {
+        const deletedCategory = await Category.findByIdAndDelete(req.params.id);
+        if (!deletedCategory) {
+            return res.status(404).json({ message: "Category not found." });
+        }
+        res.status(200).json({ message: "Category deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting category:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 }

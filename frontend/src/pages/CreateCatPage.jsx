@@ -35,7 +35,7 @@ const CreateCatPage = () => {
             navigate("/"); // Or navigate to a categories list page if you have one
         } catch (err) {
             console.error("Category creation failed", err);
-            
+
             // Handle specific error messages
             if (err?.response?.status === 409) {
                 toast.error("Category already exists");
@@ -49,28 +49,31 @@ const CreateCatPage = () => {
 
     return (
         <div className="min-h-screen">
-            <div className="container mx-auto px-4 py-8">
-                <div className="max-w-screen-md mx-auto">
-                    <Link to="/" className="btn btn-ghost mb-4">
+            <div className="container mx-auto px-4 py-4">
+                <div className="max-w-screen-xl mx-auto">
+                    {/* Header */}
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
+                            <FolderPlus className="size-8 text-resdes-orange" />
+                            Create Category
+                        </h1>
+                    </div>
+                    <Link to="/categories" className="btn btn-ghost mb-4">
                         <ArrowLeftIcon />
-                        Back To Documents
+                        Back To Categories
                     </Link>
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
-                            <h2 className="card-title text-2xl mb-4 flex items-center gap-2">
-                                <FolderPlus className="size-8 text-resdes-orange" />
-                                Create Category
-                            </h2>
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 {/* Category Name */}
                                 <div className="form-control mb-4">
                                     <label className="label" htmlFor="name">
                                         <span className="label-text">Category Name</span>
                                     </label>
-                                    <input 
-                                        id="name" 
-                                        {...register("name")} 
-                                        className="input input-bordered" 
+                                    <input
+                                        id="name"
+                                        {...register("name")}
+                                        className="input input-bordered"
                                         placeholder="Enter category name"
                                     />
                                     {errors.name && <p className="text-red-500 mt-1">{errors.name.message}</p>}
@@ -81,10 +84,10 @@ const CreateCatPage = () => {
                                     <label className="label" htmlFor="description">
                                         <span className="label-text">Description (Optional)</span>
                                     </label>
-                                    <textarea 
-                                        id="description" 
-                                        {...register("description")} 
-                                        className="textarea textarea-bordered" 
+                                    <textarea
+                                        id="description"
+                                        {...register("description")}
+                                        className="textarea textarea-bordered"
                                         rows="4"
                                         placeholder="Enter category description"
                                     />
@@ -93,8 +96,8 @@ const CreateCatPage = () => {
 
                                 {/* Submit Button */}
                                 <div className="form-control mt-6">
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         className="uppercase font-mono btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300" 
                                         disabled={loading}
                                     >

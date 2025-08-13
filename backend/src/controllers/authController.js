@@ -3,6 +3,14 @@ import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import nodemailer from "nodemailer";
 import { createAccessToken } from "../lib/secretToken.js";
+import {
+    validateName,
+    validateEmail,
+    validatePassword,
+    validateRole,
+    sanitizeString,
+    sanitizeEmail
+} from "../lib/validation.js";
 
 // Helper to set refresh cookie
 function setRefreshCookie(res, token) {
@@ -17,13 +25,61 @@ function setRefreshCookie(res, token) {
 export async function register(req, res) {
     try {
         const { email, firstname, lastname, username, password, role } = req.body;
-        if (!email || !firstname || !lastname || !username || !password) {
-            return res.status(400).json({ message: "All fields are required." });
-        }
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(409).json({ message: "Email already in use." });
 
-        const user = new User({ email, firstname, lastname, username, password, role });
+        // Validation
+        const validationErrors = [];
+
+        const firstnameError = validateName(firstname, "First name");
+        if (firstnameError) validationErrors.push({ field: "firstname", message: firstnameError });
+
+        const lastnameError = validateName(lastname, "Last name");
+        if (lastnameError) validationErrors.push({ field: "lastname", message: lastnameError });
+
+        const emailError = validateEmail(email);
+        if (emailError) validationErrors.push({ field: "email", message: emailError });
+
+        const passwordError = validatePassword(password);
+        if (passwordError) validationErrors.push({ field: "password", message: passwordError });
+
+        if (role) {
+            const roleError = validateRole(role);
+            if (roleError) validationErrors.push({ field: "role", message: roleError });
+        }
+
+        if (!username || typeof username !== 'string' || username.trim().length < 3) {
+            validationErrors.push({ field: "username", message: "Username must be at least 3 characters long" });
+        }
+
+        // Return validation errors if any
+        if (validationErrors.length > 0) {
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: validationErrors.reduce((acc, error) => {
+                    acc[error.field] = error.message;
+                    return acc;
+                }, {})
+            });
+        }
+        // Sanitize input data
+        const sanitizedEmail = sanitizeEmail(email);
+        const sanitizedFirstname = sanitizeString(firstname);
+        const sanitizedLastname = sanitizeString(lastname);
+        const sanitizedUsername = sanitizeString(username);
+
+        const existingUser = await User.findOne({
+            $or: [{ email: sanitizedEmail }, { username: sanitizedUsername }]
+        });
+        if (existingUser) return res.status(409).json({ message: "User already exists." });
+
+        const hashedPassword = await bcrypt.hash(password, 12);
+        const user = new User({
+            email: sanitizedEmail,
+            firstname: sanitizedFirstname,
+            lastname: sanitizedLastname,
+            username: sanitizedUsername,
+            password: hashedPassword,
+            role: role || "viewer"
+        });
         await user.save();
 
         // Create tokens

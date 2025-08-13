@@ -3,7 +3,7 @@ import RateLimitedUI from "../components/RateLimitedUI";
 import api from "../lib/axios";
 // import toast from "react-hot-toast"; # Not sure if this is needed here
 import DocCard from "../components/DocCard";
-import DocTable from "../components/DocTable";
+import PaginatedDocTable from "../components/PaginatedDocTable";
 import DocsNotFound from "../components/DocsNotFound";
 
 const HomePage = () => {
@@ -44,39 +44,7 @@ const HomePage = () => {
                     ))}
                 </div>)}
                 <h2 className="text-3xl mb-6">All Documents</h2>
-                <div className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md rounded-xl bg-clip-border">
-                    <table className="w-full text-left table-auto min-w-max border-b border-resdes-orange">
-                        <thead className="bg-resdes-orange text-slate-950 font-mono font-bold">
-                            <tr>
-                                <th className="p-4">
-                                    <p className="block text-sm antialiased leading-none">
-                                        Title
-                                    </p>
-                                </th>
-                                <th className="p-4">
-                                    <p className="block text-sm antialiased leading-none">
-                                        Author
-                                    </p>
-                                </th>
-                                <th className="p-4">
-                                    <p className="block text-sm antialiased leading-none">
-                                        Added On
-                                    </p>
-                                </th>
-                                <th className="p-4">
-                                    <p className="block text-sm antialiased leading-none">
-                                        Actions
-                                    </p>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="border border-resdes-orange">
-                            {docs.map((doc) => (
-                                <DocTable key={doc._id} doc={doc} setDocs={setDocs} />
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <PaginatedDocTable docs={docs} setDocs={setDocs} itemsPerPage={10} />
             </div>
         </div>
     );

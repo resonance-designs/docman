@@ -4,13 +4,12 @@ import RateLimitedUI from "../components/RateLimitedUI";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
-import DocTable from "../components/DocTable";
-import DocsNotFound from "../components/DocsNotFound";
-import NavAdmin from "../components/NavAdmin";
-import { Link, useNavigate } from "react-router";
-import { LogIn, ShieldQuestionMark } from 'lucide-react';
-import useAutoLogout from "../hooks/useAutoLogout";
-import { decodeJWT } from "../lib/utils";
+import PaginatedDocTable from "../components/PaginatedDocTable";
+
+import { Link } from "react-router";
+import { LogIn, ShieldQuestionMark, Search, LibraryBig } from 'lucide-react';
+// Removed useAutoLogout import - handled by Navbar component
+
 
 const HomePage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
@@ -19,45 +18,23 @@ const HomePage = () => {
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
     const [message, setMessage] = useState("");
-    const [userRole, setUserRole] = useState(null);
-    const navigate = useNavigate();
-    const limitDocCard = 6;
 
-    // Auto logout functionality
-    const handleAutoLogout = () => {
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
-        setUserRole(null);
-        setForm({ email: "", password: "" });
-        setMessage("");
-        window.dispatchEvent(new Event('authStateChanged'));
-        navigate("/");
-    };
+    // Auto logout functionality moved to Navbar component to avoid conflicts
 
-    // Use auto logout hook (30 minutes timeout)
-    useAutoLogout(isAuthenticated, handleAutoLogout, 30);
 
-    // Helper function to get user role
-    const getUserRole = () => {
-        const token = localStorage.getItem("token");
-        if (!token) return null;
-        try {
-            const decoded = decodeJWT(token);
-            return decoded?.role ?? null;
-        } catch {
-            return null;
-        }
-    };
 
-    // Update user role when authentication changes
-    useEffect(() => {
-        if (isAuthenticated) {
-            const role = getUserRole();
-            setUserRole(role);
-        } else {
-            setUserRole(null);
-        }
-    }, [isAuthenticated]);
+    // Filter documents that need review (for DocCard section)
+    // Get the 6 most recent documents that became overdue
+    const docsNeedingReview = docs
+        .filter(doc => {
+            const needsReview = new Date(doc.reviewDate) <= new Date();
+            return needsReview;
+        })
+        .sort((a, b) => {
+            // Sort by review date descending (most recently overdue first)
+            return new Date(b.reviewDate) - new Date(a.reviewDate);
+        })
+        .slice(0, 6); // Limit to 6 results
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -76,10 +53,10 @@ const HomePage = () => {
             if (res.ok) {
                 localStorage.setItem("token", data.token);
                 setIsAuthenticated(true); // This will trigger the useEffect
-                
+
                 // Dispatch custom event to notify other components (like Navbar)
                 window.dispatchEvent(new Event('authStateChanged'));
-                
+
                 setMessage("Login successful!");
                 toast.success("Login successful!");
                 // Don't navigate here - let the useEffect handle the content update
@@ -98,9 +75,9 @@ const HomePage = () => {
             const token = localStorage.getItem("token");
             const wasAuthenticated = isAuthenticated;
             const nowAuthenticated = !!token;
-            
+
             setIsAuthenticated(nowAuthenticated);
-            
+
             // If user just logged out, clear the form
             if (wasAuthenticated && !nowAuthenticated) {
                 setForm({ email: "", password: "" });
@@ -120,8 +97,8 @@ const HomePage = () => {
                 // Get fresh token and headers inside the effect
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                
-                const res = await api.get("/docs?limit=10", { headers });
+
+                const res = await api.get("/docs", { headers });
                 console.log(res.data);
                 setDocs(res.data);
                 setIsRateLimited(false);
@@ -142,8 +119,8 @@ const HomePage = () => {
     return (
         <div className="min-h-screen">
             {isRateLimited && <RateLimitedUI />}
-            <div className="container mx-auto px-4 py-8">
-                <div className="max-w-screen-lg mx-auto">
+            <div className="container mx-auto px-4 py-4">
+                <div className="max-w-screen-xl mx-auto">
                     {!isAuthenticated && ( // If the user is not authenticated, display the login form
                         <>
                             <Link to={"/forgot-password"} className="btn btn-ghost mb-6">
@@ -204,51 +181,34 @@ const HomePage = () => {
                     )}
                     {isAuthenticated && ( // If the user is authenticated, display the documents
                         <>
-                            <NavAdmin role={userRole} />
-                            <h2 className="text-3xl mb-6">Documents That Need Review</h2>
+                            {/* Header */}
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-4xl font-bold mb-8 flex items-center gap-2">
+                                    <Search className="size-8 text-resdes-orange" />
+                                    Documents That Need Review
+                                </h1>
+                            </div>
                             {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
-                            {docs.length === 0 && !loading && !isRateLimited && <DocsNotFound />}
-                            {docs.length > 0 && !isRateLimited && (
+                            {docsNeedingReview.length === 0 && !loading && !isRateLimited && (
+                                <div className="text-center py-8 text-gray-500">
+                                    No documents need review at this time.
+                                </div>
+                            )}
+                            {docsNeedingReview.length > 0 && !isRateLimited && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-                                    {docs.slice(0, limitDocCard).map((doc) => (
+                                    {docsNeedingReview.map((doc) => (
                                         <DocCard key={doc._id} doc={doc} setDocs={setDocs} />
                                     ))}
                                 </div>
                             )}
-                            <h2 className="text-3xl mb-6">All Documents</h2>
-                            <div className="relative flex flex-col w-full h-full overflow-scroll text-gray-700 bg-white shadow-md rounded-xl bg-clip-border">
-                                <table className="w-full text-left table-auto min-w-max border-b border-resdes-orange">
-                                    <thead className="bg-resdes-orange text-slate-950 font-mono font-bold">
-                                        <tr>
-                                            <th className="p-4">
-                                                <p className="block text-sm antialiased leading-none">
-                                                    Title
-                                                </p>
-                                            </th>
-                                            <th className="p-4">
-                                                <p className="block text-sm antialiased leading-none">
-                                                    Author
-                                                </p>
-                                            </th>
-                                            <th className="p-4">
-                                                <p className="block text-sm antialiased leading-none">
-                                                    Added On
-                                                </p>
-                                            </th>
-                                            <th className="p-4">
-                                                <p className="block text-sm antialiased leading-none float-right">
-                                                    Actions
-                                                </p>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="border border-resdes-orange">
-                                        {docs.map((doc) => (
-                                            <DocTable key={doc._id} doc={doc} setDocs={setDocs} />
-                                        ))}
-                                    </tbody>
-                                </table>
+                            {/* Header */}
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-4xl font-bold mb-8 flex items-center gap-2">
+                                    <LibraryBig className="size-8 text-resdes-orange" />
+                                    All Documents
+                                </h1>
                             </div>
+                            <PaginatedDocTable docs={docs} setDocs={setDocs} />
                             {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
                         </>
                     )}

@@ -6,6 +6,41 @@ export default {
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",
     ],
+    safelist: [
+        // Navigation link classes - ensure these are always included
+        'bg-resdes-orange',
+        'text-slate-950',
+        'hover:bg-resdes-orange',
+        'hover:opacity-[.8]',
+        'hover:text-slate-950',
+        'transition-opacity',
+        'transition-colors',
+        'duration-300',
+        // Button classes
+        'btn',
+        'btn-ghost',
+        'px-3',
+        'py-3',
+        'font-semibold',
+        'text-sm',
+        // Additional utility classes
+        'w-full',
+        'justify-start',
+        // All resdes colors to ensure they're available
+        'bg-resdes-blue',
+        'bg-resdes-teal',
+        'bg-resdes-green',
+        'bg-resdes-red',
+        'bg-resdes-yellow',
+        'bg-resdes-purple',
+        'text-resdes-orange',
+        'text-resdes-blue',
+        'text-resdes-teal',
+        'text-resdes-green',
+        'text-resdes-red',
+        'text-resdes-yellow',
+        'text-resdes-purple'
+    ],
     theme: {
         extend: {
             colors: {

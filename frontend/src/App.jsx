@@ -1,24 +1,88 @@
 import { Route, Routes } from "react-router";
+import { useState, useEffect } from "react";
 import HomePage from "./pages/HomePage";
-// import ViewPage from "./pages/ViewPage";
+import ViewDocPage from "./pages/ViewDocPage";
+import ViewDocsPage from "./pages/ViewDocsPage";
+import ViewCatsPage from "./pages/ViewCatsPage";
+import ViewUsersPage from "./pages/ViewUsersPage";
+import MyProfilePage from "./pages/MyProfilePage";
+import ViewUserPage from "./pages/ViewUserPage";
+import SystemInfoPage from "./pages/SystemInfoPage";
 import CreateDocPage from "./pages/CreateDocPage";
 import CreateCatPage from './pages/CreateCatPage';
 import EditDocPage from "./pages/EditDocPage";
+import TeamsPage from "./pages/TeamsPage";
+import TeamDetailPage from "./pages/TeamDetailPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import CreateProjectPage from "./pages/CreateProjectPage";
 import LoginPage from "./pages/LoginPage";
-import RegPage from "./pages/RegPage";
+import RegUserPage from "./pages/RegUserPage";
 import ForgotPassPage from "./pages/ForgotPassPage";
 import ResetPassPage from "./pages/ResetPassPage";
 import Navbar from "./components/Navbar";
+import NavAdmin from "./components/NavAdmin";
 import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
+import { decodeJWT } from "./lib/utils";
 
 const App = () => {
-    const isAuthenticated = !!localStorage.getItem("token"); // example check
+    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+    const [userRole, setUserRole] = useState(null);
+
+    // Get user role from token
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const decoded = decodeJWT(token);
+                setUserRole(decoded?.role);
+                setIsAuthenticated(true);
+            } catch (error) {
+                console.error("Invalid token:", error);
+                setIsAuthenticated(false);
+                setUserRole(null);
+            }
+        } else {
+            setIsAuthenticated(false);
+            setUserRole(null);
+        }
+    }, []);
+
+    // Listen for auth state changes
+    useEffect(() => {
+        const handleAuthChange = () => {
+            const token = localStorage.getItem("token");
+            if (token) {
+                try {
+                    const decoded = decodeJWT(token);
+                    setUserRole(decoded?.role);
+                    setIsAuthenticated(true);
+                } catch (error) {
+                    console.error("Invalid token:", error);
+                    setIsAuthenticated(false);
+                    setUserRole(null);
+                }
+            } else {
+                setIsAuthenticated(false);
+                setUserRole(null);
+            }
+        };
+
+        window.addEventListener("authStateChanged", handleAuthChange);
+        return () => window.removeEventListener("authStateChanged", handleAuthChange);
+    }, []);
 
     return (
         <div className="relative h-full w-full">
             <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_60%,#DF6D20_100%)]" />
             <Navbar />
+            {isAuthenticated && (
+                <div className="container mx-auto px-4 pt-4">
+                    <div className="max-w-screen-xl mx-auto mt-8">
+                        <NavAdmin role={userRole} />
+                    </div>
+                </div>
+            )}
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 {/* Protected routes */}
@@ -50,7 +114,103 @@ const App = () => {
                     path="/doc/:id"
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <ViewDocPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/edit/:id"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
                             <EditDocPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/documents"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <ViewDocsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/categories"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <ViewCatsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/users"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <ViewUsersPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/teams"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <TeamsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/teams/:id"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <TeamDetailPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/projects"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <ProjectsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/projects/create"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <CreateProjectPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/my-profile"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <MyProfilePage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/user/:userId"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <ViewUserPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/edit-user/:userId"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <MyProfilePage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/system-info"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <SystemInfoPage />
                         </ProtectedRoute>
                     }
                 />
@@ -58,7 +218,7 @@ const App = () => {
                     path="/register"
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <RegPage />
+                            <RegUserPage />
                         </ProtectedRoute>
                     }
                 />

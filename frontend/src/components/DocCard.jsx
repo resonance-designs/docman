@@ -1,10 +1,22 @@
-import { PenSquareIcon, Trash2Icon } from "lucide-react";
+import { EyeIcon, Trash2Icon } from "lucide-react";
 import { Link } from "react-router";
-import { formatDate } from "../lib/utils";
+import { formatDate, decodeJWT, truncate } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import { useEffect, useState } from "react";
 
 const DocCard = ({ doc, setDocs }) => {
+    const [userRole, setUserRole] = useState(null);
+
+    // Get user role from token
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            const decoded = decodeJWT(token);
+            setUserRole(decoded?.role);
+        }
+    }, []);
+
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
         if (!window.confirm("Are you sure you want to delete this document?")) return;
@@ -29,6 +41,12 @@ const DocCard = ({ doc, setDocs }) => {
         return 'Unknown Author'; // Fallback
     };
 
+    // Check if document needs review (review date is today or in the past)
+    const needsReview = new Date(doc.reviewDate) <= new Date();
+
+    // Check if user is admin
+    const isAdmin = userRole === "admin";
+
     return (
         <Link
             to={`/doc/${doc._id}`}
@@ -40,20 +58,25 @@ const DocCard = ({ doc, setDocs }) => {
                 <p className="text-base-content/70 line-clamp-3 text-xs">
                     By <i>{getAuthorName(doc.author)}</i>
                 </p>
-                <p className="text-base-content/70 line-clamp-3">{doc.description}</p>
-                <p className="text-base-content/70 line-clamp-3">{formatDate(new Date(doc.reviewDate))}</p>
+                <p className="text-base-content/70 line-clamp-3">{truncate(doc.description, 120)}</p>
+                <p className={`line-clamp-3 ${needsReview ? 'text-resdes-red font-semibold' : 'text-base-content/70'}`}>
+                    Review: {formatDate(new Date(doc.reviewDate))}
+                    {needsReview && <span className="ml-2 text-xs bg-red-100 text-resdes-red px-1 py-0.5 rounded">OVERDUE</span>}
+                </p>
                 <div className="card-actions justify-between items-center mt-4">
                     <span className="text-sm text-base-content/60">
                         Added On: {formatDate(new Date(doc.createdAt))}
                     </span>
                     <div className="flex items-center gap-1">
-                        <PenSquareIcon className="size-4 text-resdes-teal" />
-                        <button
-                            className="btn btn-ghost btn-xs text-resdes-teal"
-                            onClick={(e) => handleDelete(e, doc._id)}
-                        >
-                            <Trash2Icon className="size-4" />
-                        </button>
+                        <EyeIcon className="size-4 text-resdes-teal" />
+                        {isAdmin && (
+                            <button
+                                className="btn btn-ghost btn-xs text-resdes-teal"
+                                onClick={(e) => handleDelete(e, doc._id)}
+                            >
+                                <Trash2Icon className="size-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,0 +1,155 @@
+// Server-side validation utilities
+
+export const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return "Email is required";
+    if (typeof email !== 'string') return "Email must be a string";
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    if (email.length > 254) return "Email address is too long";
+    return null;
+};
+
+export const validatePassword = (password) => {
+    if (!password) return "Password is required";
+    if (typeof password !== 'string') return "Password must be a string";
+    if (password.length < 8) return "Password must be at least 8 characters long";
+    if (password.length > 128) return "Password is too long";
+    if (!/(?=.*[a-z])/.test(password)) return "Password must contain at least one lowercase letter";
+    if (!/(?=.*[A-Z])/.test(password)) return "Password must contain at least one uppercase letter";
+    if (!/(?=.*\d)/.test(password)) return "Password must contain at least one number";
+    if (!/(?=.*[@$!%*?&])/.test(password)) return "Password must contain at least one special character (@$!%*?&)";
+    return null;
+};
+
+export const validateName = (name, fieldName = "Name") => {
+    if (!name) return `${fieldName} is required`;
+    if (typeof name !== 'string') return `${fieldName} must be a string`;
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) return `${fieldName} must be at least 2 characters long`;
+    if (trimmedName.length > 50) return `${fieldName} must be less than 50 characters`;
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmedName)) return `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`;
+    return null;
+};
+
+export const validatePhone = (phone) => {
+    if (!phone) return null; // Phone is optional
+    if (typeof phone !== 'string') return "Phone number must be a string";
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    if (cleanPhone.length > 0) {
+        const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+        if (!phoneRegex.test(cleanPhone)) {
+            return "Please enter a valid phone number";
+        }
+    }
+    return null;
+};
+
+export const validateTitle = (title) => {
+    if (!title) return null; // Title is optional
+    if (typeof title !== 'string') return "Title must be a string";
+    if (title.trim().length > 100) return "Title must be less than 100 characters";
+    return null;
+};
+
+export const validateDocumentTitle = (title) => {
+    if (!title) return "Document title is required";
+    if (typeof title !== 'string') return "Document title must be a string";
+    const trimmedTitle = title.trim();
+    if (trimmedTitle.length < 3) return "Document title must be at least 3 characters long";
+    if (trimmedTitle.length > 200) return "Document title must be less than 200 characters";
+    return null;
+};
+
+export const validateDocumentContent = (content) => {
+    if (!content) return "Document content is required";
+    if (typeof content !== 'string') return "Document content must be a string";
+    const trimmedContent = content.trim();
+    if (trimmedContent.length < 10) return "Document content must be at least 10 characters long";
+    if (trimmedContent.length > 50000) return "Document content must be less than 50,000 characters";
+    return null;
+};
+
+export const validateCategoryName = (name) => {
+    if (!name) return "Category name is required";
+    if (typeof name !== 'string') return "Category name must be a string";
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) return "Category name must be at least 2 characters long";
+    if (trimmedName.length > 50) return "Category name must be less than 50 characters";
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedName)) return "Category name can only contain letters, numbers, spaces, hyphens, and underscores";
+    return null;
+};
+
+export const validateCategoryDescription = (description) => {
+    if (!description) return null; // Description is optional
+    if (typeof description !== 'string') return "Category description must be a string";
+    if (description.trim().length > 500) return "Category description must be less than 500 characters";
+    return null;
+};
+
+export const validateRole = (role) => {
+    const validRoles = ['viewer', 'editor', 'admin'];
+    if (!role) return "Role is required";
+    if (typeof role !== 'string') return "Role must be a string";
+    if (!validRoles.includes(role)) return "Please select a valid role";
+    return null;
+};
+
+export const validateObjectId = (id, fieldName = "ID") => {
+    if (!id) return `${fieldName} is required`;
+    if (typeof id !== 'string') return `${fieldName} must be a string`;
+    // MongoDB ObjectId validation (24 character hex string)
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) return `${fieldName} is not a valid ID`;
+    return null;
+};
+
+// Sanitization functions
+export const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.trim().replace(/\s+/g, ' '); // Remove extra whitespace
+};
+
+export const sanitizeEmail = (email) => {
+    if (typeof email !== 'string') return email;
+    return email.trim().toLowerCase();
+};
+
+// Form validation helper for server-side
+export const validateFormData = (data, validationRules) => {
+    const errors = [];
+    let isValid = true;
+
+    Object.keys(validationRules).forEach(field => {
+        const rules = validationRules[field];
+        const value = data[field];
+        
+        for (const rule of rules) {
+            const error = rule(value);
+            if (error) {
+                errors.push({ field, message: error });
+                isValid = false;
+                break; // Stop at first error for this field
+            }
+        }
+    });
+
+    return { isValid, errors };
+};
+
+// Express middleware for validation
+export const createValidationMiddleware = (validationRules) => {
+    return (req, res, next) => {
+        const { isValid, errors } = validateFormData(req.body, validationRules);
+        
+        if (!isValid) {
+            return res.status(400).json({
+                message: "Validation failed",
+                errors: errors.reduce((acc, error) => {
+                    acc[error.field] = error.message;
+                    return acc;
+                }, {})
+            });
+        }
+        
+        next();
+    };
+};

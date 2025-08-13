@@ -32,6 +32,10 @@ const docSchema = new mongoose.Schema(
         owners: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
+        }],
+        projects: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Project'
         }]
     },
     { timestamps: true } // createdAt and updatedAt fields

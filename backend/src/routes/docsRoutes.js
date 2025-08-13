@@ -8,6 +8,7 @@ import {
     createDoc,
     updateDoc,
     deleteDoc,
+    getDocFiles,
 } from "../controllers/docsController.js";
 import { uploadFileVersion } from "../controllers/uploadFileController.js";
 
@@ -16,6 +17,7 @@ const router = express.Router();
 // Public: Everyone can view documents
 router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAllDocs);
 router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocById);
+router.get("/:id/files", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocFiles);
 
 // Restricted: Only editors & admins can create/upload
 router.post("/", verifyAccessToken, requireRole("editor", "admin"), uploadMid.single("file"), createDoc);

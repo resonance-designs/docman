@@ -4,7 +4,7 @@
  * @module server
  * @description Main entry point for the DocMan backend application.
  * @author Richard Bakos
- * @version 1.0.0
+ * @version 1.1.0
  * @license UNLICENSED
  */
 
@@ -29,6 +29,9 @@ import usersRoutes from "./routes/usersRoutes.js";
 import docsRoutes from "./routes/docsRoutes.js";
 import categoriesRoutes from "./routes/categoriesRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import systemRoutes from "./routes/systemRoutes.js";
+import teamsRoutes from "./routes/teamsRoutes.js";
+import projectsRoutes from "./routes/projectsRoutes.js";
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -68,6 +71,9 @@ app.use("/api/auth", authRoutes); // Declare authentication endpoints
 app.use("/api/users", usersRoutes); // Declare user endpoints
 app.use("/api/docs", docsRoutes); // Declare docs endpoints
 app.use("/api/categories", categoriesRoutes); // Declare category endpoints
+app.use("/api/teams", teamsRoutes); // Declare teams endpoints
+app.use("/api/projects", projectsRoutes); // Declare projects endpoints
+app.use("/api/system", systemRoutes); // Declare system endpoints
 app.use("/upload", uploadRoutes); // Declare uploads endpoints
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
 // Static file serving for production
