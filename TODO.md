@@ -6,40 +6,39 @@ DocMan hopes to be the most comprehensive piece of software to manage all of you
 
 A list of features I plan on implementing into the application.
 
-1. File Uploads
-   1. The ability to upload documentation in many formats, including:
-      1. DOC/DOCX
-      2. PDF
-      3. HTML
-      4. XML
-      5. RTF
-      6. TXT
-      7. MD
-      8. XLS/XLSX
-      9. CSV
-      10. PPTX
-2. User system, authentication and security
+1. Check my authentication and User setup is sound and secure
    1. JWT authentication system
-      1. Add email format validation
-      2. Limit username length
-      3. Add regex validation
+      1. Check that there is email format, username length, password complexity, regex validation, etc...
+      2. Check that there are no issues with the inactivity/auto-logout functionality
+      3. Check that nothing is interfering with the token expiry
    2. Email notifications
-      1. User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation.
-   3. User profiles
-      1. Users can add information about themselves that will be available to other users of the system and they can customize the UI in a limited fashion.
-   4. Restrict rate-limiting per IP/User
-   5. Inactivity timeout
+      1. User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation, like if they are a stakeholder, owner, author, etc...
+   3. Restrict rate-limiting per IP/User and apply rate-limiting where relevant
+2. Enhance CreateDocPage by adding a field for the documents review to be marked as complete
+   1. This field should only be visible to the owners and authors of the document
+   2. This field should only be visible when the document is open for review
+   3. Should include a hidden field that tracks the date the review was completed
+   4. Should include a hidden field that tracks who marked the review as complete
+   5. In fact, there should be a field in all forms to track who last updated anything
 3. Scheduling
-   1. Authors, contributors, and stake-holders can be scheduled to review documentation.
+   1. Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review. 
+      1. They should get notice 1 week prior to it opening for review with a calendar reminder file attached
+      2. Setup a weekly alert until the review is marked as complete.
    2. Can set review deadlines
    3. If review determines updates are needed, can assign to authors and contributors.
-4. Work on UI in general
-5. Create a sidebar menu
-6. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
-7. Notification System
-8.  IT Contacts in CreateDocPage
-9.  Universal debugging function(s)
-10. Add comments
+4. Versioning System
+   1. Users should be able to upload new versions of the document
+   2. Users should be able to view previous versions of the document
+   3. Users should be able to download previous versions of the document
+   4. Users should be able to compare previous versions of the document
+   5. Users should be able to view the change log for the document
+5. Work on UI in general
+6. Create a sidebar menu
+7. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
+8. Notification System
+9.  IT Contacts in CreateDocPage
+10. Universal debugging function(s)
+11. Add comments
 
 ## Authentication System Suggestions & Improvements
 

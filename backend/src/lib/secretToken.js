@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import BlacklistedToken from "../models/BlacklistedToken.js";
 
 if (process.env.NODE_ENV === 'development') {
     dotenv.config({ path: '.env.dev' });
@@ -28,6 +29,12 @@ export async function verifyAccessToken(req, res, next) {
         const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
         if (!token) return res.status(401).json({ message: "No token provided" });
 
+        // Check if token is blacklisted
+        const blacklistedToken = await BlacklistedToken.findOne({ token });
+        if (blacklistedToken) {
+            return res.status(401).json({ message: "Token has been invalidated" });
+        }
+
         const decoded = jwt.verify(token, TOKEN_KEY);
         if (!decoded || !decoded.id) return res.status(401).json({ message: "Invalid token" });
 
@@ -41,5 +48,28 @@ export async function verifyAccessToken(req, res, next) {
     } catch (err) {
         console.error("verifyAccessToken error:", err.message || err);
         return res.status(401).json({ message: "Invalid token" });
+    }
+}
+
+// Function to blacklist a token
+export async function blacklistToken(token) {
+    try {
+        // Decode the token to get its expiration time
+        const decoded = jwt.decode(token);
+        if (!decoded || !decoded.exp) {
+            throw new Error("Invalid token");
+        }
+
+        // Create a new blacklisted token entry
+        const blacklistedToken = new BlacklistedToken({
+            token: token,
+            expiresAt: new Date(decoded.exp * 1000) // Convert to milliseconds
+        });
+
+        await blacklistedToken.save();
+        return true;
+    } catch (error) {
+        console.error("Error blacklisting token:", error);
+        return false;
     }
 }

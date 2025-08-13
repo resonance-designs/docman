@@ -1,7 +1,8 @@
 // Server-side validation utilities
 
 export const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // More robust email regex
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     if (!email) return "Email is required";
     if (typeof email !== 'string') return "Email must be a string";
     if (!emailRegex.test(email)) return "Please enter a valid email address";
@@ -28,6 +29,38 @@ export const validateName = (name, fieldName = "Name") => {
     if (trimmedName.length < 2) return `${fieldName} must be at least 2 characters long`;
     if (trimmedName.length > 50) return `${fieldName} must be less than 50 characters`;
     if (!/^[a-zA-Z\s'-]+$/.test(trimmedName)) return `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`;
+    return null;
+};
+
+export const validateUsername = (username) => {
+    if (!username) return "Username is required";
+    if (typeof username !== 'string') return "Username must be a string";
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length < 3) return "Username must be at least 3 characters long";
+    if (trimmedUsername.length > 30) return "Username must be less than 30 characters";
+    
+    // Check for reserved words or patterns
+    const reservedWords = ['admin', 'administrator', 'root', 'system', 'null', 'undefined', 'api', 'auth', 'login', 'register'];
+    const lowerUsername = trimmedUsername.toLowerCase();
+    if (reservedWords.includes(lowerUsername)) {
+        return "Username is reserved and cannot be used";
+    }
+    
+    // Check for invalid characters
+    if (!/^[a-zA-Z0-9._-]+$/.test(trimmedUsername)) {
+        return "Username can only contain letters, numbers, periods, underscores, and hyphens";
+    }
+    
+    // Check for consecutive periods, underscores, or hyphens
+    if (/[._-]{2,}/.test(trimmedUsername)) {
+        return "Username cannot contain consecutive periods, underscores, or hyphens";
+    }
+    
+    // Check for leading or trailing periods, underscores, or hyphens
+    if (/^[._-]|[._-]$/.test(trimmedUsername)) {
+        return "Username cannot start or end with a period, underscore, or hyphen";
+    }
+    
     return null;
 };
 

@@ -77,7 +77,9 @@ export async function getAllDocs(req, res) {
             .populate('author', 'firstname lastname email')
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email');
+            .populate('owners', 'firstname lastname email')
+            .populate('reviewCompletedBy', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         // Apply sorting
         if (sortField === 'author' || sortField === 'category') {
@@ -123,7 +125,9 @@ export async function getDocById(req, res) {
             .populate('author', 'firstname lastname email')
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email');
+            .populate('owners', 'firstname lastname email')
+            .populate('reviewCompletedBy', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         if (!doc) return res.status(404).json({ message: "Document not found." });
         res.status(200).json(doc);
@@ -135,7 +139,7 @@ export async function getDocById(req, res) {
 
 export async function createDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category, stakeholders, owners } = req.body;
+        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt } = req.body;
         const file = req.file;
 
         if (!title || !description || !reviewDate || !author || !category) {
@@ -172,7 +176,11 @@ export async function createDoc(req, res) {
             author,
             category,
             stakeholders: stakeholdersArray,
-            owners: ownersArray
+            owners: ownersArray,
+            reviewCompleted: reviewCompleted || false,
+            reviewCompletedAt: reviewCompletedAt || null,
+            reviewCompletedBy: req.user?.id || null,
+            lastUpdatedBy: req.user?.id || null
         });
 
         await newDoc.save();
@@ -196,7 +204,9 @@ export async function createDoc(req, res) {
             .populate('author', 'firstname lastname email')
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email');
+            .populate('owners', 'firstname lastname email')
+            .populate('reviewCompletedBy', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         res.status(201).json({ message: "Document created successfully", doc: populatedDoc });
     } catch (error) {
@@ -207,7 +217,7 @@ export async function createDoc(req, res) {
 
 export async function updateDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category, stakeholders, owners } = req.body;
+        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt } = req.body;
         const docObject = req.body;
         const objectIsEmpty = areAllObjectFieldsEmpty(docObject);
 
@@ -236,11 +246,25 @@ export async function updateDoc(req, res) {
             }
         }
 
+        // Add review completion fields if provided
+        if (reviewCompleted !== undefined) {
+            updateData.reviewCompleted = reviewCompleted;
+        }
+        
+        if (reviewCompletedAt !== undefined) {
+            updateData.reviewCompletedAt = reviewCompletedAt;
+        }
+        
+        // Always update lastUpdatedBy field
+        updateData.lastUpdatedBy = req.user?.id || null;
+
         const updatedDoc = await Doc.findByIdAndUpdate(req.params.id, updateData, {new: true})
             .populate('author', 'firstname lastname email')
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email');
+            .populate('owners', 'firstname lastname email')
+            .populate('reviewCompletedBy', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         if (!updatedDoc) {
             return res.status(404).json({ message: "Document not found."});
@@ -282,6 +306,48 @@ export async function getDocFiles(req, res) {
         res.status(200).json(files);
     } catch (error) {
         console.error("Error fetching document files:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
+export async function markDocAsReviewed(req, res) {
+    try {
+        const { id } = req.params;
+        const { reviewCompleted } = req.body;
+
+        // Validate input
+        if (typeof reviewCompleted !== 'boolean') {
+            return res.status(400).json({ message: "reviewCompleted must be a boolean value" });
+        }
+
+        // Update the document
+        const updatedDoc = await Doc.findByIdAndUpdate(
+            id,
+            {
+                reviewCompleted,
+                reviewCompletedAt: reviewCompleted ? new Date() : null,
+                reviewCompletedBy: reviewCompleted ? req.user?.id : null,
+                lastUpdatedBy: req.user?.id
+            },
+            { new: true }
+        )
+            .populate('author', 'firstname lastname email')
+            .populate('category', 'name')
+            .populate('stakeholders', 'firstname lastname email')
+            .populate('owners', 'firstname lastname email')
+            .populate('reviewCompletedBy', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
+
+        if (!updatedDoc) {
+            return res.status(404).json({ message: "Document not found." });
+        }
+
+        res.status(200).json({
+            message: `Document marked as ${reviewCompleted ? 'reviewed' : 'not reviewed'}`,
+            doc: updatedDoc
+        });
+    } catch (error) {
+        console.error("Error marking document as reviewed:", error);
         res.status(500).send("Internal Server Error");
     }
 }

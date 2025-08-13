@@ -9,6 +9,7 @@ import {
     updateDoc,
     deleteDoc,
     getDocFiles,
+    markDocAsReviewed,
 } from "../controllers/docsController.js";
 import { uploadFileVersion } from "../controllers/uploadFileController.js";
 
@@ -25,6 +26,7 @@ router.post("/:id/upload", verifyAccessToken, requireRole("editor", "admin"), up
 
 // Restricted: Only editors & admins can update
 router.put("/:id", verifyAccessToken, requireRole("editor", "admin"), updateDoc);
+router.put("/:id/review", verifyAccessToken, requireRole("editor", "admin"), markDocAsReviewed);
 
 // Restricted: Only admins can delete
 router.delete("/:id", verifyAccessToken, requireRole("admin"), deleteDoc);
