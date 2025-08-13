@@ -10,7 +10,23 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg"];
+const ALLOWED_TYPES = [
+    "application/pdf",
+    "image/png",
+    "image/jpeg",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/html",
+    "application/xml",
+    "text/xml",
+    "text/rtf",
+    "text/plain",
+    "text/markdown",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/csv",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+];
 
 // Review interval options
 const REVIEW_INTERVALS = [
@@ -31,8 +47,8 @@ const schema = z.object({
     file: z
         .any()
         .refine((f) => f?.length === 1, "File is required")
-        .refine((f) => f && f[0] && ALLOWED_TYPES.includes(f[0].type), "Unsupported file type")
-        .refine((f) => f && f[0] && f[0].size <= MAX_FILE_SIZE, "File too large"),
+        .refine((f) => f && f[0] && ALLOWED_TYPES.includes(f[0].type), "Unsupported file type. Please upload a PDF, Word document, Excel spreadsheet, or image file.")
+        .refine((f) => f && f[0] && f[0].size <= MAX_FILE_SIZE, "File too large. Maximum size is 10MB."),
 });
 
 const CreateDocPage = () => {

@@ -8,9 +8,11 @@ import ViewUsersPage from "./pages/ViewUsersPage";
 import MyProfilePage from "./pages/MyProfilePage";
 import ViewUserPage from "./pages/ViewUserPage";
 import SystemInfoPage from "./pages/SystemInfoPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import CreateDocPage from "./pages/CreateDocPage";
 import CreateCatPage from './pages/CreateCatPage';
 import EditDocPage from "./pages/EditDocPage";
+import CustomChartsPage from "./pages/CustomChartsPage";
 import TeamsPage from "./pages/TeamsPage";
 import TeamDetailPage from "./pages/TeamDetailPage";
 import ProjectsPage from "./pages/ProjectsPage";
@@ -211,6 +213,22 @@ const App = () => {
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
                             <SystemInfoPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/analytics"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <AnalyticsPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/custom-charts"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <CustomChartsPage />
                         </ProtectedRoute>
                     }
                 />

@@ -36,13 +36,10 @@ A list of features I plan on implementing into the application.
 4. Work on UI in general
 5. Create a sidebar menu
 6. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
-7. Create search, filtering, and sorting features for results
-8. Notification System
-9. Graphs and analytics
-10. IT Contacts in CreateDocPage
-11. Universal debugging function(s)
-12. Analytics Reports
-13. Add comments
+7. Notification System
+8.  IT Contacts in CreateDocPage
+9.  Universal debugging function(s)
+10. Add comments
 
 ## Authentication System Suggestions & Improvements
 

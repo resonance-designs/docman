@@ -1,7 +1,7 @@
 {
   "name": "rd-docman-frontend",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
     "Document Management",
@@ -37,15 +37,18 @@
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
     "axios": "^1.11.0",
+    "chart.js": "^4.5.0",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.536.0",
     "prop-types": "^15.8.1",
     "react": "^19.1.0",
+    "react-chartjs-2": "^5.3.0",
     "react-datepicker": "^8.4.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.48.2",
     "react-hot-toast": "^2.5.2",
     "react-router": "^7.7.1",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

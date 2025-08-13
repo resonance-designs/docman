@@ -13,34 +13,34 @@ export async function getSystemInfo(req, res) {
         const hostname = os.hostname();
         const uptime = formatUptime(process.uptime());
         const memoryUsage = formatMemoryUsage(process.memoryUsage());
-        
+
         // Environment information
         const environment = process.env.ENV || process.env.NODE_ENV || 'development';
         const port = process.env.NODE_PORT || 5001;
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        
+
         // Database information
         const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
         const dbName = mongoose.connection.name || process.env.MONGO_DB || 'docman';
         const dbHost = mongoose.connection.host || process.env.MONGO_HOST || 'localhost';
         const dbPort = process.env.MONGO_PORT || '27017';
-        
+
         // Get collection counts
         const [userCount, docCount, categoryCount] = await Promise.all([
             User.countDocuments(),
             Doc.countDocuments(),
             Category.countDocuments()
         ]);
-        
+
         const totalDocuments = userCount + docCount + categoryCount;
-        const collections = mongoose.connection.db ? 
+        const collections = mongoose.connection.db ?
             (await mongoose.connection.db.listCollections().toArray()).length : 0;
-        
+
         // System health metrics
         const cpuUsage = getCpuUsage();
         const memoryStats = getMemoryStats();
         const loadAverage = os.loadavg();
-        
+
         const systemInfo = {
             // Server Information
             environment,
@@ -52,7 +52,7 @@ export async function getSystemInfo(req, res) {
             hostname,
             uptime,
             memoryUsage,
-            
+
             // Database Information
             database: {
                 type: 'MongoDB',
@@ -65,7 +65,7 @@ export async function getSystemInfo(req, res) {
                 docCount,
                 categoryCount
             },
-            
+
             // Application Information
             app: {
                 name: 'DocMan',
@@ -75,7 +75,7 @@ export async function getSystemInfo(req, res) {
                 apiBaseUrl: `http://localhost:${port}/api`,
                 uploadPath: process.cwd() + '/uploads'
             },
-            
+
             // System Health
             health: {
                 cpuUsage: `${cpuUsage.toFixed(2)}%`,
@@ -88,7 +88,7 @@ export async function getSystemInfo(req, res) {
                 activeConnections: 'N/A', // Would need to track this
                 lastCheck: new Date().toISOString()
             },
-            
+
             // Additional Information
             additional: {
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -102,7 +102,7 @@ export async function getSystemInfo(req, res) {
                 redisConfigured: process.env.UPSTASH_REDIS_REST_URL ? 'Yes' : 'No'
             }
         };
-        
+
         res.status(200).json(systemInfo);
     } catch (error) {
         console.error('Error fetching system info:', error);
@@ -115,7 +115,7 @@ function formatUptime(seconds) {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (days > 0) {
         return `${days}d ${hours}h ${minutes}m`;
     } else if (hours > 0) {
@@ -146,18 +146,18 @@ function getCpuUsage() {
     const cpus = os.cpus();
     let totalIdle = 0;
     let totalTick = 0;
-    
+
     cpus.forEach(cpu => {
         for (let type in cpu.times) {
             totalTick += cpu.times[type];
         }
         totalIdle += cpu.times.idle;
     });
-    
+
     const idle = totalIdle / cpus.length;
     const total = totalTick / cpus.length;
     const usage = 100 - ~~(100 * idle / total);
-    
+
     return usage;
 }
 
@@ -166,7 +166,7 @@ function getMemoryStats() {
     const freeMemory = os.freemem();
     const usedMemory = totalMemory - freeMemory;
     const percentage = (usedMemory / totalMemory) * 100;
-    
+
     return {
         total: totalMemory,
         free: freeMemory,
