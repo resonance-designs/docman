@@ -38,7 +38,8 @@ A list of features I plan on implementing into the application.
 8. Notification System
 9.  IT Contacts in CreateDocPage
 10. Universal debugging function(s)
-11. Add comments
+11. Add unit tests, update any existing unit tests
+12. Add comments
 
 ## Authentication System Suggestions & Improvements
 
