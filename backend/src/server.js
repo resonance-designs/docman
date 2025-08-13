@@ -4,7 +4,7 @@
  * @module server
  * @description Main entry point for the DocMan backend application.
  * @author Richard Bakos
- * @version 1.1.0
+ * @version 1.1.2
  * @license UNLICENSED
  */
 
