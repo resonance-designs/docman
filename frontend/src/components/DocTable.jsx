@@ -7,9 +7,7 @@ import toast from "react-hot-toast";
 const DocTable = ({ doc, setDocs }) => {
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
-
         if (!window.confirm("Are you sure you want to delete this document?")) return;
-
         try {
             await api.delete(`/docs/${id}`);
             setDocs((prev) => prev.filter((doc) => doc._id !== id)); // get rid of the deleted one
@@ -18,6 +16,17 @@ const DocTable = ({ doc, setDocs }) => {
             console.log("Error in handleDelete", error);
             toast.error("Failed to delete document");
         }
+    };
+
+    // Helper function to format author name
+    const getAuthorName = (author) => {
+        if (typeof author === 'string') {
+            return author; // Backward compatibility if some docs still have string authors
+        }
+        if (author && typeof author === 'object') {
+            return `${author.firstname} ${author.lastname}`;
+        }
+        return 'Unknown Author'; // Fallback
     };
 
     return (
@@ -29,7 +38,7 @@ const DocTable = ({ doc, setDocs }) => {
             </td>
             <td className="p-4">
                 <p className="block">
-                    {doc.author}
+                    {getAuthorName(doc.author)}
                 </p>
             </td>
             <td className="p-4">
@@ -61,7 +70,15 @@ DocTable.propTypes = {
     doc: PropTypes.shape({
         _id: PropTypes.string.isRequired,
         title: PropTypes.string.isRequired,
-        author: PropTypes.string.isRequired,
+        author: PropTypes.oneOfType([
+            PropTypes.string, // For backward compatibility
+            PropTypes.shape({
+                _id: PropTypes.string,
+                firstname: PropTypes.string,
+                lastname: PropTypes.string,
+                email: PropTypes.string
+            })
+        ]).isRequired,
         description: PropTypes.string.isRequired,
         createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     }).isRequired,

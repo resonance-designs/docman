@@ -125,12 +125,6 @@ const Navbar = () => {
                                             <RotateCcwKey className="size-5" />
                                             Reset Password
                                         </Link>
-                                        {role === "admin" && (
-                                            <Link to="/register" className={getLinkClass("/register")}>
-                                                <UserPlus className="size-5" />
-                                                <span>Register User</span>
-                                            </Link>
-                                        )}
                                         <button
                                             onClick={handleLogout}
                                             className="btn bg-resdes-yellow text-slate-950 hover:bg-resdes-yellow hover:opacity-[.8] transition-opacity duration-300"

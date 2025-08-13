@@ -23,11 +23,12 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
-import docsRoutes from "./routes/docsRoutes.js";
-import authRoutes from "./routes/authRoutes.js";
-import uploadRoutes from "./routes/uploadRoutes.js";
-import usersRoutes from "./routes/usersRoutes.js";
 import rateLimiter from "./middleware/rateLimiter.js";
+import authRoutes from "./routes/authRoutes.js";
+import usersRoutes from "./routes/usersRoutes.js";
+import docsRoutes from "./routes/docsRoutes.js";
+import categoriesRoutes from "./routes/categoriesRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -63,11 +64,12 @@ app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(cookieParser());
 app.use(express.json()); // Parse JSON request bodies
 app.use(rateLimiter); // Apply rate limiting middleware
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
-app.use("/api/docs", docsRoutes); // Declare docs endpoints
 app.use("/api/auth", authRoutes); // Declare authentication endpoints
 app.use("/api/users", usersRoutes); // Declare user endpoints
+app.use("/api/docs", docsRoutes); // Declare docs endpoints
+app.use("/api/categories", categoriesRoutes); // Declare category endpoints
 app.use("/upload", uploadRoutes); // Declare uploads endpoints
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
     // Serve static files from the React frontend app in production

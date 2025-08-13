@@ -1,8 +1,9 @@
 import { Route, Routes } from "react-router";
 import HomePage from "./pages/HomePage";
 // import ViewPage from "./pages/ViewPage";
-import CreatePage from "./pages/CreatePage";
-import DocDetailsPage from "./pages/DocDetailsPage";
+import CreateDocPage from "./pages/CreateDocPage";
+import CreateCatPage from './pages/CreateCatPage';
+import EditDocPage from "./pages/EditDocPage";
 import LoginPage from "./pages/LoginPage";
 import RegPage from "./pages/RegPage";
 import ForgotPassPage from "./pages/ForgotPassPage";
@@ -33,7 +34,15 @@ const App = () => {
                     path="/create"
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <CreatePage />
+                            <CreateDocPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/create-category"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated}>
+                            <CreateCatPage />
                         </ProtectedRoute>
                     }
                 />
@@ -41,7 +50,7 @@ const App = () => {
                     path="/doc/:id"
                     element={
                         <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <DocDetailsPage />
+                            <EditDocPage />
                         </ProtectedRoute>
                     }
                 />

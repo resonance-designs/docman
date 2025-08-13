@@ -1,5 +1,6 @@
+// backend/src/controllers/docsController.js
 import Doc from "../models/Doc.js";
-import File from "../models/File.js"; // Make sure you have this model defined
+import File from "../models/File.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 
 export async function getAllDocs(req, res) {
@@ -7,8 +8,13 @@ export async function getAllDocs(req, res) {
         // Read optional ?limit=5 from the query string
         const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
 
-        // Build the query
-        let query = Doc.find().sort({ createdAt: -1 });
+        // Build the query with population
+        let query = Doc.find()
+            .populate('author', 'firstname lastname email')
+            .populate('category', 'name')
+            .populate('stakeholders', 'firstname lastname email')
+            .populate('owners', 'firstname lastname email')
+            .sort({ createdAt: -1 });
 
         // Apply limit only if provided
         if (limit && !isNaN(limit)) {
@@ -30,7 +36,12 @@ export async function getAllDocs(req, res) {
 
 export async function getDocById(req, res) {
     try {
-        const doc = await Doc.findById(req.params.id);
+        const doc = await Doc.findById(req.params.id)
+            .populate('author', 'firstname lastname email')
+            .populate('category', 'name')
+            .populate('stakeholders', 'firstname lastname email')
+            .populate('owners', 'firstname lastname email');
+
         if (!doc) return res.status(404).json({ message: "Document not found." });
         res.status(200).json(doc);
     } catch (error) {
@@ -40,16 +51,47 @@ export async function getDocById(req, res) {
 }
 
 export async function createDoc(req, res) {
-  try {
-        const { title, description, reviewDate, author } = req.body;
+    try {
+        const { title, description, reviewDate, author, category, stakeholders, owners } = req.body;
         const file = req.file;
 
-        if (!title || !description || !reviewDate || !author) {
-            return res.status(400).json({ message: "All fields are required." });
+        if (!title || !description || !reviewDate || !author || !category) {
+            return res.status(400).json({ message: "Title, description, reviewDate, author, and category are required." });
+        }
+
+        // Parse stakeholders and owners if they exist
+        let stakeholdersArray = [];
+        let ownersArray = [];
+
+        if (stakeholders) {
+            try {
+                stakeholdersArray = JSON.parse(stakeholders);
+            } catch (error) {
+                console.error("Error parsing stakeholders:", error);
+                return res.status(400).json({ message: "Invalid stakeholders format" });
+            }
+        }
+
+        if (owners) {
+            try {
+                ownersArray = JSON.parse(owners);
+            } catch (error) {
+                console.error("Error parsing owners:", error);
+                return res.status(400).json({ message: "Invalid owners format" });
+            }
         }
 
         // Create the document entry
-        const newDoc = new Doc({ title, description, reviewDate, author });
+        const newDoc = new Doc({
+            title,
+            description,
+            reviewDate,
+            author,
+            category,
+            stakeholders: stakeholdersArray,
+            owners: ownersArray
+        });
+
         await newDoc.save();
 
         // If a file was uploaded, save the file metadata
@@ -65,7 +107,15 @@ export async function createDoc(req, res) {
             });
             await newFile.save();
         }
-        res.status(201).json({ message: "Document created successfully", doc: newDoc });
+
+        // Populate the response
+        const populatedDoc = await Doc.findById(newDoc._id)
+            .populate('author', 'firstname lastname email')
+            .populate('category', 'name')
+            .populate('stakeholders', 'firstname lastname email')
+            .populate('owners', 'firstname lastname email');
+
+        res.status(201).json({ message: "Document created successfully", doc: populatedDoc });
     } catch (error) {
         console.error("Error creating document:", error);
         res.status(500).send("Internal Server Error");
@@ -74,16 +124,45 @@ export async function createDoc(req, res) {
 
 export async function updateDoc(req, res) {
     try {
-        const { title, description, reviewDate, author } = req.body;
+        const { title, description, reviewDate, author, category, stakeholders, owners } = req.body;
         const docObject = req.body;
         const objectIsEmpty = areAllObjectFieldsEmpty(docObject);
+
         if (objectIsEmpty) {
             return res.status(400).json({message: "No fields were changed."});
         }
-        const updatedDoc = await Doc.findByIdAndUpdate(req.params.id, { title, description, reviewDate, author }, {new: true});
+
+        // Parse arrays if they exist
+        let updateData = { title, description, reviewDate, author, category };
+
+        if (stakeholders) {
+            try {
+                updateData.stakeholders = JSON.parse(stakeholders);
+            } catch (error) {
+                console.error("Error parsing stakeholders:", error);
+                return res.status(400).json({ message: "Invalid stakeholders format" });
+            }
+        }
+
+        if (owners) {
+            try {
+                updateData.owners = JSON.parse(owners);
+            } catch (error) {
+                console.error("Error parsing owners:", error);
+                return res.status(400).json({ message: "Invalid owners format" });
+            }
+        }
+
+        const updatedDoc = await Doc.findByIdAndUpdate(req.params.id, updateData, {new: true})
+            .populate('author', 'firstname lastname email')
+            .populate('category', 'name')
+            .populate('stakeholders', 'firstname lastname email')
+            .populate('owners', 'firstname lastname email');
+
         if (!updatedDoc) {
             return res.status(404).json({ message: "Document not found."});
         }
+
         res.status(200).json({ message: "Document updated successfully", doc: updatedDoc });
     } catch (error) {
         console.error("Error updating document:", error);
