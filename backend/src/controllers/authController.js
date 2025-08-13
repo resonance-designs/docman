@@ -1,13 +1,14 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
-import nodemailer from "nodemailer";
 import { createAccessToken } from "../lib/secretToken.js";
+import { sendEmail } from "../lib/emailService.js";
 import {
     validateName,
     validateEmail,
     validatePassword,
     validateRole,
+    validateUsername,
     sanitizeString,
     sanitizeEmail
 } from "../lib/validation.js";
@@ -46,8 +47,9 @@ export async function register(req, res) {
             if (roleError) validationErrors.push({ field: "role", message: roleError });
         }
 
-        if (!username || typeof username !== 'string' || username.trim().length < 3) {
-            validationErrors.push({ field: "username", message: "Username must be at least 3 characters long" });
+        if (!username || typeof username !== 'string') {
+            const usernameError = validateUsername(username);
+            if (usernameError) validationErrors.push({ field: "username", message: usernameError });
         }
 
         // Return validation errors if any
@@ -137,31 +139,21 @@ export async function forgotPassword(req, res) {
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    const transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        auth: {
-            user: 'broderick.carroll@ethereal.email',
-            pass: 'aqDYjX8EXtGV3r7x3v'
-        }
-    });
+    // Create reset link
+    const resetLink = `http://yourfrontend.com/reset-password?token=${token}`;
+    const text = `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\nPlease click on the following link, or paste this into your browser to complete the process:\n\n${resetLink}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
+    const html = `<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+                  <p>Please click on the following link, or paste this into your browser to complete the process:</p>
+                  <p><a href="${resetLink}">Reset Password</a></p>
+                  <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>`;
 
-    (async () => {
-        const info = await transporter.sendMail({
-            from: '"Resonance Designs - No Reply" <noreply@resonancedesigns.dev>',
-            to: user.email,
-            subject: "Your password reset link",
-            text: "Reset link: http://yourfrontend.com/reset-password?token=${token}", // plain‑text body
-            html: '<b>Reset link: <a href="http://yourfrontend.com/reset-password?token=${token}">http://yourfrontend.com/reset-password?token=${token}</a></b>', // HTML body
-        });
-
-        console.log("Message sent:", info.messageId);
-    })();
-
-    // Send email with reset link (pseudo-code)
-    // await sendEmail(user.email, `Reset link: http://yourfrontend.com/reset-password?token=${token}`);
-
-    res.json({ message: "Password reset link sent to your email." });
+    try {
+        await sendEmail(user.email, "Password Reset Request", text, html);
+        res.json({ message: "Password reset link sent to your email." });
+    } catch (error) {
+        console.error("Error sending password reset email:", error);
+        res.status(500).json({ message: "Error sending password reset email. Please try again later." });
+    }
 }
 
 export async function resetPassword(req, res) {
@@ -218,6 +210,16 @@ export async function logout(req, res) {
                 if (u.refreshTokenHash && await bcrypt.compare(cookieToken, u.refreshTokenHash)) { u.refreshTokenHash = undefined; await u.save(); break; }
             }
         }
+        
+        // Blacklist the access token if provided in Authorization header
+        const authHeader = req.headers?.authorization || "";
+        const accessToken = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+        if (accessToken) {
+            // Import the blacklistToken function here to avoid circular dependencies
+            const secretTokenModule = await import("../lib/secretToken.js");
+            await secretTokenModule.blacklistToken(accessToken);
+        }
+        
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production' });
         res.json({ message: "Logged out." });
     } catch (error) {

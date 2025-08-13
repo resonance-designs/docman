@@ -39,6 +39,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.864.0",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.34.9",
     "bcrypt": "^6.0.0",

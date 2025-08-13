@@ -49,6 +49,10 @@ const schema = z.object({
         .refine((f) => f?.length === 1, "File is required")
         .refine((f) => f && f[0] && ALLOWED_TYPES.includes(f[0].type), "Unsupported file type. Please upload a PDF, Word document, Excel spreadsheet, or image file.")
         .refine((f) => f && f[0] && f[0].size <= MAX_FILE_SIZE, "File too large. Maximum size is 10MB."),
+    // Review assignments
+    reviewAssignees: z.array(z.string()).optional(),
+    reviewDueDate: z.date().optional(),
+    reviewNotes: z.string().optional(),
 });
 
 const CreateDocPage = () => {
@@ -66,9 +70,15 @@ const CreateDocPage = () => {
         resolver: zodResolver(schema),
         defaultValues: {
             stakeholders: [],
-            owners: []
+            owners: [],
+            reviewAssignees: [],
+            reviewNotes: ""
         }
     });
+
+    // State for review assignments
+    const [reviewAssignees, setReviewAssignees] = useState([]);
+    const [reviewDueDate, setReviewDueDate] = useState(null);
 
     // Load users and categories on component mount
     useEffect(() => {
@@ -136,6 +146,27 @@ const CreateDocPage = () => {
         setValue('owners', newOwners);
     };
 
+    // Review assignment handlers
+    const handleReviewAssigneeAdd = (userId) => {
+        if (!userId) return;
+        if (!reviewAssignees.includes(userId)) {
+            const next = [...reviewAssignees, userId];
+            setReviewAssignees(next);
+            setValue('reviewAssignees', next);
+        }
+    };
+
+    const handleReviewAssigneeRemove = (userId) => {
+        const next = reviewAssignees.filter(id => id !== userId);
+        setReviewAssignees(next);
+        setValue('reviewAssignees', next);
+    };
+
+    const handleReviewDueDateChange = (date) => {
+        setReviewDueDate(date);
+        setValue('reviewDueDate', date);
+    };
+
     const onSubmit = async (data) => {
         setLoading(true);
         try {
@@ -174,10 +205,32 @@ const CreateDocPage = () => {
                 },
             });
 
+            // Create review assignments if specified
+            if (reviewAssignees.length > 0 && reviewDueDate) {
+                try {
+                    const reviewData = {
+                        documentId: res.data.doc._id,
+                        assignments: reviewAssignees.map(assignee => ({
+                            assignee,
+                            dueDate: reviewDueDate.toISOString(),
+                            notes: data.reviewNotes || ""
+                        }))
+                    };
+                    
+                    await api.post("/reviews", reviewData);
+                    toast.success("Review assignments created successfully");
+                } catch (reviewErr) {
+                    console.error("Failed to create review assignments", reviewErr);
+                    toast.error("Document created but failed to create review assignments");
+                }
+            }
+
             toast.success("Document uploaded successfully");
             reset();
             setSelectedStakeholders([]);
             setSelectedOwners([]);
+            setReviewAssignees([]);
+            setReviewDueDate(null);
             navigate("/");
         } catch (err) {
             console.error("Upload failed", err);
@@ -354,6 +407,83 @@ const CreateDocPage = () => {
                                             </div>
                                         </div>
                                     )}
+                                </div>
+
+                                {/* Review Assignments Section */}
+                                <div className="form-control mb-4">
+                                    <label className="label font-semibold">Review Assignments</label>
+                                    <p className="text-sm text-gray-600 mb-2">Schedule reviewers for this document</p>
+                                    
+                                    {/* Review Due Date */}
+                                    <div className="form-control mb-4">
+                                        <label className="label" htmlFor="reviewDueDate">Review Due Date</label>
+                                        <input
+                                            id="reviewDueDate"
+                                            type="date"
+                                            {...register("reviewDueDate")}
+                                            onChange={(e) => handleReviewDueDateChange(e.target.value ? new Date(e.target.value) : null)}
+                                            className="input input-bordered"
+                                        />
+                                    </div>
+                                    
+                                    {/* Review Assignees Multi-select */}
+                                    <div className="form-control mb-4">
+                                        <label className="label">Review Assignees</label>
+                                        <select
+                                            className="select select-bordered"
+                                            onChange={(e) => {
+                                                if (e.target.value) {
+                                                    handleReviewAssigneeAdd(e.target.value);
+                                                    e.target.value = "";
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Add a reviewer</option>
+                                            {users
+                                                .filter(user => !reviewAssignees.includes(user._id))
+                                                .map((user) => (
+                                                    <option key={user._id} value={user._id}>
+                                                        {getFullName(user)}
+                                                    </option>
+                                                ))}
+                                        </select>
+
+                                        {/* Selected Review Assignees */}
+                                        {reviewAssignees.length > 0 && (
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-600 mb-2">Selected reviewers:</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {reviewAssignees.map((userId) => {
+                                                        const user = users.find(u => u._id === userId);
+                                                        return user ? (
+                                                            <div key={userId} className="badge badge-accent gap-2">
+                                                                {getFullName(user)}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleReviewAssigneeRemove(userId)}
+                                                                    className="btn btn-xs btn-circle btn-ghost"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Review Notes */}
+                                    <div className="form-control mb-4">
+                                        <label className="label" htmlFor="reviewNotes">Review Notes (Optional)</label>
+                                        <textarea
+                                            id="reviewNotes"
+                                            {...register("reviewNotes")}
+                                            className="textarea textarea-bordered"
+                                            rows="3"
+                                            placeholder="Add any notes for the reviewers..."
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* File Upload */}

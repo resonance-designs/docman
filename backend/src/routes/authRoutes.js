@@ -1,12 +1,13 @@
 import express from "express";
 import { register, login, forgotPassword, resetPassword, refreshToken, logout } from "../controllers/authController.js";
+import { limitLogin, limitRegister, limitPasswordReset } from "../middleware/authRateLimiter.js";
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+router.post("/register", limitRegister, register);
+router.post("/login", limitLogin, login);
+router.post("/forgot-password", limitPasswordReset, forgotPassword);
+router.post("/reset-password", limitPasswordReset, resetPassword);
 router.get("/refresh", refreshToken);
 router.post("/logout", logout);
 

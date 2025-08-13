@@ -36,7 +36,25 @@ const docSchema = new mongoose.Schema(
         projects: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Project'
-        }]
+        }],
+        reviewCompleted: {
+            type: Boolean,
+            default: false
+        },
+        reviewCompletedAt: {
+            type: Date,
+            required: false
+        },
+        reviewCompletedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: false
+        },
+        lastUpdatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: false
+        }
     },
     { timestamps: true } // createdAt and updatedAt fields
 );
