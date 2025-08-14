@@ -7,42 +7,54 @@ DocMan hopes to be the most comprehensive piece of software to manage all of you
 A list of features I plan on implementing into the application.
 
 1. Check my authentication and User setup is sound and secure
-   1. JWT authentication system
-      1. Check that there is email format, username length, password complexity, regex validation, etc...
-      2. Check that there are no issues with the inactivity/auto-logout functionality
-      3. Check that nothing is interfering with the token expiry
-   2. Email notifications
-      1. User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation, like if they are a stakeholder, owner, author, etc...
-   3. Restrict rate-limiting per IP/User and apply rate-limiting where relevant
+   1. ~~JWT authentication system~~
+      1. ~~Check that there is email format, username length, password complexity, regex validation, etc...~~
+      2. ~~Check that there are no issues with the inactivity/auto-logout functionality~~
+      3. ~~Check that nothing is interfering with the token expiry~~
+   2. ~~Email notifications~~
+      1. ~~User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation, like if they are a stakeholder, owner, author, etc...~~
+   3. ~~Restrict rate-limiting per IP/User and apply rate-limiting where relevant~~
 2. Enhance CreateDocPage by adding a field for the documents review to be marked as complete
-   1. This field should only be visible to the owners and authors of the document
-   2. This field should only be visible when the document is open for review
-   3. Should include a hidden field that tracks the date the review was completed
-   4. Should include a hidden field that tracks who marked the review as complete
+   1. This field should only be visible to the owners and authors of the document -- NEED TO TEST
+   2. This field should only be visible when the document is open for review -- NEED TO TEST
+   3. Should include a hidden field that tracks the date the review was completed -- NEED TO TEST
+   4. Should include a hidden field that tracks who marked the review as complete -- NEED TO TEST
    5. In fact, there should be a field in all forms to track who last updated anything
 3. Scheduling
-   1. Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review. 
+   1. Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review.
       1. They should get notice 1 week prior to it opening for review with a calendar reminder file attached
       2. Setup a weekly alert until the review is marked as complete.
    2. Can set review deadlines
    3. If review determines updates are needed, can assign to authors and contributors.
-4. Versioning System
-   1. Users should be able to upload new versions of the document
-   2. Users should be able to view previous versions of the document
-   3. Users should be able to download previous versions of the document
-   4. Users should be able to compare previous versions of the document
-   5. Users should be able to view the change log for the document
-5. On the ViewDocPage, add a download button to download a calendar event for the data that a document is up for review
-6. Create a theme switcher
-7. Internal notification and messaging system
-8.  Be able to invite members already in the system to teams through it's internal messaging and notification system.
-9.  User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.
-10. IT Contacts in CreateDocPage
-11. Universal debugging function(s)
-12. Add unit tests, update any existing unit tests
-13. Create a fork with local storage for data and bundle into an Electron app for desktop use
-14. Create internal messaging system
-15. Add comments
+4. ~~Versioning System~~
+   1. ~~Users should be able to upload new versions of the document~~
+   2. ~~Users should be able to view previous versions of the document~~
+   3. ~~Users should be able to download previous versions of the document~~
+   4. Users should be able to compare previous versions of the document -- NEED TO TEST
+   5. Users should be able to view the change log for the document -- NEED TO TEST
+5. ~~On the ViewDocPage, add a download button to download a calendar event for the date that a document is up for review~~
+6. External Contacts in CreateDocPage
+    1. Ability to add as many external contacts as needed. Each external contact should have a name, email, phone number, and type (which should be a dropdown).
+    2. The types should be stored in a collection
+    3. There should be an admin page to manage the types of external contacts.
+7. Create a theme switcher
+   1. One theme is the current theme
+   2. One is a clean business theme
+   3. And the third is a retro gaming theme
+   4. Users should be able to select their preferred theme in their profile
+8. Internal notification and messaging system
+   1.  Be able to invite members already in the system to teams through it's internal messaging and notification system.
+   2.  User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.
+9.  Universal debugging function(s)
+10. Add unit tests, update any existing unit tests
+11. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
+12. Cleanup and compartmentalize the code as much as possible
+13. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+14. Create a fork with local storage for data and bundle into an Electron app for desktop use
+15. Create another fork with docker and kubernetes for cloud use
+16. Create another fork with a mobile app for iOS and Android
+17. Create another fork for the purpose of refactoring into a Recipes MERN app
+18. Add comments
 
 ## Authentication System Suggestions & Improvements
 

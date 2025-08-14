@@ -4,6 +4,7 @@ import { UserIcon, SaveIcon, EyeIcon, EyeOffIcon, CameraIcon, TrashIcon } from "
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import { useTheme } from "../context/ThemeContext"; // Import useTheme hook
 import {
     validateName,
     validateEmail,
@@ -23,6 +24,7 @@ const getUserId = (user) => {
 };
 
 const MyProfilePage = () => {
+    const { currentTheme, setCurrentTheme } = useTheme(); // Use the theme context
     const { userId } = useParams(); // For admin editing other users
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
@@ -39,6 +41,7 @@ const MyProfilePage = () => {
     const [uploadingBackground, setUploadingBackground] = useState(false);
     const [errors, setErrors] = useState({});
 
+    const [originalEmail, setOriginalEmail] = useState(""); // Store original email for comparison
     const [formData, setFormData] = useState({
         firstname: "",
         lastname: "",
@@ -47,6 +50,7 @@ const MyProfilePage = () => {
         title: "",
         department: "",
         bio: "",
+        theme: currentTheme, // Use the current theme from context
         password: "",
         confirmPassword: "",
         role: "viewer"
@@ -110,10 +114,12 @@ const MyProfilePage = () => {
                     title: userData.title || "",
                     department: userData.department || "",
                     bio: userData.bio || "",
+                    theme: userData.theme || "current",
                     password: "",
                     confirmPassword: "",
                     role: userData.role || "viewer"
                 });
+                setOriginalEmail(userData.email || ""); // Set the original email
 
                 // Set profile picture preview if exists
                 if (userData.profilePicture) {
@@ -523,6 +529,7 @@ const MyProfilePage = () => {
                 updateData.title = formData.title;
                 updateData.department = formData.department;
                 updateData.bio = formData.bio;
+                updateData.theme = formData.theme;
             } else if (isEditingOther && isAdmin) {
                 // Admin editing another user - only send role
                 updateData.role = formData.role;
@@ -541,6 +548,11 @@ const MyProfilePage = () => {
             console.log("Update response:", response);
 
             toast.success(isEditingOther ? "User updated successfully" : "Profile updated successfully");
+            
+            // Update the theme context with the new theme
+            if (formData.theme !== currentTheme) {
+                setCurrentTheme(formData.theme);
+            }
 
             // Clear password fields
             setFormData(prev => ({
@@ -550,7 +562,7 @@ const MyProfilePage = () => {
             }));
 
             // If editing own profile and email changed, might need to re-login
-            if (!isEditingOther && formData.email !== currentUser.email) {
+            if (!isEditingOther && formData.email !== originalEmail) {
                 toast.success("Email updated. You may need to log in again.");
             }
 
@@ -847,6 +859,7 @@ const MyProfilePage = () => {
                                                     className="input input-bordered w-full"
                                                     placeholder="Enter email address"
                                                     required
+                                                    autoComplete="off"
                                                 />
                                             </div>
                                             <div className="form-control">
@@ -895,6 +908,23 @@ const MyProfilePage = () => {
                                                     placeholder="Enter department"
                                                 />
                                             </div>
+                                        </div>
+
+                                        {/* Theme Selection */}
+                                        <div className="form-control">
+                                            <label className="label" htmlFor="theme">
+                                                <span className="label-text font-semibold">Theme</span>
+                                            </label>
+                                            <select
+                                                name="theme"
+                                                value={formData.theme}
+                                                onChange={handleInputChange}
+                                                className="select select-bordered w-full"
+                                            >
+                                                <option value="current">Current Theme (Default)</option>
+                                                <option value="clean-business">Clean Business</option>
+                                                <option value="retro-gaming">Retro Gaming</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -961,6 +991,7 @@ const MyProfilePage = () => {
                                             onChange={handleInputChange}
                                             className="input input-bordered w-full pr-10"
                                             placeholder="Enter new password"
+                                            autoComplete="new-password"
                                         />
                                         <button
                                             type="button"
@@ -983,6 +1014,7 @@ const MyProfilePage = () => {
                                             onChange={handleInputChange}
                                             className="input input-bordered w-full pr-10"
                                             placeholder="Confirm new password"
+                                            autoComplete="new-password"
                                         />
                                         <button
                                             type="button"

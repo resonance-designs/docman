@@ -68,6 +68,15 @@ const docSchema = new mongoose.Schema(
                 ref: 'User'
             },
             changelog: String
+        }],
+        externalContacts: [{
+            name: String,
+            email: String,
+            phoneNumber: String,
+            type: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'ExternalContactType'
+            }
         }]
     },
     { timestamps: true } // createdAt and updatedAt fields
