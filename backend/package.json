@@ -35,7 +35,8 @@
     "atlasdev": "ATLAS=yes NODE_ENV=production nodemon -L src/server.js",
     "atlasprod": "ATLAS=yes NODE_ENV=production node src/server.js",
     "atlasstart": "ATLAS=yes NODE_ENV=render node src/server.js",
-    "test": "jest --detectOpenHandles --runInBand"
+    "test": "jest --detectOpenHandles --runInBand",
+    "send-review-notifications": "node scripts/sendReviewNotifications.js"
   },
   "type": "module",
   "dependencies": {

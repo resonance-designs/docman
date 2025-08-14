@@ -1,4 +1,16 @@
-import { verifyToken } from "../lib/secretToken.js";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+// Load environment variables based on NODE_ENV
+if (process.env.NODE_ENV === 'development') {
+    dotenv.config({ path: '.env.dev' });
+} else if (process.env.NODE_ENV === 'production') {
+    dotenv.config({ path: '.env.prod' });
+} else {
+    dotenv.config(); // Loads .env by default
+}
+
+const TOKEN_KEY = process.env.TOKEN_KEY || "CHANGE_ME";
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -7,7 +19,7 @@ const authMiddleware = (req, res, next) => {
     }
     const token = authHeader.split(" ")[1];
     try {
-        const decoded = verifyToken(token);
+        const decoded = jwt.verify(token, TOKEN_KEY);
         req.user = decoded;
         next();
     } catch (error) {
