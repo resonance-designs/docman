@@ -4,7 +4,7 @@
  * @middleware authMid
  * @description JWT authentication middleware for verifying Bearer tokens and protecting routes
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";
@@ -24,9 +24,15 @@ if (process.env.NODE_ENV === 'development') {
 
 /**
  * JWT token secret key from environment variables
+ * Supports multiple environment variable names for compatibility
  * @type {string}
  */
-const TOKEN_KEY = process.env.TOKEN_KEY || "CHANGE_ME";
+const TOKEN_KEY = process.env.JWT_SECRET || process.env.TOKEN_KEY || "docman-dev-secret-key-2024";
+
+// Log warning if using default token
+if (TOKEN_KEY === "docman-dev-secret-key-2024") {
+    console.warn("⚠️  WARNING: Using default JWT secret. Set JWT_SECRET or TOKEN_KEY environment variable for security!");
+}
 
 /**
  * Authentication middleware to verify JWT tokens

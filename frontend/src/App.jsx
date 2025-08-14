@@ -1,10 +1,10 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { Route, Routes } from "react-router";
-import { useState, useEffect } from "react";
+import React from "react";
 import HomePage from "./pages/HomePage";
 import ViewDocPage from "./pages/ViewDocPage";
 import ViewDocsPage from "./pages/ViewDocsPage";
@@ -33,74 +33,39 @@ import Navbar from "./components/Navbar";
 import NavAdmin from "./components/NavAdmin";
 import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
-import { decodeJWT } from "./lib/utils";
 import ManageExternalContactTypesPage from "./pages/ManageExternalContactTypesPage";
 import { ThemeProvider } from "./context/ThemeContext";
+import { useUserRole } from "./hooks";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 /**
  * Main application component that handles routing and authentication state
  * @returns {JSX.Element} The main application component
  */
 const App = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
-    const [userRole, setUserRole] = useState(null);
+    console.log("🎯 App component starting...");
 
-    /**
-     * Get user role from token on component mount
-     * This effect runs once when the component mounts to check if there's a valid token
-     * in localStorage and decode it to get the user's role
-     */
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const decoded = decodeJWT(token);
-                setUserRole(decoded?.role);
-                setIsAuthenticated(true);
-            } catch (error) {
-                console.error("Invalid token:", error);
-                setIsAuthenticated(false);
-                setUserRole(null);
-            }
-        } else {
-            setIsAuthenticated(false);
-            setUserRole(null);
-        }
-    }, []);
+    const { isAuthenticated, userRole, loading } = useUserRole();
+    console.log("🎯 App render:", { isAuthenticated, userRole, loading });
 
-    /**
-     * Listen for auth state changes
-     * This effect sets up an event listener to handle authentication state changes
-     * that might occur from other parts of the application
-     */
-    useEffect(() => {
-        const handleAuthChange = () => {
-            const token = localStorage.getItem("token");
-            if (token) {
-                try {
-                    const decoded = decodeJWT(token);
-                    setUserRole(decoded?.role);
-                    setIsAuthenticated(true);
-                } catch (error) {
-                    console.error("Invalid token:", error);
-                    setIsAuthenticated(false);
-                    setUserRole(null);
-                }
-            } else {
-                setIsAuthenticated(false);
-                setUserRole(null);
-            }
-        };
-
-        window.addEventListener("authStateChanged", handleAuthChange);
-        return () => window.removeEventListener("authStateChanged", handleAuthChange);
-    }, []);
+    // Show loading spinner during authentication check
+    if (loading) {
+        return (
+            <ThemeProvider>
+                <div className="min-h-screen bg-base-100 flex items-center justify-center">
+                    <div className="loading loading-spinner loading-lg"></div>
+                    <span className="ml-2">Loading...</span>
+                </div>
+            </ThemeProvider>
+        );
+    }
 
     return (
-        <ThemeProvider>
-            <div className="relative h-full w-full">
-                <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 bg-gradient-bg" />
-                <Navbar />
+        <ErrorBoundary>
+            <ThemeProvider>
+                <div className="relative h-full w-full">
+                    <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 bg-gradient-bg" />
+                    <Navbar />
                 {isAuthenticated && (
                     <div className="container mx-auto px-4 pt-4">
                         <div className="max-w-screen-xl mx-auto mt-8">
@@ -302,6 +267,7 @@ const App = () => {
                 <Footer />
             </div>
         </ThemeProvider>
+        </ErrorBoundary>
     );
 }
 

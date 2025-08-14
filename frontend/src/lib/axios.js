@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import axios from "axios";
@@ -27,8 +27,36 @@ api.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        // console.log("🔑 Sending request to:", config.url, "with token:", token.substring(0, 20) + "...");
     }
     return config;
 });
+
+/**
+ * Response interceptor to handle authentication errors
+ */
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            console.error("🔒 Authentication failed - clearing expired token");
+
+            // Clear expired token from localStorage
+            const currentToken = localStorage.getItem("token");
+            if (currentToken) {
+                localStorage.removeItem("token");
+
+                // Dispatch event to update auth state
+                window.dispatchEvent(new Event('authStateChanged'));
+
+                // Optionally redirect to login
+                if (window.location.pathname !== '/') {
+                    window.location.href = '/';
+                }
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 export default api;

@@ -4,16 +4,16 @@
  * @component DocTable
  * @description Component for displaying a document in a table row with actions.
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 
 import { EyeIcon, Trash2Icon } from "lucide-react";
 import { Link } from "react-router";
-import { formatDate, decodeJWT } from "../lib/utils";
+import { formatDate } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
-import { useEffect, useState } from "react";
+import { useUserRole } from "../hooks";
 
 /**
  * Component for displaying a document in a table row with actions
@@ -23,18 +23,7 @@ import { useEffect, useState } from "react";
  * @returns {JSX.Element} The document table row component
  */
 const DocTable = ({ doc, setDocs }) => {
-    const [userRole, setUserRole] = useState(null);
-
-    /**
-     * Get user role from token when component mounts
-     */
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            const decoded = decodeJWT(token);
-            setUserRole(decoded?.role);
-        }
-    }, []);
+    const { userRole } = useUserRole();
 
     /**
      * Handle document deletion

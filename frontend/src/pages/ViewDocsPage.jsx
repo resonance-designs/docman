@@ -4,7 +4,7 @@
  * @page ViewDocsPage
  * @description Document listing page with search, filtering, sorting, and bulk operations for managing documents
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
 import PaginatedDocTable from "../components/PaginatedDocTable";
 import FilterBar from "../components/filters/FilterBar";
+import { ensureArray, createSafeArray } from "../lib/safeUtils";
 
 /**
  * Page component for viewing and filtering documents
@@ -65,9 +66,11 @@ const ViewDocsPage = () => {
                     api.get("/users", { headers })
                 ]);
 
-                setDocs(docsRes.data);
-                setCategories(categoriesRes.data);
-                setUsers(usersRes.data);
+                console.log("📄 ViewDocsPage: Raw docs response:", docsRes.data);
+                setDocs(ensureArray(docsRes.data));
+                setCategories(ensureArray(categoriesRes.data));
+                setUsers(ensureArray(usersRes.data));
+                setFilteredDocs(ensureArray(docsRes.data));
             } catch (error) {
                 console.error("Error fetching data:", error);
                 toast.error("Failed to load data");
@@ -104,7 +107,7 @@ const ViewDocsPage = () => {
                 const url = queryString ? `/docs?${queryString}` : '/docs';
 
                 const res = await api.get(url, { headers });
-                setFilteredDocs(res.data);
+                setFilteredDocs(ensureArray(res.data));
             } catch (error) {
                 console.error("Error fetching filtered documents:", error);
                 toast.error("Failed to filter documents");
@@ -112,7 +115,8 @@ const ViewDocsPage = () => {
         };
 
         // Only fetch if we have initial data
-        if (docs.length > 0 || searchValue || categoryFilter || authorFilter || overdueFilter || dateRange.startDate || dateRange.endDate) {
+        const safeDocsArray = ensureArray(docs);
+        if (safeDocsArray.length > 0 || searchValue || categoryFilter || authorFilter || overdueFilter || dateRange.startDate || dateRange.endDate) {
             fetchFilteredDocs();
         }
     }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig, docs.length]);
@@ -120,13 +124,16 @@ const ViewDocsPage = () => {
     // Check if user can create documents (editor or admin)
     const canCreateDocument = userRole === "editor" || userRole === "admin";
 
-    // Filter options
-    const categoryOptions = categories.map(cat => ({
+    // Filter options with safe array handling
+    const safeCategoriesArray = createSafeArray(categories);
+    const safeUsersArray = createSafeArray(users);
+
+    const categoryOptions = safeCategoriesArray.map(cat => ({
         value: cat._id,
         label: cat.name
     }));
 
-    const authorOptions = users.map(user => ({
+    const authorOptions = safeUsersArray.map(user => ({
         value: user._id,
         label: `${user.firstname} ${user.lastname}`
     }));

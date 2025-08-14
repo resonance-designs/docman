@@ -4,7 +4,7 @@
  * @page ViewUsersPage
  * @description User management page with filtering, search, and user administration for system administrators
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -12,39 +12,27 @@ import { Link } from "react-router";
 import { UserPlusIcon, UsersIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
-import { decodeJWT } from "../lib/utils";
 import PaginatedUserTable from "../components/PaginatedUserTable";
 import FilterBar from "../components/filters/FilterBar";
+import { useUserRole } from "../hooks";
 
 const ViewUsersPage = () => {
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [userRole, setUserRole] = useState(null);
+    const { userRole } = useUserRole();
 
     // Filter states
     const [searchValue, setSearchValue] = useState("");
     const [roleFilter, setRoleFilter] = useState("");
     const [sortConfig, setSortConfig] = useState({ key: "firstname", direction: "asc" });
 
-    // Get user role from token
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            const decoded = decodeJWT(token);
-            setUserRole(decoded?.role);
-        }
-    }, []);
-
     // Fetch initial users
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem("token");
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-                const res = await api.get("/users", { headers });
+                const res = await api.get("/users");
                 setUsers(res.data);
             } catch (error) {
                 console.error("Error fetching users:", error);

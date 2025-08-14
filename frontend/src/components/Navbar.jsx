@@ -4,55 +4,42 @@
  * @component Navbar
  * @description Component for the main navigation bar with responsive menu and authentication handling.
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { LogOut, FolderIcon, UsersIcon, FileTextIcon, UserIcon, MenuIcon, XIcon, Users2Icon, BarChart3Icon } from "lucide-react";
 import toast from "react-hot-toast";
 import LogoPic from "../assets/imgs/logo.png";
-import { decodeJWT, getLinkClass } from "../lib/utils";
+import { getLinkClass } from "../lib/utils";
+import { useUserRole } from "../hooks";
 import useAutoLogout from "../hooks/useAutoLogout";
 import NotificationBell from "./NotificationBell";
 
-/**
- * Get user role from JWT token in localStorage
- * @returns {string|null} User role or null if not authenticated
- */
-const getUserRole = () => {
-    const token = localStorage.getItem("token");
-    if (!token) return null;
-    try {
-        const decoded = decodeJWT(token);
-        return decoded?.role ?? null;
-    } catch {
-        return null;
-    }
-};
+
 
 /**
  * Navigation bar component with responsive menu and authentication handling
  * @returns {JSX.Element} The navigation bar component
  */
 const Navbar = () => {
-    const [role, setRole] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const { isAuthenticated, userRole: role, logout } = useUserRole();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+
+    console.log("🧭 Navbar render:", { isAuthenticated, role });
 
     /**
      * Auto logout functionality handler
      * Removes token, updates state, and navigates to home page
      */
     const handleAutoLogout = () => {
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
-        setRole(null);
-        fetch('/api/logout', { method: 'POST' });
-        window.dispatchEvent(new Event('authStateChanged'));
+        logout();
+        fetch('/api/auth/logout', { method: 'POST' });
+        toast.error('Session expired due to inactivity');
         navigate("/");
     };
 
@@ -62,73 +49,15 @@ const Navbar = () => {
      */
     useAutoLogout(isAuthenticated, handleAutoLogout, 15, 'Navbar');
 
-    /**
-     * Function to check and update authentication state
-     */
-    const updateAuthState = () => {
-        const token = localStorage.getItem("token");
-        const authenticated = !!token;
-        setIsAuthenticated(authenticated);
-
-        if (token) {
-            const r = getUserRole();
-            setRole(r);
-        } else {
-            setRole(null);
-        }
-    };
-
-    /**
-     * Initial auth state check on component mount
-     */
-    useEffect(() => {
-        updateAuthState();
-    }, []); // Run once on mount
-
-    /**
-     * Update auth state when location changes (including when navigating after login)
-     */
-    useEffect(() => {
-        updateAuthState();
-    }, [location]); // Update when location changes (including when navigating after login)
-
-    /**
-     * Listen to storage changes for multiple tabs
-     */
-    useEffect(() => {
-        const onStorageChange = () => {
-            updateAuthState();
-        };
-
-        window.addEventListener("storage", onStorageChange);
-        return () => window.removeEventListener("storage", onStorageChange);
-    }, []);
-
-    /**
-     * Listen to custom auth events (optional - see alternative solution below)
-     */
-    useEffect(() => {
-        const handleAuthChange = () => {
-            updateAuthState();
-        };
-
-        window.addEventListener("authStateChanged", handleAuthChange);
-        return () => window.removeEventListener("authStateChanged", handleAuthChange);
-    }, []);
+    // Auth state is now managed by useUserRole hook
 
     /**
      * Handle user logout
      */
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
-        setRole(null);
-        fetch('/api/logout', { method: 'POST' });
+        logout();
+        fetch('/api/auth/logout', { method: 'POST' });
         toast.success("You have been logged out");
-
-        // Dispatch custom event to notify other components (like HomePage)
-        window.dispatchEvent(new Event('authStateChanged'));
-
         navigate("/");
     };
 

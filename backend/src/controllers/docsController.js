@@ -4,7 +4,7 @@
  * @controller docsController
  * @description Document management controller for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import Doc from "../models/Doc.js";
@@ -12,6 +12,7 @@ import File from "../models/File.js";
 import User from "../models/User.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 import { sendDocumentAssignedNotification } from "./notificationsController.js";
+import * as documentService from "../services/documentService.js";
 
 /**
  * Helper function to send document assigned notifications
@@ -48,143 +49,64 @@ async function sendDocumentNotifications(docId, stakeholders, owners, senderId) 
  */
 export async function getAllDocs(req, res) {
     try {
-        const {
-            limit,
-            search,
-            category,
-            author,
-            overdue,
-            startDate,
-            endDate,
-            sortBy = 'createdAt',
-            sortOrder = 'desc'
-        } = req.query;
-
-        // Build filter object
-        const filter = {};
-
-        // Search filter - search in title and description
-        if (search) {
-            filter.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        // Category filter
-        if (category) {
-            filter.category = category;
-        }
-
-        // Author filter
-        if (author) {
-            filter.author = author;
-        }
-
-        // Overdue filter
-        if (overdue === 'true') {
-            filter.reviewDate = { $lt: new Date() };
-        }
-
-        // Date range filter (for createdAt)
-        if (startDate || endDate) {
-            filter.createdAt = {};
-            if (startDate) {
-                filter.createdAt.$gte = new Date(startDate);
-            }
-            if (endDate) {
-                // Add one day to include the end date
-                const endDateTime = new Date(endDate);
-                endDateTime.setDate(endDateTime.getDate() + 1);
-                filter.createdAt.$lt = endDateTime;
-            }
-        }
-
-        // Build sort object
-        const sortObj = {};
-        const validSortFields = ['title', 'createdAt', 'reviewDate', 'author', 'category'];
-        const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-        const sortDirection = sortOrder === 'asc' ? 1 : -1;
-
-        // Handle special sorting for populated fields
-        if (sortField === 'author') {
-            sortObj['author.firstname'] = sortDirection;
-        } else if (sortField === 'category') {
-            sortObj['category.name'] = sortDirection;
-        } else {
-            sortObj[sortField] = sortDirection;
-        }
-
-        // Build the query with population and filtering
-        let query = Doc.find(filter)
-            .populate('author', 'firstname lastname email')
-            .populate('category', 'name')
-            .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email')
-            .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email')
-            .populate('externalContacts.type');
-
-        // Apply sorting
-        if (sortField === 'author' || sortField === 'category') {
-            // For populated fields, we need to sort after population
-            query = query.sort(sortObj);
-        } else {
-            query = query.sort(sortObj);
-        }
-
-        // Apply limit only if provided
-        const limitNum = limit ? parseInt(limit, 10) : null;
-        if (limitNum && !isNaN(limitNum)) {
-            query = query.limit(limitNum);
-        }
-
-        const docs = await query;
-
-        // If sorting by populated fields, sort in memory
-        if (sortField === 'author') {
-            docs.sort((a, b) => {
-                const aName = `${a.author?.firstname || ''} ${a.author?.lastname || ''}`.trim();
-                const bName = `${b.author?.firstname || ''} ${b.author?.lastname || ''}`.trim();
-                return sortDirection === 1 ? aName.localeCompare(bName) : bName.localeCompare(aName);
-            });
-        } else if (sortField === 'category') {
-            docs.sort((a, b) => {
-                const aName = a.category?.name || '';
-                const bName = b.category?.name || '';
-                return sortDirection === 1 ? aName.localeCompare(bName) : bName.localeCompare(aName);
-            });
-        }
-
-        res.status(200).json(docs);
+        const result = await documentService.getDocuments(req.query, req.user);
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error fetching documents:", error);
-        res.status(500).send("Internal Server Error");
+        const statusCode = error.message.includes("Access denied") ? 403 : 500;
+        res.status(statusCode).json({
+            message: error.message || "Failed to retrieve documents"
+        });
     }
 }
 
 /**
- * Get a specific document by ID
+ * Check if user has permission to access a document
+ * @param {Object} doc - Document object
+ * @param {string} userId - User ID
+ * @param {string} userRole - User role
+ * @returns {boolean} True if user has access
+ */
+function hasDocumentAccess(doc, userId, userRole) {
+    // Admins have access to all documents
+    if (userRole === 'admin') return true;
+
+    // Check if user is the author
+    if (doc.author && doc.author._id && doc.author._id.toString() === userId) return true;
+    if (doc.author && doc.author.toString() === userId) return true;
+
+    // Check if user is a stakeholder
+    if (doc.stakeholders && doc.stakeholders.some(stakeholder => {
+        const stakeholderId = stakeholder._id ? stakeholder._id.toString() : stakeholder.toString();
+        return stakeholderId === userId;
+    })) return true;
+
+    // Check if user is an owner
+    if (doc.owners && doc.owners.some(owner => {
+        const ownerId = owner._id ? owner._id.toString() : owner.toString();
+        return ownerId === userId;
+    })) return true;
+
+    return false;
+}
+
+/**
+ * Get a specific document by ID (with access control)
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with document data or error message
  */
 export async function getDocById(req, res) {
     try {
-        const doc = await Doc.findById(req.params.id)
-            .populate('author', 'firstname lastname email')
-            .populate('category', 'name')
-            .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email')
-            .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email')
-            .populate('externalContacts.type');
-
-        if (!doc) return res.status(404).json({ message: "Document not found." });
+        const doc = await documentService.getDocumentById(req.params.id, req.user);
         res.status(200).json(doc);
     } catch (error) {
         console.error("Error fetching document by ID:", error);
-        res.status(500).send("Internal Server Error");
+        const statusCode = error.message.includes("not found") ? 404 :
+                          error.message.includes("Access denied") ? 403 : 500;
+        res.status(statusCode).json({
+            message: error.message || "Failed to retrieve document"
+        });
     }
 }
 
@@ -196,106 +118,39 @@ export async function getDocById(req, res) {
  */
 export async function createDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt, externalContacts } = req.body;
-        const file = req.file;
+        const { title, description, reviewDate, author, category } = req.body;
 
+        // Validate required fields
         if (!title || !description || !reviewDate || !author || !category) {
-            return res.status(400).json({ message: "Title, description, reviewDate, author, and category are required." });
-        }
-
-        // Parse stakeholders and owners if they exist
-        let stakeholdersArray = [];
-        let ownersArray = [];
-        let externalContactsArray = [];
-
-        if (stakeholders) {
-            try {
-                stakeholdersArray = JSON.parse(stakeholders);
-            } catch (error) {
-                console.error("Error parsing stakeholders:", error);
-                return res.status(400).json({ message: "Invalid stakeholders format" });
-            }
-        }
-
-        if (owners) {
-            try {
-                ownersArray = JSON.parse(owners);
-            } catch (error) {
-                console.error("Error parsing owners:", error);
-                return res.status(400).json({ message: "Invalid owners format" });
-            }
-        }
-        
-        // Parse external contacts if they exist
-        if (externalContacts) {
-            try {
-                externalContactsArray = JSON.parse(externalContacts);
-            } catch (error) {
-                console.error("Error parsing external contacts:", error);
-                return res.status(400).json({ message: "Invalid external contacts format" });
-            }
-        }
-
-        // Create the document entry
-        const newDoc = new Doc({
-            title,
-            description,
-            reviewDate,
-            author,
-            category,
-            stakeholders: stakeholdersArray,
-            owners: ownersArray,
-            externalContacts: externalContactsArray,
-            reviewCompleted: reviewCompleted || false,
-            reviewCompletedAt: reviewCompletedAt || null,
-            reviewCompletedBy: req.user?.id || null,
-            lastUpdatedBy: req.user?.id || null
-        });
-
-        await newDoc.save();
-
-        // If a file was uploaded, save the file metadata and initialize version history
-        if (file) {
-            const newFile = new File({
-                filename: file.filename,
-                originalname: file.originalname,
-                path: file.path,
-                mimetype: file.mimetype,
-                size: file.size,
-                documentId: newDoc._id,
-                uploadedAt: new Date(),
-                uploadedBy: req.user?.id || null,
+            return res.status(400).json({
+                message: "Title, description, reviewDate, author, and category are required."
             });
-            await newFile.save();
-            
-            // Initialize version history
-            newDoc.currentVersion = newFile.version;
-            newDoc.versionHistory = [{
-                version: newFile.version,
-                label: newFile.versionLabel,
-                uploadedAt: newFile.uploadedAt,
-                uploadedBy: newFile.uploadedBy,
-                changelog: newFile.changelog
-            }];
-            await newDoc.save();
         }
+
+        // Create document using service
+        const doc = await documentService.createDocument(req.body, req.file, req.user);
 
         // Send notifications to stakeholders and owners
-        await sendDocumentNotifications(newDoc._id, stakeholdersArray, ownersArray, req.user?.id || null);
+        const parsedFields = documentService.parseDocumentFields(req.body);
+        if (parsedFields.stakeholders || parsedFields.owners) {
+            await sendDocumentNotifications(
+                doc._id,
+                parsedFields.stakeholders || [],
+                parsedFields.owners || [],
+                req.user?.id || null
+            );
+        }
 
-        // Populate the response
-        const populatedDoc = await Doc.findById(newDoc._id)
-            .populate('author', 'firstname lastname email')
-            .populate('category', 'name')
-            .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email')
-            .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email');
-
-        res.status(201).json({ message: "Document created successfully", doc: populatedDoc });
+        res.status(201).json({
+            message: "Document created successfully",
+            doc
+        });
     } catch (error) {
         console.error("Error creating document:", error);
-        res.status(500).send("Internal Server Error");
+        const statusCode = error.message.includes("Invalid") ? 400 : 500;
+        res.status(statusCode).json({
+            message: error.message || "Failed to create document"
+        });
     }
 }
 
@@ -307,83 +162,43 @@ export async function createDoc(req, res) {
  */
 export async function updateDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt, externalContacts } = req.body;
-        const docObject = req.body;
-        const objectIsEmpty = areAllObjectFieldsEmpty(docObject);
-
-        if (objectIsEmpty) {
-            return res.status(400).json({message: "No fields were changed."});
+        // Check if any fields were provided
+        if (areAllObjectFieldsEmpty(req.body)) {
+            return res.status(400).json({ message: "No fields were changed." });
         }
 
-        // Parse arrays if they exist
-        let updateData = { title, description, reviewDate, author, category };
+        // Update document using service
+        const updatedDoc = await documentService.updateDocument(
+            req.params.id,
+            req.body,
+            req.file,
+            req.user
+        );
 
-        if (stakeholders) {
-            try {
-                updateData.stakeholders = JSON.parse(stakeholders);
-            } catch (error) {
-                console.error("Error parsing stakeholders:", error);
-                return res.status(400).json({ message: "Invalid stakeholders format" });
-            }
-        }
-
-        if (owners) {
-            try {
-                updateData.owners = JSON.parse(owners);
-            } catch (error) {
-                console.error("Error parsing owners:", error);
-                return res.status(400).json({ message: "Invalid owners format" });
-            }
-        }
-        
-        // Parse external contacts if they exist
-        if (externalContacts) {
-            try {
-                updateData.externalContacts = JSON.parse(externalContacts);
-            } catch (error) {
-                console.error("Error parsing external contacts:", error);
-                return res.status(400).json({ message: "Invalid external contacts format" });
-            }
-        }
-
-        // Add review completion fields if provided
-        if (reviewCompleted !== undefined) {
-            updateData.reviewCompleted = reviewCompleted;
-        }
-        
-        if (reviewCompletedAt !== undefined) {
-            updateData.reviewCompletedAt = reviewCompletedAt;
-        }
-        
-        // Always update lastUpdatedBy field
-        updateData.lastUpdatedBy = req.user?.id || null;
-
-        const updatedDoc = await Doc.findByIdAndUpdate(req.params.id, updateData, {new: true})
-            .populate('author', 'firstname lastname email')
-            .populate('category', 'name')
-            .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email')
-            .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email');
-
-        if (!updatedDoc) {
-            return res.status(404).json({ message: "Document not found."});
-        }
-
-        // Send notifications to stakeholders and owners if they were updated
+        // Send notifications if stakeholders or owners were updated
+        const { stakeholders, owners } = req.body;
         if (stakeholders || owners) {
+            const parsedFields = documentService.parseDocumentFields(req.body);
             await sendDocumentNotifications(
                 updatedDoc._id,
-                stakeholders ? updateData.stakeholders : updatedDoc.stakeholders,
-                owners ? updateData.owners : updatedDoc.owners,
+                parsedFields.stakeholders || updatedDoc.stakeholders,
+                parsedFields.owners || updatedDoc.owners,
                 req.user?.id || null
             );
         }
 
-        res.status(200).json({ message: "Document updated successfully", doc: updatedDoc });
+        res.status(200).json({
+            message: "Document updated successfully",
+            doc: updatedDoc
+        });
     } catch (error) {
         console.error("Error updating document:", error);
-        res.status(500).send("Internal Server Error");
+        const statusCode = error.message.includes("not found") ? 404 :
+                          error.message.includes("Access denied") ? 403 :
+                          error.message.includes("Invalid") ? 400 : 500;
+        res.status(statusCode).json({
+            message: error.message || "Failed to update document"
+        });
     }
 }
 

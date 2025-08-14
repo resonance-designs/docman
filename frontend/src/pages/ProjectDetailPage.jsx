@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
 import DocCard from "../components/DocCard";
+import { ensureArray, ensureObject } from "../lib/safeUtils";
 
 const ProjectDetailPage = () => {
     const { id } = useParams();
@@ -46,7 +47,7 @@ const ProjectDetailPage = () => {
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
                 const res = await api.get(`/projects/${id}`, { headers });
-                setProject(res.data);
+                setProject(ensureObject(res.data));
             } catch (error) {
                 console.error("Error fetching project:", error);
                 if (error.response?.status === 404) {
@@ -77,7 +78,7 @@ const ProjectDetailPage = () => {
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
                 const res = await api.get(`/docs?project=${id}`, { headers });
-                setDocuments(res.data);
+                setDocuments(ensureArray(res.data));
             } catch (error) {
                 console.error("Error fetching documents:", error);
                 toast.error("Failed to load documents");
@@ -288,11 +289,11 @@ const ProjectDetailPage = () => {
                     </div>
 
                     {/* Tags */}
-                    {project.tags && project.tags.length > 0 && (
+                    {ensureArray(project.tags).length > 0 && (
                         <div className="bg-white rounded-lg shadow p-6 mb-8">
                             <h3 className="text-lg font-medium text-gray-900 mb-4">Tags</h3>
                             <div className="flex flex-wrap gap-2">
-                                {project.tags.map((tag, index) => (
+                                {ensureArray(project.tags).map((tag, index) => (
                                     <span
                                         key={index}
                                         className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
@@ -337,7 +338,7 @@ const ProjectDetailPage = () => {
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {documents.map((doc) => (
+                                    {ensureArray(documents).map((doc) => (
                                         <DocCard key={doc._id} doc={doc} />
                                     ))}
                                 </div>

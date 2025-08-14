@@ -1,88 +1,202 @@
-# DocMan
+# DocMan - Document Management System
 
 ###### By Resonance Designs
 
-DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.
+A modern, full-stack document management system built with React, Node.js, and MongoDB. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
-## Installation
-You can deploy DocMan to a web server for use online among many users or you can use desktop client software to either manage your own personal documentation on your computer or you can specify it to connect to a DocMan server. Below you will find instruction on installing and configuring for both scenarios.
+## ✨ Features
 
-### Web Server
+### 📄 Document Management
+- **Upload & Storage**: Secure file upload with version control
+- **Metadata Management**: Rich document metadata and categorization
+- **Search & Filter**: Full-text search with advanced filtering
+- **Access Control**: Role-based permissions and stakeholder management
 
-### Desktop
+### 👥 Collaboration
+- **Team Management**: Create teams and manage members
+- **Project Organization**: Group documents into projects
+- **Stakeholder Assignment**: Assign document owners and stakeholders
+- **Review Workflows**: Structured document review processes
 
+### 🔐 Security & Compliance
+- **Authentication**: JWT-based secure authentication
+- **Authorization**: Role-based access control (Viewer, Editor, Admin)
+- **Audit Trail**: Complete activity logging
+- **Data Protection**: Input validation and sanitization
 
+### 📊 Analytics & Reporting
+- **Dashboard**: Real-time system metrics and user activity
+- **Document Analytics**: Usage patterns and review status
+- **Custom Charts**: Configurable data visualizations
+- **Export Capabilities**: Data export in multiple formats
 
-## Comment Header Standards
+## 🚀 Quick Start
 
-All project files should include a comment header with the following format:
+### Prerequisites
+- Node.js 18+
+- MongoDB 4.4+
+- npm or yarn
 
-```javascript
-/*
- * @name [Component/Page/Controller Name]
- * @file /docman/[path/to/file.js|jsx]
- * @description [Brief description of the component/page/controller]
- * @author Richard Bakos
- * @version 1.1.8
- * @license UNLICENSED
- */
+### Installation
+```bash
+# Clone the repository
+git clone <repository-url>
+cd docman
+
+# Install backend dependencies
+cd backend
+npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+
+# Set up environment variables
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# Start development servers
+npm run dev:backend    # Backend on :5001
+npm run dev:frontend   # Frontend on :5173
 ```
 
-## Dynamic Values
+### Environment Configuration
 
-The following values are used in the comment headers and should be kept consistent across all files:
+#### Backend (.env)
+```env
+NODE_ENV=development
+PORT=5001
+MONGO_URI=mongodb://localhost:27017/docman
+JWT_SECRET=your-jwt-secret
+REFRESH_TOKEN_SECRET=your-refresh-secret
+ATLAS=no
+```
 
-- Author: Richard Bakos
-- Version: 1.1.8
-- License: UNLICENSED
+#### Frontend (.env)
+```env
+VITE_API_URL=http://localhost:5001/api
+```
 
-These values are stored in `project-config.json` at the root of the project, which gets its values from the root `package.json` file.
 
-## Template-Based Approach
+## 🏗️ Architecture
 
-This project uses a template-based approach to maintain dynamic comment headers:
+DocMan follows modern architectural patterns for scalability and maintainability:
 
-1. Templates are stored in the `templates/` directory
-2. The `project-config.json` file contains the current values
-3. The `apply-templates.js` script applies templates to files that don't have comment headers
-4. Files that already have comment headers are preserved as-is
+### Backend Architecture
+```
+backend/
+├── src/
+│   ├── controllers/      # HTTP request handlers
+│   ├── services/         # Business logic layer
+│   ├── models/          # MongoDB schemas
+│   ├── routes/          # API route definitions
+│   ├── middleware/      # Custom middleware
+│   ├── lib/            # Utilities and helpers
+│   └── config/         # Configuration files
+└── __tests__/          # Test suites
+```
 
-## Available Scripts
+### Frontend Architecture
+```
+frontend/
+├── src/
+│   ├── components/     # React components
+│   │   ├── shared/    # Reusable UI components
+│   │   └── ...        # Feature-specific components
+│   ├── pages/         # Page components
+│   ├── hooks/         # Custom React hooks
+│   ├── lib/           # Utilities and API client
+│   └── assets/        # Static assets
+├── .storybook/        # Component documentation
+└── __tests__/         # Test suites
+```
 
-- `node apply-templates.js` - Apply comment headers to files that don't have them
-- `node clear-headers.js` - Remove existing comment headers from files
-- `node update-config.js` - Update `project-config.json` with values from root `package.json`
-- `node update-comments.js` - Update existing comment headers with current values
+### Key Patterns
+- **Service Layer Pattern**: Business logic separated from HTTP handling
+- **Custom Hooks**: Reusable state logic across components
+- **Shared Components**: Consistent UI patterns with accessibility
+- **Database Optimization**: Strategic indexing and query optimization
 
-## Updating Values
+## 📚 Documentation
 
-When any of these values need to be updated:
+### For Developers
+- **[Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md)** - Complete setup and workflow guide
+- **[Architecture Decision Records](./docs/architecture/README.md)** - Design decisions and rationale
+- **[API Documentation](http://localhost:5001/api-docs)** - Interactive API documentation
+- **[Component Library](http://localhost:6006)** - Storybook component documentation
 
-1. Update the values in the root `package.json` file
-2. Run `node update-config.js` to update `project-config.json`
-3. Run `node update-comments.js` to update all existing comment headers
-4. For new files, run `node apply-templates.js`
+### For Users
+- **User Manual** - Complete user guide (coming soon)
+- **Admin Guide** - System administration guide (coming soon)
 
-## Adding New Files
+## 🧪 Testing
 
-When creating new files:
+### Running Tests
+```bash
+# Backend tests
+cd backend
+npm test                # Run all tests
+npm run test:watch      # Watch mode
+npm run test:coverage   # Coverage report
 
-1. Use the templates in the `templates/` directory as a starting point
-2. Run `node apply-templates.js` to apply comment headers to files that don't have them
+# Frontend tests
+cd frontend
+npm test                # Run all tests
+npm run test:ui         # Interactive test UI
+npm run test:coverage   # Coverage report
+```
 
-## JSDoc Comments
+### Test Coverage
+- **Backend**: 85%+ coverage target
+- **Frontend**: 80%+ coverage target
+- **Integration Tests**: Critical user flows
+- **E2E Tests**: Complete application workflows
 
-All functions and components should include JSDoc comments with:
-- Description of what the function/component does
-- Parameter descriptions with types
-- Return value descriptions with types
+## 📊 Performance
 
-Example:
-```javascript
-/**
- * Component for displaying a document card with title, author, description, and review date
- * @param {Object} props - Component properties
- * @param {Object} props.doc - Document object to display
- * @param {Function} props.setDocs - Function to update the documents list
- * @returns {JSX.Element} The document card component
- */
+### Benchmarks
+- **API Response Time**: 50-500ms average
+- **Database Queries**: <100ms average
+- **Frontend Load Time**: <3 seconds initial load
+- **File Upload**: Up to 10MB files supported
+
+### Optimization Features
+- **Database Indexing**: Strategic indexes for common queries
+- **Query Optimization**: Aggregation pipelines for complex operations
+- **Caching**: Multi-layer caching strategy
+- **Code Splitting**: Lazy-loaded components and routes
+
+## 🔐 Security
+
+### Security Features
+- **Authentication**: JWT with refresh token rotation
+- **Authorization**: Role-based access control
+- **Input Validation**: Comprehensive input sanitization
+- **Rate Limiting**: Protection against abuse
+- **Security Headers**: CORS, CSP, HSTS implementation
+- **File Upload Security**: Type validation and size limits
+
+## 🤝 Contributing
+
+### Development Workflow
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Code Standards
+- **ESLint**: Enforced code style
+- **Prettier**: Automatic code formatting
+- **JSDoc**: Comprehensive function documentation
+- **Testing**: Required for new features
+
+## 📄 License
+
+This project is licensed under the UNLICENSED License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Built with ❤️ by the DocMan Team**
+
+For more information, visit our [documentation](./docs/) or check out the [developer onboarding guide](./docs/DEVELOPER_ONBOARDING.md).

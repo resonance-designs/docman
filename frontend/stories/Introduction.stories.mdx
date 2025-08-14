@@ -1,0 +1,222 @@
+import { Meta } from '@storybook/addon-docs';
+
+<Meta title="Introduction/Welcome" />
+
+# DocMan Component Library
+
+Welcome to the **DocMan Component Library** documentation! This Storybook contains all the reusable components, patterns, and design guidelines for the Document Management System.
+
+## 🎯 Purpose
+
+This component library serves as:
+- **Single Source of Truth** for all UI components
+- **Development Reference** for consistent implementation
+- **Design System Documentation** for maintaining visual consistency
+- **Testing Environment** for component behavior and interactions
+
+## 📚 What's Included
+
+### Shared Components
+Our shared component library includes:
+
+- **BaseModal** - Foundation for all modal dialogs
+- **FormField** - Standardized form inputs with validation
+- **DataTable** - Sortable, filterable data tables
+- **LoadingSpinner** - Consistent loading states
+- **ErrorBoundary** - Graceful error handling
+
+### Custom Hooks
+Reusable logic patterns:
+
+- **useStakeholderManagement** - Multi-select stakeholder logic
+- **useExternalContacts** - Contact management
+- **useReviewManagement** - Review workflow state
+- **useFormData** - Common form data loading
+- **useFileUpload** - Upload state & progress
+- **useDocument** - Document loading & management
+- **useUserRole** - Authentication & permissions
+- **useApi** - API operations with loading states
+
+## 🎨 Design Principles
+
+### Consistency
+All components follow consistent:
+- **Color schemes** using Tailwind CSS
+- **Typography** with standardized font sizes and weights
+- **Spacing** using consistent margin and padding scales
+- **Interactive states** for hover, focus, and disabled states
+
+### Accessibility
+Components are built with accessibility in mind:
+- **Keyboard navigation** support
+- **Screen reader** compatibility
+- **ARIA labels** and roles
+- **Color contrast** compliance
+- **Focus management** for modals and forms
+
+### Performance
+Optimized for performance:
+- **Lazy loading** where appropriate
+- **Memoization** for expensive operations
+- **Efficient re-renders** with proper dependency arrays
+- **Bundle size optimization** with tree shaking
+
+## 🚀 Getting Started
+
+### Using Components
+
+```jsx
+import { BaseModal, FormField, DataTable } from '@/components/shared';
+
+function MyComponent() {
+  return (
+    <BaseModal isOpen={true} title="Example">
+      <FormField 
+        label="Name" 
+        type="text" 
+        placeholder="Enter name" 
+      />
+    </BaseModal>
+  );
+}
+```
+
+### Using Hooks
+
+```jsx
+import { useFormData, useFileUpload } from '@/hooks';
+
+function MyForm() {
+  const { users, categories, loading } = useFormData();
+  const fileUpload = useFileUpload({
+    onSuccess: () => console.log('Upload complete!'),
+    onError: (error) => console.error('Upload failed:', error)
+  });
+  
+  // Component logic here
+}
+```
+
+## 📖 Documentation Structure
+
+### Component Stories
+Each component includes:
+- **Default** - Basic usage example
+- **Variants** - Different sizes, colors, states
+- **Interactive** - Components with state management
+- **Edge Cases** - Error states, empty states, loading states
+- **Accessibility** - Keyboard navigation examples
+
+### Props Documentation
+Comprehensive prop documentation including:
+- **Type definitions** with TypeScript support
+- **Default values** for optional props
+- **Usage examples** for complex props
+- **Validation rules** for form components
+
+## 🔧 Development Guidelines
+
+### Component Creation
+When creating new components:
+
+1. **Start with the story** - Define use cases first
+2. **Follow naming conventions** - Use PascalCase for components
+3. **Include prop validation** - Use PropTypes or TypeScript
+4. **Add accessibility features** - ARIA labels, keyboard support
+5. **Write comprehensive tests** - Unit tests for all variants
+6. **Document thoroughly** - Include usage examples
+
+### Code Standards
+- **ESLint** configuration for consistent code style
+- **Prettier** for automatic code formatting
+- **JSDoc comments** for all functions and components
+- **TypeScript** for type safety (where applicable)
+
+## 🧪 Testing
+
+### Component Testing
+Each component should include:
+- **Unit tests** for all props and variants
+- **Integration tests** for complex interactions
+- **Accessibility tests** using testing-library
+- **Visual regression tests** with Storybook
+
+### Running Tests
+```bash
+# Run component tests
+npm run test
+
+# Run Storybook tests
+npm run test-storybook
+
+# Visual regression testing
+npm run chromatic
+```
+
+## 🎨 Design Tokens
+
+### Colors
+- **Primary**: Blue (#3B82F6)
+- **Secondary**: Green (#10B981)
+- **Success**: Green (#059669)
+- **Warning**: Yellow (#D97706)
+- **Error**: Red (#DC2626)
+- **Gray Scale**: Various shades for text and backgrounds
+
+### Typography
+- **Headings**: Inter font family, various weights
+- **Body**: Inter font family, regular weight
+- **Code**: Fira Code for monospace text
+
+### Spacing
+- **Base unit**: 4px (0.25rem)
+- **Scale**: 4px, 8px, 12px, 16px, 20px, 24px, 32px, 40px, 48px, 64px
+
+## 📱 Responsive Design
+
+All components are designed to work across:
+- **Mobile**: 375px and up
+- **Tablet**: 768px and up
+- **Desktop**: 1024px and up
+- **Large Desktop**: 1440px and up
+
+## 🔄 Version History
+
+### v1.1.10 (Current)
+- Complete component library with shared components
+- Custom hooks for complex state management
+- Comprehensive Storybook documentation
+- Performance optimizations and caching
+- Database query optimization
+
+### Previous Versions
+- v1.0.0 - Initial component implementation
+- v0.9.0 - Basic form components
+- v0.8.0 - Modal and table components
+
+## 🤝 Contributing
+
+### Adding New Components
+1. Create component in `/src/components/shared/`
+2. Add comprehensive stories
+3. Include accessibility features
+4. Write unit tests
+5. Update this documentation
+
+### Reporting Issues
+- Use GitHub issues for bug reports
+- Include reproduction steps
+- Provide browser/device information
+- Include screenshots when relevant
+
+## 📞 Support
+
+For questions or support:
+- **Documentation**: This Storybook
+- **Code Examples**: Component stories
+- **Best Practices**: Development guidelines above
+- **Issues**: GitHub repository
+
+---
+
+**Happy coding!** 🚀

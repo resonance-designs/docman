@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import os from 'os';
@@ -8,6 +8,8 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Doc from '../models/Doc.js';
 import Category from '../models/Category.js';
+import { getPerformanceStats } from '../middleware/performanceMonitor.js';
+import { getCacheStats } from '../middleware/cacheMiddleware.js';
 
 /**
  * Get system information and health metrics
@@ -118,6 +120,55 @@ export async function getSystemInfo(req, res) {
     } catch (error) {
         console.error('Error fetching system info:', error);
         res.status(500).json({ message: 'Failed to fetch system information' });
+    }
+}
+
+/**
+ * Get system performance metrics
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with performance metrics or error message
+ */
+export async function getPerformanceMetrics(req, res) {
+    try {
+        const performanceStats = getPerformanceStats();
+        const cacheStats = getCacheStats();
+
+        // Database connection stats
+        const dbStats = {
+            readyState: mongoose.connection.readyState,
+            host: mongoose.connection.host,
+            name: mongoose.connection.name,
+            collections: Object.keys(mongoose.connection.collections).length
+        };
+
+        // System resource usage
+        const systemStats = {
+            memory: process.memoryUsage(),
+            cpu: process.cpuUsage(),
+            uptime: process.uptime(),
+            platform: process.platform,
+            nodeVersion: process.version,
+            loadAverage: os.loadavg(),
+            freeMemory: os.freemem(),
+            totalMemory: os.totalmem()
+        };
+
+        const metrics = {
+            performance: performanceStats,
+            cache: cacheStats,
+            database: dbStats,
+            system: systemStats,
+            timestamp: new Date().toISOString()
+        };
+
+        res.status(200).json(metrics);
+    } catch (error) {
+        console.error('Error fetching performance metrics:', error);
+        res.status(500).json({
+            message: 'Failed to retrieve performance metrics',
+            error: error.message
+        });
     }
 }
 

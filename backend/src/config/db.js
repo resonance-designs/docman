@@ -1,9 +1,10 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
+import { createDatabaseIndexes } from './database-indexes.js';
 
 /**
  * Establish connection to MongoDB database
@@ -35,6 +36,11 @@ export const connectDB = async () => {
             console.log('MongoDB is connected via atlas server');
         } else {
             throw new Error('Invalid ATLAS environment variable. Set it to "yes" or "no".');
+        }
+
+        // Create database indexes for optimal performance
+        if (process.env.NODE_ENV !== 'test') {
+            await createDatabaseIndexes();
         }
     } catch (error) {
         console.error('MongoDB connection failed:', error);

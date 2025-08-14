@@ -4,41 +4,28 @@
  * @page ViewDocPage
  * @description Document detail page displaying document information, version history, file downloads, and review management
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
-import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
-import { formatDate, decodeJWT } from "../lib/utils";
+import { formatDate } from "../lib/utils";
+import { useDocument, useUserRole, useFormData } from "../hooks";
 
 const ViewDocPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const [doc, setDoc] = useState(null);
-    const [files, setFiles] = useState([]);
-    const [versionHistory, setVersionHistory] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [userRole, setUserRole] = useState(null);
-
-    // Get user role from token
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            const decoded = decodeJWT(token);
-            setUserRole(decoded?.role);
-        }
-    }, []);
-
-    // Helper function to get full name
-    const getFullName = (user) => {
-        if (!user) return "Unknown";
-        if (typeof user === "string") return user;
-        return `${user.firstname || ""} ${user.lastname || ""}`.trim() || "Unknown";
-    };
+    // Use custom hooks for data management
+    const { document: doc, files, versionHistory, loading, isOwner, isAuthor, isStakeholder } = useDocument(id);
+    const { userRole, userId, canEdit } = useUserRole();
+    const { getFullName } = useFormData({
+        loadUsers: true,
+        loadCategories: false,
+        loadExternalContactTypes: false
+    });
 
     // Helper function to format file size
     const formatFileSize = (bytes) => {
@@ -48,45 +35,6 @@ const ViewDocPage = () => {
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     };
-
-    // Load document data
-    useEffect(() => {
-        const fetchDocument = async () => {
-            try {
-                const docRes = await api.get(`/docs/${id}`);
-                setDoc(docRes.data);
-
-                // Fetch files for this document
-                try {
-                    const filesRes = await api.get(`/docs/${id}/files`);
-                    setFiles(filesRes.data || []);
-                } catch (fileError) {
-                    // If files endpoint doesn't exist, we'll handle it gracefully
-                    console.log("Files endpoint not available:", fileError);
-                    setFiles([]);
-                }
-                
-                // Fetch version history
-                try {
-                    const historyRes = await api.get(`/docs/${id}/history`);
-                    setVersionHistory(historyRes.data || []);
-                } catch (historyError) {
-                    console.log("Version history endpoint not available:", historyError);
-                    setVersionHistory([]);
-                }
-            } catch (err) {
-                console.error("Failed to load document", err);
-                toast.error(err?.response?.data?.message || "Failed to load document");
-                navigate("/");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (id) {
-            fetchDocument();
-        }
-    }, [id, navigate]);
 
     // Function to compare versions
     const compareVersions = async (version1, version2) => {
@@ -134,9 +82,6 @@ const ViewDocPage = () => {
         }
     };
 
-
-    // Check if user can edit (editor or admin)
-    const canEdit = userRole === "editor" || userRole === "admin";
 
     // Check if document needs review (review date is today or in the past)
     const needsReview = doc && new Date(doc.reviewDate) <= new Date();

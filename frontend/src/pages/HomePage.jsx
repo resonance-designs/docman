@@ -4,7 +4,7 @@
  * @page HomePage
  * @description Main dashboard page displaying document overview, recent documents, and quick access to key features
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ import api from "../lib/axios";
 import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
 import PaginatedDocTable from "../components/PaginatedDocTable";
+import { useUserRole } from "../hooks";
 
 import { Link } from "react-router";
 import { LogIn, ShieldQuestionMark, Search, LibraryBig } from 'lucide-react';
@@ -24,12 +25,20 @@ import { LogIn, ShieldQuestionMark, Search, LibraryBig } from 'lucide-react';
  * @returns {JSX.Element} The home page component
  */
 const HomePage = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+    const { isAuthenticated } = useUserRole();
     const [isRateLimited, setIsRateLimited] = useState(false);
-    const [docs, setDocs] = useState([]);
+    const [docs, setDocs] = useState([]); // Always initialize as empty array
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
-    const [message, setMessage] = useState("");
+
+    console.log("🏠 HomePage render:", {
+        isAuthenticated,
+        loading,
+        docsType: typeof docs,
+        docsIsArray: Array.isArray(docs),
+        docsCount: Array.isArray(docs) ? docs.length : 'not an array',
+        docsValue: docs
+    });
 
     // Auto logout functionality moved to Navbar component to avoid conflicts
 
@@ -38,7 +47,7 @@ const HomePage = () => {
      * Get the 6 most recent documents that became overdue
      * Sort by review date descending (most recently overdue first)
      */
-    const docsNeedingReview = docs
+    const docsNeedingReview = (Array.isArray(docs) ? docs : [])
         .filter(doc => {
             const needsReview = new Date(doc.reviewDate) <= new Date();
             return needsReview;
@@ -63,8 +72,11 @@ const HomePage = () => {
      */
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage("");
         try {
+            // Clear any existing token before login
+            console.log("🔑 Clearing old token before login");
+            localStorage.removeItem("token");
+
             const res = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -72,21 +84,46 @@ const HomePage = () => {
             });
             const data = await res.json();
             if (res.ok) {
+                console.log("🔑 Login successful, storing NEW token:", data.token.substring(0, 20) + "...");
+                console.log("🔑 Full login response:", data);
                 localStorage.setItem("token", data.token);
-                setIsAuthenticated(true); // This will trigger the useEffect
+
+                // Test the token immediately
+                console.log("🔑 Token stored in localStorage:", localStorage.getItem("token") ? "YES" : "NO");
+
+                // Test API call immediately after login
+                setTimeout(async () => {
+                    try {
+                        console.log("🧪 Testing backend connectivity...");
+                        // First test if backend is reachable at all
+                        const healthCheck = await fetch("http://localhost:5001/api/auth/login", {
+                            method: "OPTIONS"
+                        });
+                        console.log("🧪 Backend health check:", healthCheck.status);
+
+                        console.log("🧪 Testing authenticated API call...");
+                        const testResponse = await api.get("/docs");
+                        console.log("🧪 Test API call successful:", testResponse.data);
+                    } catch (testError) {
+                        console.error("🧪 Test API call failed:", testError);
+                        console.error("🧪 Error details:", {
+                            message: testError.message,
+                            status: testError.response?.status,
+                            data: testError.response?.data
+                        });
+                    }
+                }, 1000);
 
                 // Dispatch custom event to notify other components (like Navbar)
                 window.dispatchEvent(new Event('authStateChanged'));
 
-                setMessage("Login successful!");
                 toast.success("Login successful!");
-                // Don't navigate here - let the useEffect handle the content update
+                // The useUserRole hook will automatically detect the authentication change
             } else {
-                setMessage(data.message || "Login failed.");
                 toast.error(data.message || "Login failed.");
             }
         } catch (err) {
-            setMessage(`Network error: ${err.message}`);
+            toast.error(`Network error: ${err.message}`);
         }
     };
 
@@ -95,46 +132,56 @@ const HomePage = () => {
      * This effect handles authentication state changes from other components
      */
     useEffect(() => {
-        const handleAuthChange = () => {
-            const token = localStorage.getItem("token");
-            const wasAuthenticated = isAuthenticated;
-            const nowAuthenticated = !!token;
-
-            setIsAuthenticated(nowAuthenticated);
-
-            // If user just logged out, clear the form
-            if (wasAuthenticated && !nowAuthenticated) {
-                setForm({ email: "", password: "" });
-                setMessage("");
-            }
-        };
-
-        window.addEventListener("authStateChanged", handleAuthChange);
-        return () => window.removeEventListener("authStateChanged", handleAuthChange);
-    }, [isAuthenticated]); // Add isAuthenticated as dependency to track changes
+        // Clear form when user logs out
+        if (!isAuthenticated) {
+            setForm({ email: "", password: "" });
+        }
+    }, [isAuthenticated]);
 
     /**
      * Fetch documents from the API
      * This effect fetches documents when the component mounts or when authentication state changes
      */
     useEffect(() => {
+        if (!isAuthenticated) {
+            console.log("🏠 HomePage: User not authenticated, skipping document fetch");
+            setLoading(false);
+            setDocs([]);
+            return;
+        }
+
         const fetchDocs = async () => {
+            console.log("🏠 HomePage: Fetching documents...");
             setLoading(true); // Set loading when starting to fetch
             try {
-                // Get fresh token and headers inside the effect
-                const token = localStorage.getItem("token");
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                const res = await api.get("/docs");
+                console.log("🏠 HomePage: Raw API response:", res);
+                console.log("🏠 HomePage: Response data:", res.data);
+                console.log("🏠 HomePage: Response data type:", typeof res.data, "isArray:", Array.isArray(res.data));
 
-                const res = await api.get("/docs", { headers });
-                console.log(res.data);
-                setDocs(res.data);
+                // Handle different response structures
+                let docsArray = [];
+                if (Array.isArray(res.data)) {
+                    docsArray = res.data;
+                } else if (res.data && Array.isArray(res.data.docs)) {
+                    docsArray = res.data.docs;
+                } else if (res.data && Array.isArray(res.data.documents)) {
+                    docsArray = res.data.documents;
+                } else {
+                    console.warn("🏠 HomePage: Unexpected response structure:", res.data);
+                }
+
+                console.log("🏠 HomePage: Final docs array:", docsArray.length, "documents");
+                console.log("🏠 HomePage: Sample doc:", docsArray[0]);
+                setDocs(docsArray);
                 setIsRateLimited(false);
             } catch (error) {
-                console.log("Error fetching documents");
-                console.log(error.response);
+                console.error("🏠 HomePage: Error fetching documents:", error);
                 if (error.response?.status === 429) {
                     setIsRateLimited(true);
                 }
+                // Don't crash on error, just show empty state
+                setDocs([]);
             } finally {
                 setLoading(false);
             }
@@ -219,6 +266,8 @@ const HomePage = () => {
                             {docsNeedingReview.length === 0 && !loading && !isRateLimited && (
                                 <div className="text-center py-8 text-gray-500">
                                     No documents need review at this time.
+                                    <br />
+                                    <small>Total docs loaded: {docs.length}</small>
                                 </div>
                             )}
                             {docsNeedingReview.length > 0 && !isRateLimited && (
@@ -235,7 +284,12 @@ const HomePage = () => {
                                     All Documents
                                 </h1>
                             </div>
-                            <PaginatedDocTable docs={docs} setDocs={setDocs} />
+                            <div>
+                                <p className="text-sm text-gray-500 mb-4">
+                                    Debug: Passing {Array.isArray(docs) ? docs.length : 'non-array'} docs to table
+                                </p>
+                                <PaginatedDocTable docs={docs} setDocs={setDocs} />
+                            </div>
                             {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
                         </>
                     )}

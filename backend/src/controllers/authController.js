@@ -4,7 +4,7 @@
  * @controller authController
  * @description Authentication controller handling user registration, login, logout, and password reset functionality
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import crypto from "crypto";
@@ -137,7 +137,9 @@ export async function login(req, res) {
             return res.status(401).json({ message: "Invalid credentials." });
         }
 
+        console.log("🔑 Creating access token for user:", user._id, "with role:", user.role);
         const accessToken = createAccessToken(user._id, user.role);
+        console.log("🔑 Access token created, length:", accessToken.length);
 
         // Rotate refresh token: create new opaque token/hash
         const refreshToken = crypto.randomBytes(64).toString('hex');

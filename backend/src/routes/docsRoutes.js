@@ -4,13 +4,14 @@
  * @routes docsRoutes
  * @description Document management routes for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import uploadMid from "../middleware/uploadMid.js";
+import { cacheUserData, setCacheHeaders } from "../middleware/cacheMiddleware.js";
 import {
     getAllDocs,
     getDocById,
@@ -34,7 +35,7 @@ import { uploadFileVersion } from "../controllers/uploadFileController.js";
 const router = express.Router();
 
 // GET /api/docs - Get all documents (viewers, editors, and admins can view documents)
-router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAllDocs);
+router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), cacheUserData(), setCacheHeaders(120), getAllDocs);
 
 // GET /api/docs/:id - Get a specific document by ID (viewers, editors, and admins can view documents)
 router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocById);

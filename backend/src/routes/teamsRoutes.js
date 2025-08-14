@@ -1,9 +1,12 @@
 /*
+ * @name teamsRoutes
+ * @file /docman/backend/src/routes/teamsRoutes.js
+ * @routes teamsRoutes
+ * @description Team management routes for team operations, member management, and collaboration
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
-// backend/src/routes/teamsRoutes.js
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";

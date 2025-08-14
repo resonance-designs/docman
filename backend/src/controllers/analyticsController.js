@@ -1,11 +1,12 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
 import Category from "../models/Category.js";
+import { getOptimizedAnalytics } from "../services/queryOptimizationService.js";
 
 /**
  * Get analytics data for dashboard
