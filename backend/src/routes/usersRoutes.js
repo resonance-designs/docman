@@ -1,6 +1,10 @@
 /*
+ * @name usersRoutes
+ * @file /docman/backend/src/routes/usersRoutes.js
+ * @routes usersRoutes
+ * @description User management routes for CRUD operations, profile updates, and administrative functions
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import express from "express";

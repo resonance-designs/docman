@@ -1,6 +1,10 @@
 /*
+ * @name InviteMemberModal
+ * @file /docman/frontend/src/components/teams/InviteMemberModal.jsx
+ * @component InviteMemberModal
+ * @description Modal component for inviting new members to teams with role assignment
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useState } from "react";

@@ -1,7 +1,7 @@
 {
   "name": "rd-docman-backend",
   "private": true,
-  "version": "1.1.8",
+  "version": "2.0.0",
   "description": "DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
     "Document Management",
@@ -35,7 +35,10 @@
     "atlasdev": "ATLAS=yes NODE_ENV=production nodemon -L src/server.js",
     "atlasprod": "ATLAS=yes NODE_ENV=production node src/server.js",
     "atlasstart": "ATLAS=yes NODE_ENV=render node src/server.js",
-    "test": "ATLAS=no dotenv -e .env.dev -- jest --detectOpenHandles --runInBand --config=jest.config.cjs --json --outputFile=results.json",
+    "test": "NODE_ENV=test jest",
+    "test:watch": "NODE_ENV=test jest --watch",
+    "test:coverage": "NODE_ENV=test jest --coverage",
+    "test:ci": "NODE_ENV=test jest --ci --coverage --watchAll=false",
     "send-review-notifications": "node scripts/sendReviewNotifications.js"
   },
   "type": "module",
@@ -52,7 +55,9 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.3",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.5"
+    "nodemailer": "^7.0.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

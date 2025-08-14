@@ -4,7 +4,7 @@
  * @module utils
  * @description Backend utility functions for object validation and common server-side operations
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 /**
@@ -66,4 +66,19 @@ export function truncate(text, maxLength = 100, suffix = '...') {
     if (!text || typeof text !== 'string') return '';
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).trim() + suffix;
+}
+
+/**
+ * Get user role from JWT token in localStorage
+ * @returns {string|null} User role or null if not authenticated
+ */
+export function getUserRole() {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+        const decoded = decodeJWT(token);
+        return decoded?.role ?? null;
+    } catch {
+        return null;
+    }
 }

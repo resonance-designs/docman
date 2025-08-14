@@ -4,15 +4,16 @@
  * @component UserTable
  * @description Component for displaying a user in a table row with actions.
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 
 import { EyeIcon, Trash2Icon, EditIcon } from "lucide-react";
-import { formatDate, decodeJWT } from "../lib/utils";
+import { formatDate } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
-import { useEffect, useState } from "react";
+
+import { useUserRole } from "../hooks";
 import { Link } from "react-router";
 import PropTypes from "prop-types";
 
@@ -24,20 +25,7 @@ import PropTypes from "prop-types";
  * @returns {JSX.Element} The user table row component
  */
 const UserTable = ({ user, setUsers }) => {
-    const [userRole, setUserRole] = useState(null);
-    const [currentUserId, setCurrentUserId] = useState(null);
-
-    /**
-     * Get user role and ID from token when component mounts
-     */
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            const decoded = decodeJWT(token);
-            setUserRole(decoded?.role);
-            setCurrentUserId(decoded?.id);
-        }
-    }, []);
+    const { userId: currentUserId, isAdmin } = useUserRole();
 
     /**
      * Handle user deletion
@@ -91,8 +79,6 @@ const UserTable = ({ user, setUsers }) => {
         );
     };
 
-    // Check if user is admin
-    const isAdmin = userRole === "admin";
     const isCurrentUser = user._id === currentUserId;
 
     return (

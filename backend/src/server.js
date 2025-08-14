@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { connectDB } from "./config/db.js";
@@ -10,6 +10,8 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
 import rateLimiter from "./middleware/rateLimiter.js";
+import { createSecurityMiddleware } from "./middleware/securityHeaders.js";
+import { specs, swaggerUi, swaggerUiOptions } from "./config/swagger.js";
 import authRoutes from "./routes/authRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import docsRoutes from "./routes/docsRoutes.js";
@@ -54,16 +56,16 @@ const __dirname = path.resolve(); // Get the current directory name
 const app = express(); // Initialize Express app
 
 /* * Middleware Configuration
- * - CORS: Enable Cross-Origin Resource Sharing for development
+ * - Security Headers: Comprehensive security headers for protection
  * - JSON Parsing: Parse incoming JSON request bodies
  * - Rate Limiting: Apply rate limiting to prevent abuse
  * - Static File Serving: Serve static files in production
  */
-// Enable CORS for all routes to allow requests from the frontend development server
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+// Apply comprehensive security headers (includes CORS)
+app.use(createSecurityMiddleware());
 app.use(cookieParser());
-app.use(express.json()); // Parse JSON request bodies
+app.use(express.json({ limit: '10mb' })); // Parse JSON request bodies with size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
 app.use(rateLimiter); // Apply rate limiting middleware
 app.use("/api/auth", authRoutes); // Declare authentication endpoints
 app.use("/api/users", usersRoutes); // Declare user endpoints
@@ -79,6 +81,13 @@ app.use("/api/external-contacts", externalContactsRoutes); // Declare external c
 app.use("/api/notifications", notificationsRoutes); // Declare notifications endpoints
 app.use("/upload", uploadRoutes); // Declare uploads endpoints
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
+
+// API Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerUiOptions));
+app.get("/api-docs.json", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(specs);
+});
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
     // Serve static files from the React frontend app in production

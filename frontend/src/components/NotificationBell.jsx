@@ -4,7 +4,7 @@
  * @component NotificationBell
  * @description Notification bell component with dropdown for displaying user notifications
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 

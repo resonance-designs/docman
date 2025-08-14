@@ -4,7 +4,7 @@
  * @component FilterBar
  * @description Comprehensive filter bar with search, dropdown filters, date range, and clear all functionality
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { FilterIcon, XIcon } from "lucide-react";

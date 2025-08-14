@@ -4,7 +4,7 @@
  * @component CatTable
  * @description Category table component for displaying and managing document categories
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 

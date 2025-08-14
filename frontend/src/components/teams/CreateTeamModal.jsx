@@ -1,6 +1,10 @@
 /*
+ * @name CreateTeamModal
+ * @file /docman/frontend/src/components/teams/CreateTeamModal.jsx
+ * @component CreateTeamModal
+ * @description Modal component for creating new teams with form validation and member invitation
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useState } from "react";

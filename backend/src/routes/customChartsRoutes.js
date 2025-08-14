@@ -1,6 +1,10 @@
 /*
+ * @name customChartsRoutes
+ * @file /docman/backend/src/routes/customChartsRoutes.js
+ * @routes customChartsRoutes
+ * @description Custom chart routes for creating and managing personalized analytics
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import express from "express";
@@ -15,24 +19,30 @@ import {
     getChartData
 } from "../controllers/customChartsController.js";
 
+/**
+ * Express router for custom chart management endpoints
+ * Handles chart CRUD operations and data visualization rendering
+ * All routes require authentication with role-based access control
+ * @type {express.Router}
+ */
 const router = express.Router();
 
-// Get all custom charts (authenticated users)
+// GET /api/custom-charts - Get all custom charts (all authenticated users can view charts)
 router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAllCustomCharts);
 
-// Get a specific custom chart by ID (authenticated users)
+// GET /api/custom-charts/:id - Get a specific custom chart by ID (all authenticated users can view)
 router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), getCustomChartById);
 
-// Get chart data for rendering (authenticated users)
+// GET /api/custom-charts/:id/data - Get chart data for rendering (all authenticated users can view data)
 router.get("/:id/data", verifyAccessToken, requireRole("viewer", "editor", "admin"), getChartData);
 
-// Create a new custom chart (editors and admins)
+// POST /api/custom-charts - Create a new custom chart (only editors and admins can create charts)
 router.post("/", verifyAccessToken, requireRole("editor", "admin"), createCustomChart);
 
-// Update a custom chart (editors and admins)
+// PUT /api/custom-charts/:id - Update a custom chart (only editors and admins can update charts)
 router.put("/:id", verifyAccessToken, requireRole("editor", "admin"), updateCustomChart);
 
-// Delete a custom chart (editors and admins)
+// DELETE /api/custom-charts/:id - Delete a custom chart (only editors and admins can delete charts)
 router.delete("/:id", verifyAccessToken, requireRole("editor", "admin"), deleteCustomChart);
 
 export default router;

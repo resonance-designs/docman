@@ -4,7 +4,7 @@
  * @component PaginatedDocTable
  * @description Paginated table component for displaying documents with sorting, filtering, and bulk actions
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 
@@ -28,11 +28,14 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
 
+    // Ensure docs is always an array
+    const safeDocsArray = useMemo(() => Array.isArray(docs) ? docs : [], [docs]);
+
     // Calculate pagination values
-    const totalPages = Math.ceil(docs.length / pageSize);
+    const totalPages = Math.ceil(safeDocsArray.length / pageSize);
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const currentDocs = useMemo(() => docs.slice(startIndex, endIndex), [docs, startIndex, endIndex]);
+    const currentDocs = useMemo(() => safeDocsArray.slice(startIndex, endIndex), [safeDocsArray, startIndex, endIndex]);
 
     /**
      * Handle page changes
@@ -106,9 +109,9 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);
         }
-    }, [docs.length, totalPages, currentPage]);
+    }, [safeDocsArray.length, totalPages, currentPage]);
 
-    if (docs.length === 0) {
+    if (safeDocsArray.length === 0) {
         return (
             <div className="text-center py-8 text-gray-500">
                 No documents found.
@@ -205,7 +208,7 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
                     {/* Results info and page size selector */}
                     <div className="flex items-center gap-4">
                         <div className="text-sm">
-                            Showing {startIndex + 1} to {Math.min(endIndex, docs.length)} of {docs.length} documents
+                            Showing {startIndex + 1} to {Math.min(endIndex, safeDocsArray.length)} of {safeDocsArray.length} documents
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Show:</span>

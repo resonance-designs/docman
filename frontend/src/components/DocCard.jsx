@@ -4,16 +4,17 @@
  * @component DocCard
  * @description Component for displaying a document card with title, author, description, and review date.
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 
 import { EyeIcon, Trash2Icon } from "lucide-react";
 import { Link } from "react-router";
-import { formatDate, decodeJWT, truncate } from "../lib/utils";
+import { formatDate, truncate } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
-import { useEffect, useState } from "react";
+
+import { useUserRole } from "../hooks";
 
 /**
  * Component for displaying a document card with title, author, description, and review date
@@ -23,18 +24,7 @@ import { useEffect, useState } from "react";
  * @returns {JSX.Element} The document card component
  */
 const DocCard = ({ doc, setDocs }) => {
-    const [userRole, setUserRole] = useState(null);
-
-    /**
-     * Get user role from token when component mounts
-     */
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            const decoded = decodeJWT(token);
-            setUserRole(decoded?.role);
-        }
-    }, []);
+    const { userRole } = useUserRole();
 
     /**
      * Handle document deletion

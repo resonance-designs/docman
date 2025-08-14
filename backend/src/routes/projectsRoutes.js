@@ -1,9 +1,12 @@
 /*
+ * @name projectsRoutes
+ * @file /docman/backend/src/routes/projectsRoutes.js
+ * @routes projectsRoutes
+ * @description Project management routes for project operations and team assignments
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
-// backend/src/routes/projectsRoutes.js
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
@@ -20,6 +23,12 @@ import {
     removeDocument
 } from "../controllers/projectsController.js";
 
+/**
+ * Express router for project management endpoints
+ * Handles project CRUD operations, collaborator management, and document organization
+ * All routes require authentication with role-based access control
+ * @type {express.Router}
+ */
 const router = express.Router();
 
 // Get user's projects across all teams

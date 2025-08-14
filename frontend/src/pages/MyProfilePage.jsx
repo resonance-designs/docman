@@ -4,7 +4,7 @@
  * @page MyProfilePage
  * @description User profile management page for updating personal information and preferences
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.0.0
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -13,7 +13,8 @@ import { UserIcon, SaveIcon, EyeIcon, EyeOffIcon, CameraIcon, TrashIcon } from "
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
-import { useTheme } from "../context/ThemeContext"; // Import useTheme hook
+import { useTheme } from "../context/ThemeContext";
+import { ensureObject, ensureString } from "../lib/safeUtils";
 import {
     validateName,
     validateEmail,
@@ -54,6 +55,7 @@ const MyProfilePage = () => {
     const [backgroundImagePreview, setBackgroundImagePreview] = useState(null);
     const [uploadingBackground, setUploadingBackground] = useState(false);
     const [errors, setErrors] = useState({});
+    const [dataFetched, setDataFetched] = useState(false); // Prevent multiple API calls
 
     const [originalEmail, setOriginalEmail] = useState(""); // Store original email for comparison
     const [formData, setFormData] = useState({
@@ -79,11 +81,12 @@ const MyProfilePage = () => {
         if (token) {
             try {
                 const decoded = decodeJWT(token);
+                const currentUserId = getUserId(decoded);
                 console.log("Decoded JWT:", decoded); // Debug log
-                console.log("User ID from JWT:", getUserId(decoded)); // Debug log
+                console.log("User ID from JWT:", currentUserId); // Debug log
                 setCurrentUser(decoded);
                 setIsAdmin(decoded?.role === "admin");
-                setIsEditingOther(userId && userId !== getUserId(decoded));
+                setIsEditingOther(userId && userId !== currentUserId);
             } catch (error) {
                 console.error("Invalid token:", error);
                 navigate("/");
@@ -91,7 +94,7 @@ const MyProfilePage = () => {
         } else {
             navigate("/");
         }
-    }, [userId, navigate]);
+    }, [userId]); // Remove navigate from dependencies to prevent loops
 
     /**
      * Fetch user data from the API
@@ -99,7 +102,7 @@ const MyProfilePage = () => {
      */
     useEffect(() => {
         const fetchUserData = async () => {
-            if (!currentUser) return;
+            if (!currentUser || dataFetched) return;
 
             setLoading(true);
             try {
@@ -124,22 +127,24 @@ const MyProfilePage = () => {
                 
                 const res = await api.get(`/users/${targetUserId}`, { headers });
 
-                const userData = res.data;
+                const userData = ensureObject(res.data);
+                // Don't update currentUser here to avoid infinite loops
+                setDataFetched(true); // Mark as fetched
                 setFormData({
-                    id: userData.id || userData._id || "",
-                    firstname: userData.firstname || "",
-                    lastname: userData.lastname || "",
-                    email: userData.email || "",
-                    telephone: userData.telephone || "",
-                    title: userData.title || "",
-                    department: userData.department || "",
-                    bio: userData.bio || "",
-                    theme: userData.theme || "current",
+                    id: ensureString(userData.id || userData._id),
+                    firstname: ensureString(userData.firstname),
+                    lastname: ensureString(userData.lastname),
+                    email: ensureString(userData.email),
+                    telephone: ensureString(userData.telephone),
+                    title: ensureString(userData.title),
+                    department: ensureString(userData.department),
+                    bio: ensureString(userData.bio),
+                    theme: ensureString(userData.theme, "current"),
                     password: "",
                     confirmPassword: "",
-                    role: userData.role || "viewer"
+                    role: ensureString(userData.role, "viewer")
                 });
-                setOriginalEmail(userData.email || ""); // Set the original email
+                setOriginalEmail(ensureString(userData.email)); // Set the original email
 
                 // Set profile picture preview if exists
                 if (userData.profilePicture) {
@@ -162,7 +167,7 @@ const MyProfilePage = () => {
         };
 
         fetchUserData();
-    }, [currentUser, userId, isEditingOther, navigate]);
+    }, [currentUser, userId, isEditingOther]); // Remove navigate to prevent loops
 
     /**
      * Handle form input changes
@@ -233,8 +238,9 @@ const MyProfilePage = () => {
      * @returns {boolean} True if form is valid, false otherwise
      */
     const validateForm = () => {
-        const newErrors = {};
-        let isValid = true;
+        try {
+            const newErrors = {};
+            let isValid = true;
 
         if (!isEditingOther) {
             // Validate personal information for self-editing
@@ -297,8 +303,13 @@ const MyProfilePage = () => {
             }
         }
 
-        setErrors(newErrors);
-        return isValid;
+            setErrors(newErrors);
+            return isValid;
+        } catch (error) {
+            console.error("Validation error:", error);
+            toast.error("Validation error occurred");
+            return false;
+        }
     };
 
     /**
