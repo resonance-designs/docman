@@ -1,7 +1,24 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { CalendarIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import PropTypes from "prop-types";
 
+/**
+ * Date range filter component with expandable date inputs
+ * @param {Object} props - Component properties
+ * @param {string} props.startDate - Start date value (ISO string)
+ * @param {string} props.endDate - End date value (ISO string)
+ * @param {Function} props.onStartDateChange - Function called when start date changes
+ * @param {Function} props.onEndDateChange - Function called when end date changes
+ * @param {string} [props.className=""] - Additional CSS classes to apply
+ * @param {string} [props.label="Date Range"] - Label text for the filter
+ * @param {Function} [props.onClear] - Optional function called when clear button is clicked
+ * @returns {JSX.Element} The date range filter component
+ */
 const DateRangeFilter = ({
     startDate,
     endDate,
@@ -13,6 +30,9 @@ const DateRangeFilter = ({
 }) => {
     const [showInputs, setShowInputs] = useState(false);
 
+    /**
+     * Handle clearing both date inputs
+     */
     const handleClear = () => {
         onStartDateChange("");
         onEndDateChange("");
@@ -20,6 +40,11 @@ const DateRangeFilter = ({
         setShowInputs(false);
     };
 
+    /**
+     * Format date string for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date string
+     */
     const formatDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);

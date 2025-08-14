@@ -1,4 +1,8 @@
-// backend/src/controllers/teamsController.js
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import Team from "../models/Team.js";
 import User from "../models/User.js";
 import crypto from "crypto";
@@ -10,7 +14,12 @@ import {
 } from "../lib/validation.js";
 import { sendTeamInvitationNotification } from "./notificationsController.js";
 
-// Get all teams for the current user
+/**
+ * Get all teams for the current user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of teams or error message
+ */
 export async function getUserTeams(req, res) {
     try {
         const userId = req.user._id.toString();
@@ -32,7 +41,12 @@ export async function getUserTeams(req, res) {
     }
 }
 
-// Get all teams (admin only)
+/**
+ * Get all teams (admin only)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of teams or error message
+ */
 export async function getAllTeams(req, res) {
     try {
         const { search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
@@ -66,7 +80,12 @@ export async function getAllTeams(req, res) {
     }
 }
 
-// Get team by ID
+/**
+ * Get team by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with team data or error message
+ */
 export async function getTeamById(req, res) {
     try {
         const teamId = req.params.id;
@@ -93,36 +112,30 @@ export async function getTeamById(req, res) {
     }
 }
 
-// Create new team
+/**
+ * Create new team
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created team data or error message
+ */
 export async function createTeam(req, res) {
     try {
         const { name, description } = req.body;
         const userId = req.user._id.toString();
 
-        // Debug logging
-        console.log("Request body:", req.body);
-        console.log("Name:", name);
-        console.log("Description:", description);
-        console.log("User ID:", userId);
-
         // Validation
         const validationErrors = [];
 
         if (!name) {
-                    console.log("Name is falsy");
-                    validationErrors.push("Team name is required");
-                } else {
-                    const nameValidationError = validateTeamName(name);
-                    if (nameValidationError) {
-                        console.log("Team name validation failed:", nameValidationError);
-                        validationErrors.push(nameValidationError);
-                    } else {
-                        console.log("Team name validation passed");
-                    }
-                }
+            validationErrors.push("Team name is required");
+        } else {
+            const nameValidationError = validateTeamName(name);
+            if (nameValidationError) {
+                validationErrors.push(nameValidationError);
+            }
+        }
 
         if (validationErrors.length > 0) {
-            console.log("Validation errors:", validationErrors);
             return res.status(400).json({
                 message: "Validation failed",
                 errors: validationErrors
@@ -130,14 +143,14 @@ export async function createTeam(req, res) {
         }
 
         // Check if team name already exists for this user
-        const existingTeam = await Team.findOne({ 
+        const existingTeam = await Team.findOne({
             name: sanitizeString(name),
-            owner: userId 
+            owner: userId
         });
 
         if (existingTeam) {
-            return res.status(409).json({ 
-                message: "You already have a team with this name" 
+            return res.status(409).json({
+                message: "You already have a team with this name"
             });
         }
 
@@ -155,9 +168,9 @@ export async function createTeam(req, res) {
             .populate('owner', 'firstname lastname email')
             .populate('members.user', 'firstname lastname email');
 
-        res.status(201).json({ 
-            message: "Team created successfully", 
-            team: populatedTeam 
+        res.status(201).json({
+            message: "Team created successfully",
+            team: populatedTeam
         });
     } catch (error) {
         console.error("Error creating team:", error);
@@ -165,7 +178,12 @@ export async function createTeam(req, res) {
     }
 }
 
-// Update team
+/**
+ * Update team
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated team data or error message
+ */
 export async function updateTeam(req, res) {
     try {
         const teamId = req.params.id;
@@ -223,7 +241,12 @@ export async function updateTeam(req, res) {
     }
 }
 
-// Delete team
+/**
+ * Delete team
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteTeam(req, res) {
     try {
         const teamId = req.params.id;
@@ -248,7 +271,12 @@ export async function deleteTeam(req, res) {
     }
 }
 
-// Invite user to team
+/**
+ * Invite user to team
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function inviteToTeam(req, res) {
     try {
         const teamId = req.params.id;
@@ -321,7 +349,12 @@ export async function inviteToTeam(req, res) {
     }
 }
 
-// Accept team invitation
+/**
+ * Accept team invitation
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function acceptInvitation(req, res) {
     try {
         const { token } = req.params;
@@ -366,7 +399,12 @@ export async function acceptInvitation(req, res) {
     }
 }
 
-// Remove member from team
+/**
+ * Remove member from team
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function removeMember(req, res) {
     try {
         const teamId = req.params.id;
@@ -406,7 +444,12 @@ export async function removeMember(req, res) {
     }
 }
 
-// Update member role
+/**
+ * Update member role
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function updateMemberRole(req, res) {
     try {
         const teamId = req.params.id;

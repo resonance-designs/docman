@@ -1,10 +1,15 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
-import { 
-    UsersIcon, 
-    FolderIcon, 
-    UserPlusIcon, 
-    SettingsIcon, 
+import {
+    UsersIcon,
+    FolderIcon,
+    UserPlusIcon,
+    SettingsIcon,
     ArrowLeftIcon,
     MoreVerticalIcon,
     EditIcon,
@@ -107,13 +112,13 @@ const TeamDetailPage = () => {
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
             await api.delete(`/teams/${id}/members/${memberId}`, { headers });
-            
+
             // Update team state
             setTeam(prev => ({
                 ...prev,
                 members: prev.members.filter(member => member.user._id !== memberId)
             }));
-            
+
             toast.success("Member removed successfully");
         } catch (error) {
             console.error("Error removing member:", error);
@@ -178,7 +183,7 @@ const TeamDetailPage = () => {
                                 )}
                             </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2">
                             {canInvite && (
                                 <button
@@ -214,7 +219,7 @@ const TeamDetailPage = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center">
                                 <FolderIcon className="h-8 w-8 text-resdes-green" />
@@ -226,7 +231,7 @@ const TeamDetailPage = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="bg-white rounded-lg shadow p-6">
                             <div className="flex items-center">
                                 <div className="h-8 w-8 bg-resdes-orange rounded flex items-center justify-center">

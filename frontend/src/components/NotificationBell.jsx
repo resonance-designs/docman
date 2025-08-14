@@ -1,9 +1,22 @@
-// frontend/src/components/NotificationBell.jsx
+/*
+ * @name Notification Bell Component
+ * @file /docman/frontend/src/components/NotificationBell.jsx
+ * @component NotificationBell
+ * @description Notification bell component with dropdown for displaying user notifications
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
+
 import { useState, useEffect } from "react";
 import { Bell, X, Check } from "lucide-react";
 import api from "../lib/axios";
 import { useTheme } from "../context/ThemeContext";
 
+/**
+ * Component for displaying notifications in a dropdown bell icon
+ * @returns {JSX.Element} The notification bell component
+ */
 const NotificationBell = () => {
   const { currentTheme } = useTheme();
   const [notifications, setNotifications] = useState([]);
@@ -11,7 +24,9 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Fetch notifications and unread count
+  /**
+   * Fetch notifications and unread count
+   */
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -28,7 +43,9 @@ const NotificationBell = () => {
     }
   };
 
-  // Fetch unread count only
+  /**
+   * Fetch unread count only
+   */
   const fetchUnreadCount = async () => {
     try {
       const response = await api.get("/notifications/unread-count");
@@ -38,7 +55,10 @@ const NotificationBell = () => {
     }
   };
 
-  // Mark notification as read
+  /**
+   * Mark notification as read
+   * @param {string} notificationId - ID of the notification to mark as read
+   */
   const markAsRead = async (notificationId) => {
     try {
       await api.patch(`/notifications/${notificationId}/read`);
@@ -53,7 +73,9 @@ const NotificationBell = () => {
     }
   };
 
-  // Mark all notifications as read
+  /**
+   * Mark all notifications as read
+   */
   const markAllAsRead = async () => {
     try {
       await api.patch("/notifications/read-all");
@@ -68,7 +90,10 @@ const NotificationBell = () => {
     }
   };
 
-  // Delete notification
+  /**
+   * Delete notification
+   * @param {string} notificationId - ID of the notification to delete
+   */
   const deleteNotification = async (notificationId) => {
     try {
       await api.delete(`/notifications/${notificationId}`);
@@ -83,7 +108,11 @@ const NotificationBell = () => {
     }
   };
 
-  // Format date for display
+  /**
+   * Format date for display
+   * @param {string} dateString - Date string to format
+   * @returns {string} Formatted date string
+   */
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -98,7 +127,11 @@ const NotificationBell = () => {
     }
   };
 
-  // Get notification icon based on type
+  /**
+   * Get notification icon based on type
+   * @param {string} type - Notification type
+   * @returns {string} Emoji icon for the notification type
+   */
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'team_invitation':
@@ -122,7 +155,11 @@ const NotificationBell = () => {
     }
   };
 
-  // Get notification color based on type
+  /**
+   * Get notification color based on type
+   * @param {string} type - Notification type
+   * @returns {string} CSS classes for the notification color
+   */
   const getNotificationColor = (type) => {
     switch (type) {
       case 'team_invitation':
@@ -146,7 +183,9 @@ const NotificationBell = () => {
     }
   };
 
-  // Effect to fetch notifications when component mounts
+  /**
+   * Effect to fetch notifications when component mounts
+   */
   useEffect(() => {
     fetchNotifications();
     

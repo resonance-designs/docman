@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState, useEffect } from "react";
 import RateLimitedUI from "../components/RateLimitedUI";
 import api from "../lib/axios";
@@ -6,6 +11,10 @@ import DocCard from "../components/DocCard";
 import PaginatedDocTable from "../components/PaginatedDocTable";
 import DocsNotFound from "../components/DocsNotFound";
 
+/**
+ * Page component for viewing documents that need review
+ * @returns {JSX.Element} The view page component
+ */
 const HomePage = () => {
     const [isRateLimited, setIsRateLimited] = useState(false);
     const [docs, setDocs] = useState([]);

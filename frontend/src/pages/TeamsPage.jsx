@@ -1,3 +1,12 @@
+/*
+ * @name TeamsPage
+ * @file /docman/frontend/src/pages/TeamsPage.jsx
+ * @page TeamsPage
+ * @description Team management page displaying user teams with creation, editing, and member management capabilities
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { UsersIcon, PlusIcon, Settings } from "lucide-react";

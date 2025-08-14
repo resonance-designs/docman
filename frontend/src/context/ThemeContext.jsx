@@ -1,3 +1,12 @@
+/*
+ * @name ThemeContext
+ * @file /docman/frontend/src/context/ThemeContext.jsx
+ * @context ThemeContext
+ * @description React context for managing application theme state with persistence and user preferences
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { createContext, useContext, useState, useEffect } from "react";
 import { themes, getThemeClass, isValidTheme } from "../themes";
 import api from "../lib/axios";

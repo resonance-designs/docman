@@ -1,7 +1,18 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import File from "../models/File.js";  // Your file schema/model
 import Doc from "../models/Doc.js";    // Your document schema/model
 import path from "path";
 
+/**
+ * Upload a new version of a file for a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with uploaded file data or error message
+ */
 export async function uploadFileVersion(req, res) {
   try {
     const docId = req.params.id;

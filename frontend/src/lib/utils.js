@@ -1,4 +1,17 @@
-// Format a date to a human-readable string
+/*
+ * @name utils
+ * @file /docman/frontend/src/lib/utils.js
+ * @module utils
+ * @description Backend utility functions for object validation and common server-side operations
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
+/**
+ * Format a date to a human-readable string
+ * @param {Date} date - Date object to format
+ * @returns {string} Formatted date string in "MMM DD, YYYY" format
+ */
 export function formatDate(date) {
     return date.toLocaleDateString("en-US", {
         month: "short",
@@ -7,7 +20,11 @@ export function formatDate(date) {
     });
 }
 
-// Manual JWT Decode
+/**
+ * Manual JWT token decoder
+ * @param {string} token - JWT token to decode
+ * @returns {Object|null} Decoded JWT payload or null if invalid
+ */
 export function decodeJWT(token) {
     try {
         const base64Url = token.split('.')[1];
@@ -26,13 +43,25 @@ export function decodeJWT(token) {
     }
 };
 
-// Helper function to generate navigation link classes
+/**
+ * Helper function to generate navigation link classes based on current path
+ * @param {string} currentPath - Current page path
+ * @param {string} targetPath - Target link path
+ * @param {string} [base="btn px-3 py-3 font-semibold text-sm"] - Base CSS classes
+ * @returns {string} CSS classes for the navigation link
+ */
 export const getLinkClass = (currentPath, targetPath, base = "btn px-3 py-3 font-semibold text-sm") =>
     currentPath === targetPath
         ? `${base} bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300`
         : `${base} btn-ghost`;
 
-// Truncate text to a specified length with ellipsis
+/**
+ * Truncate text to a specified length with ellipsis
+ * @param {string} text - Text to truncate
+ * @param {number} [maxLength=100] - Maximum length before truncation
+ * @param {string} [suffix='...'] - Suffix to append when truncated
+ * @returns {string} Truncated text with suffix or original text if within limit
+ */
 export function truncate(text, maxLength = 100, suffix = '...') {
     if (!text || typeof text !== 'string') return '';
     if (text.length <= maxLength) return text;

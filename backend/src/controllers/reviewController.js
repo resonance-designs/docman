@@ -1,9 +1,19 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import ReviewAssignment from "../models/ReviewAssignment.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
 import { sendEmail } from "../lib/emailService.js";
 
-// Create review assignments for a document
+/**
+ * Create review assignments for a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created assignments or error message
+ */
 export async function createReviewAssignments(req, res) {
     try {
         const { documentId, assignments } = req.body; // assignments is an array of { assignee, dueDate, notes }
@@ -56,7 +66,12 @@ export async function createReviewAssignments(req, res) {
     }
 }
 
-// Get review assignments for a document
+/**
+ * Get review assignments for a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of assignments or error message
+ */
 export async function getDocumentReviewAssignments(req, res) {
     try {
         const { documentId } = req.params;
@@ -79,7 +94,12 @@ export async function getDocumentReviewAssignments(req, res) {
     }
 }
 
-// Get review assignments for a user
+/**
+ * Get review assignments for a user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of assignments or error message
+ */
 export async function getUserReviewAssignments(req, res) {
     try {
         const { userId } = req.params;
@@ -109,7 +129,12 @@ export async function getUserReviewAssignments(req, res) {
     }
 }
 
-// Update review assignment status
+/**
+ * Update review assignment status
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated assignment or error message
+ */
 export async function updateReviewAssignment(req, res) {
     try {
         const { id } = req.params;
@@ -159,7 +184,37 @@ export async function updateReviewAssignment(req, res) {
     }
 }
 
-// Send email notification for review assignment
+/**
+ * Get overdue review assignments
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of overdue assignments or error message
+ */
+export async function getOverdueReviewAssignments(req, res) {
+    try {
+        const now = new Date();
+        const assignments = await ReviewAssignment.find({
+            dueDate: { $lt: now },
+            status: { $in: ['pending', 'in-progress'] }
+        })
+            .populate('document', 'title description')
+            .populate('assignee', 'firstname lastname email')
+            .populate('assignedBy', 'firstname lastname email')
+            .sort({ dueDate: 1 });
+
+        res.status(200).json(assignments);
+    } catch (error) {
+        console.error("Error fetching overdue review assignments:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Send email notification for review assignment
+ * @param {Object} assignment - Review assignment object
+ * @param {Object} doc - Document object
+ * @returns {Promise<void>}
+ */
 async function sendReviewAssignmentEmail(assignment, doc) {
     try {
         // Get assignee details
@@ -225,7 +280,11 @@ DocMan System
     }
 }
 
-// Create update assignment for author when updates are required
+/**
+ * Create update assignment for author when updates are required
+ * @param {Object} reviewAssignment - Review assignment object
+ * @returns {Promise<Object>} Update assignment object
+ */
 async function createUpdateAssignment(reviewAssignment) {
     try {
         // Get the document
@@ -259,7 +318,12 @@ async function createUpdateAssignment(reviewAssignment) {
     }
 }
 
-// Send email notification for update assignment
+/**
+ * Send email notification for update assignment
+ * @param {Object} assignment - Update assignment object
+ * @param {Object} doc - Document object
+ * @returns {Promise<void>}
+ */
 async function sendUpdateAssignmentEmail(assignment, doc) {
     try {
         // Get assignee details (author)
@@ -316,26 +380,5 @@ DocMan System
     } catch (error) {
         console.error("Error sending update assignment email:", error);
         throw error;
-    }
-}
-
-// Get overdue review assignments
-export async function getOverdueReviewAssignments(req, res) {
-    try {
-        const now = new Date();
-        const assignments = await ReviewAssignment.find({
-            dueDate: { $lt: now },
-            status: { $in: ['pending', 'in-progress'] },
-            dueDate: { $lt: now }
-        })
-            .populate('document', 'title description')
-            .populate('assignee', 'firstname lastname email')
-            .populate('assignedBy', 'firstname lastname email')
-            .sort({ dueDate: 1 });
-
-        res.status(200).json(assignments);
-    } catch (error) {
-        console.error("Error fetching overdue review assignments:", error);
-        res.status(500).json({ message: "Internal Server Error" });
     }
 }

@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 // hooks/useAutoLogout.js
 import { useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';

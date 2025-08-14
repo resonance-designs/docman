@@ -1,7 +1,18 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import User from "../models/User.js";
 import fs from "fs";
 import path from "path";
 
+/**
+ * Upload a profile picture for a user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with upload status or error message
+ */
 export async function uploadProfilePicture(req, res) {
     try {
         const userId = req.params.id;
@@ -74,6 +85,12 @@ export async function uploadProfilePicture(req, res) {
     }
 }
 
+/**
+ * Delete a user's profile picture
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with deletion status or error message
+ */
 export async function deleteProfilePicture(req, res) {
     try {
         const userId = req.params.id;
@@ -113,6 +130,12 @@ export async function deleteProfilePicture(req, res) {
     }
 }
 
+/**
+ * Upload a background image for a user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with upload status or error message
+ */
 export async function uploadBackgroundImage(req, res) {
     try {
         const userId = req.params.id;
@@ -185,6 +208,12 @@ export async function uploadBackgroundImage(req, res) {
     }
 }
 
+/**
+ * Delete a user's background image
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with deletion status or error message
+ */
 export async function deleteBackgroundImage(req, res) {
     try {
         const userId = req.params.id;

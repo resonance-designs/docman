@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { FolderIcon, ArrowLeftIcon, CalendarIcon, TagIcon } from "lucide-react";

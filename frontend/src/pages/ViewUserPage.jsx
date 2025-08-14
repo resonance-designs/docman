@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { UserIcon, EditIcon, MailIcon, PhoneIcon, BriefcaseIcon, CalendarIcon, BuildingIcon } from "lucide-react";

@@ -1,9 +1,26 @@
+/*
+ * @name ForgotPassPage
+ * @file /docman/frontend/src/pages/ForgotPassPage.jsx
+ * @page ForgotPassPage
+ * @description Page component for password reset request functionality
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import React, { useState } from "react";
 
+/**
+ * Page component for password reset request functionality
+ * @returns {JSX.Element} The forgot password page component
+ */
 function ForgotPassPage() {
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
 
+    /**
+     * Handle password reset form submission
+     * @param {Event} e - Form submit event
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage("");

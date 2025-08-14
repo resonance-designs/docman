@@ -1,8 +1,20 @@
+/*
+ * @name secretToken
+ * @file /docman/backend/src/lib/secretToken.js
+ * @module secretToken
+ * @description JWT token utilities for creating, verifying, and blacklisting authentication tokens
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import BlacklistedToken from "../models/BlacklistedToken.js";
 
+/**
+ * Load environment variables based on NODE_ENV
+ */
 if (process.env.NODE_ENV === 'development') {
     dotenv.config({ path: '.env.dev' });
 } else if (process.env.NODE_ENV === 'production') {
@@ -11,18 +23,40 @@ if (process.env.NODE_ENV === 'development') {
     dotenv.config(); // Loads .env by default
 }
 
+/**
+ * JWT token secret key from environment variables
+ * @type {string}
+ */
 const TOKEN_KEY = process.env.TOKEN_KEY || "CHANGE_ME";
 
+/**
+ * Create a short-lived access token for API authentication
+ * @param {string} id - User ID to encode in token
+ * @param {string} role - User role to encode in token
+ * @returns {string} JWT access token valid for 15 minutes
+ */
 export function createAccessToken(id, role) {
     return jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "15m" });
 }
 
-// Optional: helper to create a long-lived refresh JWT (not used by opaque token flow)
+/**
+ * Create a long-lived refresh token (optional helper, not used by opaque token flow)
+ * @param {string} id - User ID to encode in token
+ * @param {string} role - User role to encode in token
+ * @returns {string} JWT refresh token valid for 7 days
+ */
 export function createSecretToken(id, role) {
     return jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "7d" });
 }
 
-// Middleware: verify access token from Authorization header and attach user to req.user
+/**
+ * Middleware to verify access token from Authorization header and attach user to req.user
+ * Checks for blacklisted tokens and fetches current user data from database
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {Object} JSON response with error message if authentication fails
+ */
 export async function verifyAccessToken(req, res, next) {
     try {
         const authHeader = req.headers?.authorization || "";
@@ -51,7 +85,12 @@ export async function verifyAccessToken(req, res, next) {
     }
 }
 
-// Function to blacklist a token
+/**
+ * Add a token to the blacklist to prevent its future use
+ * Decodes the token to get expiration time and stores it in the blacklist collection
+ * @param {string} token - JWT token to blacklist
+ * @returns {Promise<boolean>} True if token was successfully blacklisted, false on error
+ */
 export async function blacklistToken(token) {
     try {
         // Decode the token to get its expiration time

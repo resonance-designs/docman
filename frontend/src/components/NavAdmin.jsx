@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { Link } from "react-router";
 import { UserPlus, FolderPlus, Shield, MonitorIcon, BarChartIcon } from "lucide-react";
 import PropTypes from "prop-types";

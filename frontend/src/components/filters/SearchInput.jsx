@@ -1,6 +1,25 @@
+/*
+ * @name SearchInput
+ * @file /docman/frontend/src/components/filters/SearchInput.jsx
+ * @component SearchInput
+ * @description Reusable search input component with clear button and customizable placeholder for filtering data
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { SearchIcon, XIcon } from "lucide-react";
 import PropTypes from "prop-types";
 
+/**
+ * Search input component with clear functionality
+ * @param {Object} props - Component properties
+ * @param {string} props.value - Current search value
+ * @param {Function} props.onChange - Function called when search value changes
+ * @param {string} [props.placeholder="Search..."] - Placeholder text for the input
+ * @param {string} [props.className=""] - Additional CSS classes to apply
+ * @param {Function} [props.onClear] - Optional function called when clear button is clicked
+ * @returns {JSX.Element} The search input component
+ */
 const SearchInput = ({
     value,
     onChange,
@@ -8,6 +27,9 @@ const SearchInput = ({
     className = "",
     onClear
 }) => {
+    /**
+     * Handle clearing the search input
+     */
     const handleClear = () => {
         onChange("");
         if (onClear) onClear();

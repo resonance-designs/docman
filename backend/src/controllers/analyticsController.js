@@ -1,7 +1,18 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
 import Category from "../models/Category.js";
 
+/**
+ * Get analytics data for dashboard
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with analytics data or error message
+ */
 export async function getAnalyticsData(req, res) {
     try {
         const currentYear = new Date().getFullYear();
@@ -142,6 +153,12 @@ export async function getAnalyticsData(req, res) {
     }
 }
 
+/**
+ * Export analytics data
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with exported data or error message
+ */
 export async function getAnalyticsExport(req, res) {
     try {
         const { type } = req.query;
@@ -180,7 +197,10 @@ export async function getAnalyticsExport(req, res) {
     }
 }
 
-// Helper functions for export
+/**
+ * Get monthly documents data for export
+ * @returns {Array} Array of monthly document statistics
+ */
 async function getMonthlyDocumentsData() {
     const currentYear = new Date().getFullYear();
     const startOfYear = new Date(currentYear, 0, 1);
@@ -207,6 +227,10 @@ async function getMonthlyDocumentsData() {
     ]);
 }
 
+/**
+ * Get category data for export
+ * @returns {Array} Array of category statistics
+ */
 async function getCategoryData() {
     return await Doc.aggregate([
         {
@@ -233,6 +257,10 @@ async function getCategoryData() {
     ]);
 }
 
+/**
+ * Get author data for export
+ * @returns {Array} Array of author statistics
+ */
 async function getAuthorData() {
     return await Doc.aggregate([
         {
@@ -262,6 +290,10 @@ async function getAuthorData() {
     ]);
 }
 
+/**
+ * Get review status data for export
+ * @returns {Array} Array of review status statistics
+ */
 async function getReviewStatusData() {
     const now = new Date();
     return await Doc.aggregate([

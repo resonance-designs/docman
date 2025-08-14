@@ -1,3 +1,12 @@
+/*
+ * @name ViewUsersPage
+ * @file /docman/frontend/src/pages/ViewUsersPage.jsx
+ * @page ViewUsersPage
+ * @description User management page with filtering, search, and user administration for system administrators
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { UserPlusIcon, UsersIcon } from "lucide-react";

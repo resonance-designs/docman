@@ -1,9 +1,22 @@
+/*
+ * @name RegUserPage
+ * @file /docman/frontend/src/pages/RegUserPage.jsx
+ * @page RegUserPage
+ * @description User registration page with form validation and account creation functionality
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeftIcon, UserPlus } from 'lucide-react';
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
+/**
+ * Page component for registering new users with role selection
+ * @returns {JSX.Element} The register user page component
+ */
 function RegisterUser() {
     const [email, setEmail] = useState("");
     const [firstname, setFirstName] = useState("");
@@ -14,6 +27,10 @@ function RegisterUser() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    /**
+     * Handle user registration form submission
+     * @param {Object} e - Event object from form submission
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);

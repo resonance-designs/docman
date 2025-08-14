@@ -1,9 +1,20 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import os from 'os';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Doc from '../models/Doc.js';
 import Category from '../models/Category.js';
 
+/**
+ * Get system information and health metrics
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with system information or error message
+ */
 export async function getSystemInfo(req, res) {
     try {
         // Basic system information
@@ -110,7 +121,11 @@ export async function getSystemInfo(req, res) {
     }
 }
 
-// Helper functions
+/**
+ * Format uptime in a human-readable format
+ * @param {number} seconds - Uptime in seconds
+ * @returns {string} Formatted uptime string
+ */
 function formatUptime(seconds) {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -125,6 +140,11 @@ function formatUptime(seconds) {
     }
 }
 
+/**
+ * Format memory usage object with human-readable values
+ * @param {Object} memUsage - Memory usage object from process.memoryUsage()
+ * @returns {Object} Formatted memory usage object
+ */
 function formatMemoryUsage(memUsage) {
     return {
         rss: formatBytes(memUsage.rss),
@@ -134,6 +154,11 @@ function formatMemoryUsage(memUsage) {
     };
 }
 
+/**
+ * Format bytes into human-readable format
+ * @param {number} bytes - Number of bytes
+ * @returns {string} Formatted bytes string
+ */
 function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -142,6 +167,10 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+/**
+ * Get CPU usage percentage
+ * @returns {number} CPU usage percentage
+ */
 function getCpuUsage() {
     const cpus = os.cpus();
     let totalIdle = 0;
@@ -161,6 +190,10 @@ function getCpuUsage() {
     return usage;
 }
 
+/**
+ * Get memory statistics
+ * @returns {Object} Memory statistics object
+ */
 function getMemoryStats() {
     const totalMemory = os.totalmem();
     const freeMemory = os.freemem();

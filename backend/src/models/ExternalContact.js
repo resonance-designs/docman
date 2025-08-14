@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import mongoose from "mongoose";
 
 const externalContactSchema = new mongoose.Schema(

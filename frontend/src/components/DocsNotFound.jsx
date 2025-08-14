@@ -1,6 +1,15 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { NotebookIcon } from "lucide-react";
 import { Link } from "react-router";
 
+/**
+ * Component displayed when no documents are found, encouraging users to create their first document
+ * @returns {JSX.Element} The no documents found component
+ */
 const DocsNotFound = () => {
     return (
         <div className="flex flex-col items-center justify-center py-16 space-y-6 max-w-md mx-auto text-center">

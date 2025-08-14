@@ -1,8 +1,18 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import ExternalContact from "../models/ExternalContact.js";
 import ExternalContactType from "../models/ExternalContactType.js";
 import Doc from "../models/Doc.js";
 
-// Get all external contact types
+/**
+ * Get all external contact types
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of contact types or error message
+ */
 export async function getAllExternalContactTypes(req, res) {
     try {
         const contactTypes = await ExternalContactType.find();
@@ -13,7 +23,12 @@ export async function getAllExternalContactTypes(req, res) {
     }
 }
 
-// Create a new external contact type
+/**
+ * Create a new external contact type
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created contact type data or error message
+ */
 export async function createExternalContactType(req, res) {
     try {
         const { name, description } = req.body;
@@ -35,7 +50,12 @@ export async function createExternalContactType(req, res) {
     }
 }
 
-// Get all external contacts
+/**
+ * Get all external contacts
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of contacts or error message
+ */
 export async function getAllExternalContacts(req, res) {
     try {
         const contacts = await ExternalContact.find();
@@ -46,7 +66,12 @@ export async function getAllExternalContacts(req, res) {
     }
 }
 
-// Create a new external contact
+/**
+ * Create a new external contact
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created contact data or error message
+ */
 export async function createExternalContact(req, res) {
     try {
         const { name, email, phoneNumber, type, documentId } = req.body;
@@ -79,7 +104,12 @@ export async function createExternalContact(req, res) {
     }
 }
 
-// Get external contacts by document ID
+/**
+ * Get external contacts by document ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of contacts or error message
+ */
 export async function getExternalContactsByDocument(req, res) {
     try {
         const { id } = req.params;
@@ -91,7 +121,12 @@ export async function getExternalContactsByDocument(req, res) {
     }
 }
 
-// Update an external contact
+/**
+ * Update an external contact
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated contact data or error message
+ */
 export async function updateExternalContact(req, res) {
     try {
         const { id } = req.params;
@@ -114,7 +149,12 @@ export async function updateExternalContact(req, res) {
     }
 }
 
-// Delete an external contact
+/**
+ * Delete an external contact
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteExternalContact(req, res) {
     try {
         const { id } = req.params;

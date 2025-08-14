@@ -1,9 +1,29 @@
+/*
+ * @name Paginated User Table Component
+ * @file /docman/frontend/src/components/PaginatedUserTable.jsx
+ * @component PaginatedUserTable
+ * @description Paginated table component for displaying users with administrative controls and filtering
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
+
 import { useState, useMemo, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import UserTable from "./UserTable";
 import SortableHeader from "./filters/SortableHeader";
 import PropTypes from "prop-types";
 
+/**
+ * Component for displaying users in a paginated table with sorting capabilities
+ * @param {Object} props - Component properties
+ * @param {Array} props.users - Array of user objects to display
+ * @param {Function} props.setUsers - Function to update the users list
+ * @param {number} [props.itemsPerPage=25] - Number of items to display per page
+ * @param {Object} [props.sortConfig] - Current sort configuration
+ * @param {Function} [props.onSort] - Function to handle sorting
+ * @returns {JSX.Element} The paginated user table component
+ */
 const PaginatedUserTable = ({ users, setUsers, itemsPerPage = 25, sortConfig, onSort }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
@@ -14,23 +34,39 @@ const PaginatedUserTable = ({ users, setUsers, itemsPerPage = 25, sortConfig, on
     const endIndex = startIndex + pageSize;
     const currentUsers = useMemo(() => users.slice(startIndex, endIndex), [users, startIndex, endIndex]);
 
-    // Handle page changes
+    /**
+     * Handle page changes
+     * @param {number} page - The page number to navigate to
+     */
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
         }
     };
 
+    /**
+     * Navigate to the previous page
+     */
     const goToPrevious = () => goToPage(currentPage - 1);
+
+    /**
+     * Navigate to the next page
+     */
     const goToNext = () => goToPage(currentPage + 1);
 
-    // Handle page size change
+    /**
+     * Handle page size change
+     * @param {number} newPageSize - The new page size to set
+     */
     const handlePageSizeChange = (newPageSize) => {
         setPageSize(newPageSize);
         setCurrentPage(1); // Reset to first page when changing page size
     };
 
-    // Generate page numbers for pagination controls
+    /**
+     * Generate page numbers for pagination controls
+     * @returns {Array} Array of page numbers and ellipsis for pagination display
+     */
     const getPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 5;
@@ -63,7 +99,9 @@ const PaginatedUserTable = ({ users, setUsers, itemsPerPage = 25, sortConfig, on
         return pages;
     };
 
-    // Reset to page 1 when users change
+    /**
+     * Reset to page 1 when users change
+     */
     useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);

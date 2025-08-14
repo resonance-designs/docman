@@ -1,4 +1,8 @@
-/* eslint-disable no-unused-vars */
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeftIcon, FolderPlus } from "lucide-react";

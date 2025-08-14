@@ -1,9 +1,18 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import request from "supertest";
 import app from "../server.js";
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 
+/**
+ * Test user data for authentication tests
+ * @type {Object}
+ */
 const testUser = {
     email: "test@example.com",
     firstname: "Test",
@@ -12,6 +21,10 @@ const testUser = {
     password: "Password123!",
 };
 
+/**
+ * Authentication API test suite
+ * Tests user registration, login, logout, and password reset functionality
+ */
 describe("Auth API", () => {
     beforeAll(async () => {
         // Wait for database connection

@@ -1,3 +1,12 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
+/**
+ * Footer component with copyright information and company link
+ * @returns {JSX.Element} The footer component
+ */
 const Footer = () => {
     return (
         <footer className="sticky bottom-0 bg-base-300 border-t-2 border-resdes-orange">

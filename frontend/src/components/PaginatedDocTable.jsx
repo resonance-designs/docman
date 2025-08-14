@@ -1,9 +1,29 @@
+/*
+ * @name Paginated Document Table Component
+ * @file /docman/frontend/src/components/PaginatedDocTable.jsx
+ * @component PaginatedDocTable
+ * @description Paginated table component for displaying documents with sorting, filtering, and bulk actions
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
+
 import { useState, useMemo, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import DocTable from "./DocTable";
 import SortableHeader from "./filters/SortableHeader";
 import PropTypes from "prop-types";
 
+/**
+ * Component for displaying documents in a paginated table with sorting capabilities
+ * @param {Object} props - Component properties
+ * @param {Array} props.docs - Array of document objects to display
+ * @param {Function} props.setDocs - Function to update the documents list
+ * @param {number} [props.itemsPerPage=25] - Number of items to display per page
+ * @param {Object} [props.sortConfig] - Current sort configuration
+ * @param {Function} [props.onSort] - Function to handle sorting
+ * @returns {JSX.Element} The paginated document table component
+ */
 const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSort }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
@@ -14,25 +34,39 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
     const endIndex = startIndex + pageSize;
     const currentDocs = useMemo(() => docs.slice(startIndex, endIndex), [docs, startIndex, endIndex]);
 
-
-
-    // Handle page changes
+    /**
+     * Handle page changes
+     * @param {number} page - The page number to navigate to
+     */
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
         }
     };
 
+    /**
+     * Navigate to the previous page
+     */
     const goToPrevious = () => goToPage(currentPage - 1);
+
+    /**
+     * Navigate to the next page
+     */
     const goToNext = () => goToPage(currentPage + 1);
 
-    // Handle page size change
+    /**
+     * Handle page size change
+     * @param {number} newPageSize - The new page size to set
+     */
     const handlePageSizeChange = (newPageSize) => {
         setPageSize(newPageSize);
         setCurrentPage(1); // Reset to first page when changing page size
     };
 
-    // Generate page numbers for pagination controls
+    /**
+     * Generate page numbers for pagination controls
+     * @returns {Array} Array of page numbers and ellipsis for pagination display
+     */
     const getPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 5;
@@ -65,7 +99,9 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
         return pages;
     };
 
-    // Reset to page 1 when docs change
+    /**
+     * Reset to page 1 when docs change
+     */
     useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);

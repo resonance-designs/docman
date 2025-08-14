@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import request from "supertest";
 import app from "../server.js";
 import mongoose from "mongoose";
@@ -5,6 +10,10 @@ import User from "../models/User.js";
 import Doc from "../models/Doc.js";
 import bcrypt from "bcrypt";
 
+/**
+ * Test user data for document tests (editor role)
+ * @type {Object}
+ */
 const testUser = {
     email: "docuser@test.com",
     firstname: "Doc",
@@ -14,6 +23,10 @@ const testUser = {
     role: "editor"
 };
 
+/**
+ * Test admin user data for document tests (admin role)
+ * @type {Object}
+ */
 const testAdmin = {
     email: "docadmin@test.com",
     firstname: "Doc",
@@ -23,10 +36,18 @@ const testAdmin = {
     role: "admin"
 };
 
+/**
+ * Test category data for document tests
+ * @type {Object}
+ */
 const testCategory = {
     name: "Test Category"
 };
 
+/**
+ * Documents API test suite
+ * Tests document CRUD operations, permissions, and file management
+ */
 describe("Documents API", () => {
     let userToken, adminToken, userId, docId;
 
