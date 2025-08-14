@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import multer from "multer";
 import fs from "fs";
 import path from "path";

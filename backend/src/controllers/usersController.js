@@ -1,13 +1,12 @@
 /*
- * @name Users Controller
+ * @name usersController
  * @file /docman/backend/src/controllers/usersController.js
- * @module usersController
- * @description Controller functions for user management including viewing, updating, and deleting users, as well as profile picture and background image management.
+ * @controller usersController
+ * @description User management controller for CRUD operations, profile updates, and user administration
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import {

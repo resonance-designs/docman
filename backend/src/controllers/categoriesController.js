@@ -1,13 +1,8 @@
 /*
- * @name Categories Controller
- * @file /docman/backend/src/controllers/categoriesController.js
- * @module categoriesController
- * @description Controller functions for category management including viewing, creating, and deleting categories.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import Category from "../models/Category.js";
 
 /**

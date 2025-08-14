@@ -1,11 +1,16 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState } from "react";
 import { Link } from "react-router";
-import { 
-    FolderIcon, 
-    FileTextIcon, 
-    UsersIcon, 
-    MoreVerticalIcon, 
-    EditIcon, 
+import {
+    FolderIcon,
+    FileTextIcon,
+    UsersIcon,
+    MoreVerticalIcon,
+    EditIcon,
     TrashIcon,
     CalendarIcon,
     AlertCircleIcon
@@ -14,10 +19,20 @@ import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 
+/**
+ * Project card component for displaying project information with actions
+ * @param {Object} props - Component properties
+ * @param {Object} props.project - Project object containing project data
+ * @param {Function} [props.onProjectDeleted] - Function called when project is deleted
+ * @returns {JSX.Element} The project card component
+ */
 const ProjectCard = ({ project, onProjectDeleted }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Handle project deletion with confirmation
+     */
     const handleDeleteProject = async () => {
         if (!window.confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)) {
             return;
@@ -41,6 +56,11 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
         }
     };
 
+    /**
+     * Get CSS classes for status badge based on project status
+     * @param {string} status - Project status
+     * @returns {string} CSS classes for status styling
+     */
     const getStatusColor = (status) => {
         switch (status) {
             case 'active': return 'bg-green-100 text-green-800';
@@ -51,6 +71,11 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
         }
     };
 
+    /**
+     * Get CSS classes for priority text color based on project priority
+     * @param {string} priority - Project priority level
+     * @returns {string} CSS classes for priority styling
+     */
     const getPriorityColor = (priority) => {
         switch (priority) {
             case 'critical': return 'text-red-600';
@@ -61,6 +86,11 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
         }
     };
 
+    /**
+     * Get priority icon for high priority projects
+     * @param {string} priority - Project priority level
+     * @returns {JSX.Element|null} Priority icon or null for low priority
+     */
     const getPriorityIcon = (priority) => {
         if (priority === 'critical' || priority === 'high') {
             return <AlertCircleIcon size={14} className={getPriorityColor(priority)} />;

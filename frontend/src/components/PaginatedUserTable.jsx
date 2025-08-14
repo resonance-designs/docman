@@ -2,9 +2,9 @@
  * @name Paginated User Table Component
  * @file /docman/frontend/src/components/PaginatedUserTable.jsx
  * @component PaginatedUserTable
- * @description Component for displaying users in a paginated table with sorting capabilities.
+ * @description Paginated table component for displaying users with administrative controls and filtering
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
 

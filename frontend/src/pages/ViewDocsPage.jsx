@@ -1,13 +1,12 @@
 /*
- * @name View Documents Page
+ * @name ViewDocsPage
  * @file /docman/frontend/src/pages/ViewDocsPage.jsx
  * @page ViewDocsPage
- * @description Page for viewing and filtering documents with search and sort capabilities.
+ * @description Document listing page with search, filtering, sorting, and bulk operations for managing documents
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { FileTextIcon, PlusIcon, FilePlus2 } from "lucide-react";

@@ -1,21 +1,7 @@
 /*
- * @name DocMan Backend Server
- * @file /docman/backend/src/server.js
- * @module server
- * @description Main entry point for the DocMan backend application.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
- */
-
-/* * Import Modules
- * - Express: Web framework for Node.js
- * - CORS: Middleware to enable Cross-Origin Resource Sharing
- * - dotenv: Module to load environment variables from .env files
- * - path: Node.js module for handling file and directory paths
- * - docsRoutes: Routes for document management API
- * - connectDB: Function to connect to MongoDB
- * - rateLimiter: Middleware to limit the rate of requests to the API
  */
 import { connectDB } from "./config/db.js";
 import express from "express";
@@ -58,6 +44,13 @@ const nodePort = process.env.NODE_PORT;
  * - Initialize the Express application.
  */
 const __dirname = path.resolve(); // Get the current directory name
+
+/**
+ * Express application instance configured with middleware, routes, and static file serving
+ * Handles API endpoints for authentication, users, documents, teams, projects, and more
+ * Includes CORS, rate limiting, JSON parsing, and production static file serving
+ * @type {express.Application}
+ */
 const app = express(); // Initialize Express app
 
 /* * Middleware Configuration

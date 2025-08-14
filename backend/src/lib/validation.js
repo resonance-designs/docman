@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 // Server-side validation utilities
 export const validateEmail = (email) => {
     // More robust email regex

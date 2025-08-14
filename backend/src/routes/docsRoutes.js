@@ -1,13 +1,12 @@
 /*
- * @name Documents Routes
+ * @name docsRoutes
  * @file /docman/backend/src/routes/docsRoutes.js
- * @module docsRoutes
- * @description Routes for document management including viewing, creating, updating, and deleting documents, as well as versioning and file management.
+ * @routes docsRoutes
+ * @description Document management routes for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
@@ -26,6 +25,12 @@ import {
 } from "../controllers/docsController.js";
 import { uploadFileVersion } from "../controllers/uploadFileController.js";
 
+/**
+ * Express router for document management endpoints
+ * Handles document CRUD operations, file uploads, version control, and review workflows
+ * All routes require authentication with role-based access control
+ * @type {express.Router}
+ */
 const router = express.Router();
 
 // GET /api/docs - Get all documents (viewers, editors, and admins can view documents)

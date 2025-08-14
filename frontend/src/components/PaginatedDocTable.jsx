@@ -2,9 +2,9 @@
  * @name Paginated Document Table Component
  * @file /docman/frontend/src/components/PaginatedDocTable.jsx
  * @component PaginatedDocTable
- * @description Component for displaying documents in a paginated table with sorting capabilities.
+ * @description Paginated table component for displaying documents with sorting, filtering, and bulk actions
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
 

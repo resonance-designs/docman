@@ -1,13 +1,8 @@
 /*
- * @name Review Controller
- * @file /docman/backend/src/controllers/reviewController.js
- * @module reviewController
- * @description Controller functions for document review management including assignment creation, status updates, and email notifications.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import ReviewAssignment from "../models/ReviewAssignment.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";

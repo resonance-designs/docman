@@ -2,9 +2,9 @@
  * @name Notification Bell Component
  * @file /docman/frontend/src/components/NotificationBell.jsx
  * @component NotificationBell
- * @description Component for displaying notifications in a dropdown bell icon.
+ * @description Notification bell component with dropdown for displaying user notifications
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
 

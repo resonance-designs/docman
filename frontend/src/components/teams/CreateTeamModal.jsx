@@ -1,9 +1,21 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState } from "react";
 import { XIcon } from "lucide-react";
 import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 
+/**
+ * Modal component for creating new teams
+ * @param {Object} props - Component properties
+ * @param {Function} props.onClose - Function called when modal should be closed
+ * @param {Function} props.onTeamCreated - Function called when team is successfully created
+ * @returns {JSX.Element} The create team modal component
+ */
 const CreateTeamModal = ({ onClose, onTeamCreated }) => {
     const [formData, setFormData] = useState({
         name: "",
@@ -12,13 +24,17 @@ const CreateTeamModal = ({ onClose, onTeamCreated }) => {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
+    /**
+     * Handle form input changes and clear related errors
+     * @param {Event} e - Input change event
+     */
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
-        
+
         // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({
@@ -28,9 +44,13 @@ const CreateTeamModal = ({ onClose, onTeamCreated }) => {
         }
     };
 
+    /**
+     * Validate form data and set errors
+     * @returns {boolean} True if form is valid
+     */
     const validateForm = () => {
         const newErrors = {};
-        
+
         if (!formData.name.trim()) {
             newErrors.name = "Team name is required";
         } else if (formData.name.trim().length < 2) {
@@ -47,9 +67,13 @@ const CreateTeamModal = ({ onClose, onTeamCreated }) => {
         return Object.keys(newErrors).length === 0;
     };
 
+    /**
+     * Handle form submission to create new team
+     * @param {Event} e - Form submit event
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
@@ -67,7 +91,7 @@ const CreateTeamModal = ({ onClose, onTeamCreated }) => {
             onTeamCreated(response.data.team);
         } catch (error) {
             console.error("Error creating team:", error);
-            
+
             if (error.response?.status === 409) {
                 setErrors({ name: "You already have a team with this name" });
             } else if (error.response?.data?.errors) {

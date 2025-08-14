@@ -1,6 +1,21 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { ChevronUpIcon, ChevronDownIcon, ChevronsUpDownIcon } from "lucide-react";
 import PropTypes from "prop-types";
 
+/**
+ * Sortable table header component with visual sort indicators
+ * @param {Object} props - Component properties
+ * @param {React.ReactNode} props.children - Header content to display
+ * @param {string} props.sortKey - Unique key for this sortable column
+ * @param {Object} props.currentSort - Current sort state with key and direction
+ * @param {Function} props.onSort - Function called when sort changes
+ * @param {string} [props.className=""] - Additional CSS classes to apply
+ * @returns {JSX.Element} The sortable header component
+ */
 const SortableHeader = ({
     children,
     sortKey,
@@ -8,6 +23,9 @@ const SortableHeader = ({
     onSort,
     className = ""
 }) => {
+    /**
+     * Handle sort click - toggle direction if same key, otherwise start with ascending
+     */
     const handleSort = () => {
         if (currentSort.key === sortKey) {
             // If already sorting by this key, toggle direction
@@ -19,6 +37,10 @@ const SortableHeader = ({
         }
     };
 
+    /**
+     * Get the appropriate sort icon based on current sort state
+     * @returns {JSX.Element} The sort icon component
+     */
     const getSortIcon = () => {
         if (currentSort.key !== sortKey) {
             return <ChevronsUpDownIcon className="h-4 w-4 text-resdes-teal" />;

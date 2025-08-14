@@ -1,7 +1,24 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { ChevronDownIcon, XIcon } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 
+/**
+ * Dropdown filter component with search and clear functionality
+ * @param {Object} props - Component properties
+ * @param {string} props.value - Currently selected value
+ * @param {Function} props.onChange - Function called when selection changes
+ * @param {Array} [props.options=[]] - Array of option objects with value and label properties
+ * @param {string} [props.placeholder="Select..."] - Placeholder text when no option is selected
+ * @param {string} [props.className=""] - Additional CSS classes to apply
+ * @param {string} [props.label] - Optional label text for the dropdown
+ * @param {boolean} [props.allowClear=true] - Whether to show clear button when value is selected
+ * @returns {JSX.Element} The dropdown filter component
+ */
 const DropdownFilter = ({
     value,
     onChange,
@@ -14,7 +31,9 @@ const DropdownFilter = ({
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close dropdown when clicking outside
+    /**
+     * Close dropdown when clicking outside
+     */
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -26,11 +45,19 @@ const DropdownFilter = ({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    /**
+     * Handle option selection
+     * @param {string} optionValue - The value of the selected option
+     */
     const handleSelect = (optionValue) => {
         onChange(optionValue);
         setIsOpen(false);
     };
 
+    /**
+     * Handle clearing the selection
+     * @param {Event} e - Click event
+     */
     const handleClear = (e) => {
         e.stopPropagation();
         onChange("");

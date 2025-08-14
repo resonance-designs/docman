@@ -1,13 +1,12 @@
 /*
- * @name My Profile Page
+ * @name MyProfilePage
  * @file /docman/frontend/src/pages/MyProfilePage.jsx
  * @page MyProfilePage
- * @description User profile management page for viewing and editing user information.
+ * @description User profile management page for updating personal information and preferences
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { UserIcon, SaveIcon, EyeIcon, EyeOffIcon, CameraIcon, TrashIcon } from "lucide-react";
@@ -35,6 +34,7 @@ const getUserId = (user) => {
 
 /**
  * User profile page component that allows users to view and edit their profile information
+ * @component
  * @returns {JSX.Element} The profile page component
  */
 const MyProfilePage = () => {
@@ -666,14 +666,14 @@ const MyProfilePage = () => {
 
                         {/* View My Profile Button - Only for self-editing */}
                         {!isEditingOther && currentUser && (
-                            <Link
-                                to={`/user/${getUserId(currentUser)}`}
-                                className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
-                            >
-                                <EyeIcon size={16} />
-                                View My Profile
-                            </Link>
-                        )}
+    <Link
+        to={`/user/${getUserId(currentUser)}`}
+        className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
+    >
+        <EyeIcon size={16} />
+        View My Profile
+    </Link>
+)}
                     </div>
 
                     {/* Profile Form */}

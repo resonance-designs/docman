@@ -4,7 +4,7 @@
  * @component DocTable
  * @description Component for displaying a document in a table row with actions.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
 

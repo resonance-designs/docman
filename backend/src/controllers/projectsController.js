@@ -1,13 +1,8 @@
 /*
- * @name Projects Controller
- * @file /docman/backend/src/controllers/projectsController.js
- * @module projectsController
- * @description Controller functions for project management including viewing, creating, updating, and deleting projects, as well as collaborator and document management.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import Project from "../models/Project.js";
 import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";

@@ -1,5 +1,25 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import mongoose from 'mongoose';
 
+/**
+ * Establish connection to MongoDB database
+ * Supports both local MongoDB instances and MongoDB Atlas cloud service
+ * Connection method is determined by the ATLAS environment variable
+ * @async
+ * @function connectDB
+ * @returns {Promise<void>} Promise that resolves when connection is established
+ * @throws {Error} Throws error if ATLAS environment variable is invalid or connection fails
+ * @example
+ * // For local MongoDB (ATLAS=no)
+ * // Requires: MONGO_USER, MONGO_PASSWORD, MONGO_HOST, MONGO_PORT, MONGO_DB, MONGO_AUTH_SOURCE
+ *
+ * // For MongoDB Atlas (ATLAS=yes)
+ * // Requires: MONGO_ATLAS_URI
+ */
 export const connectDB = async () => {
     try {
         if (process.env.ATLAS === 'no') {

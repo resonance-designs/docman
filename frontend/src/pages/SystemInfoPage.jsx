@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useState } from "react";
 import { ServerIcon, DatabaseIcon, MonitorIcon, ShieldIcon } from "lucide-react";
 import toast from "react-hot-toast";

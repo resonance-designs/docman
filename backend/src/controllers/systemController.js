@@ -1,13 +1,8 @@
 /*
- * @name System Controller
- * @file /docman/backend/src/controllers/systemController.js
- * @module systemController
- * @description Controller functions for system information and health monitoring.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import os from 'os';
 import mongoose from 'mongoose';
 import User from '../models/User.js';

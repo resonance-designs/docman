@@ -1,9 +1,22 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState } from "react";
 import { XIcon, MailIcon } from "lucide-react";
 import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 
+/**
+ * Modal component for inviting members to a team
+ * @param {Object} props - Component properties
+ * @param {string} props.teamId - ID of the team to invite member to
+ * @param {Function} props.onClose - Function called when modal should be closed
+ * @param {Function} props.onMemberInvited - Function called when member is successfully invited
+ * @returns {JSX.Element} The invite member modal component
+ */
 const InviteMemberModal = ({ teamId, onClose, onMemberInvited }) => {
     const [formData, setFormData] = useState({
         email: "",
@@ -12,13 +25,17 @@ const InviteMemberModal = ({ teamId, onClose, onMemberInvited }) => {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
+    /**
+     * Handle form input changes and clear related errors
+     * @param {Event} e - Input change event
+     */
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
         }));
-        
+
         // Clear error when user starts typing
         if (errors[name]) {
             setErrors(prev => ({
@@ -28,9 +45,13 @@ const InviteMemberModal = ({ teamId, onClose, onMemberInvited }) => {
         }
     };
 
+    /**
+     * Validate form data and set errors
+     * @returns {boolean} True if form is valid
+     */
     const validateForm = () => {
         const newErrors = {};
-        
+
         if (!formData.email.trim()) {
             newErrors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {

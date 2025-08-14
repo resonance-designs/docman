@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 // ResetPasswordForm.jsx
 import { useState } from "react";
 import PropTypes from "prop-types";

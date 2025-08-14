@@ -1,13 +1,12 @@
 /*
- * @name Documents Controller
+ * @name docsController
  * @file /docman/backend/src/controllers/docsController.js
- * @module docsController
- * @description Controller functions for document management including viewing, creating, updating, and deleting documents, as well as versioning and file management.
+ * @controller docsController
+ * @description Document management controller for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
 import User from "../models/User.js";

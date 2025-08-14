@@ -1,13 +1,8 @@
 /*
- * @name Users Routes
- * @file /docman/backend/src/routes/usersRoutes.js
- * @module usersRoutes
- * @description Routes for user management including viewing, updating, and deleting users, as well as profile picture and background image management.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
@@ -15,6 +10,12 @@ import uploadMid from "../middleware/uploadMid.js";
 import { getAllUsers, getUserById, updateUser, deleteUser } from "../controllers/usersController.js";
 import { uploadProfilePicture, deleteProfilePicture, uploadBackgroundImage, deleteBackgroundImage } from "../controllers/profilePictureController.js";
 
+/**
+ * Express router for user management endpoints
+ * Handles user CRUD operations, profile pictures, and background images
+ * All routes require authentication and appropriate role permissions
+ * @type {express.Router}
+ */
 const router = express.Router();
 
 // GET /api/users - Get all users (viewers, editors, and admins can view users)

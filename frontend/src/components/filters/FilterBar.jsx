@@ -1,3 +1,12 @@
+/*
+ * @name FilterBar
+ * @file /docman/frontend/src/components/filters/FilterBar.jsx
+ * @component FilterBar
+ * @description Comprehensive filter bar with search, dropdown filters, date range, and clear all functionality
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { FilterIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import PropTypes from "prop-types";
@@ -5,7 +14,19 @@ import SearchInput from "./SearchInput";
 import DropdownFilter from "./DropdownFilter";
 import DateRangeFilter from "./DateRangeFilter";
 
-const FilterBar = ({ 
+/**
+ * Comprehensive filter bar component with search, dropdown filters, and date range
+ * @param {Object} props - Component properties
+ * @param {string} props.searchValue - Current search value
+ * @param {Function} props.onSearchChange - Function called when search value changes
+ * @param {Array} [props.filters=[]] - Array of filter configurations for dropdown filters
+ * @param {Object} [props.dateRange] - Date range object with startDate and endDate
+ * @param {Function} [props.onDateRangeChange] - Function called when date range changes
+ * @param {Function} [props.onClearAll] - Optional function called when clear all is clicked
+ * @param {string} [props.className=""] - Additional CSS classes to apply
+ * @returns {JSX.Element} The filter bar component
+ */
+const FilterBar = ({
     searchValue,
     onSearchChange,
     filters = [],
@@ -16,12 +37,19 @@ const FilterBar = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
+    /**
+     * Check if any filters are currently active
+     * @returns {boolean} True if any filters have values
+     */
     const hasActiveFilters = () => {
         if (searchValue) return true;
         if (dateRange && (dateRange.startDate || dateRange.endDate)) return true;
         return filters.some(filter => filter.value);
     };
 
+    /**
+     * Clear all active filters
+     */
     const handleClearAll = () => {
         onSearchChange("");
         if (onDateRangeChange) {

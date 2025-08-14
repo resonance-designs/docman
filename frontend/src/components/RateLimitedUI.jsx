@@ -1,5 +1,14 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { ZapIcon } from "lucide-react";
 
+/**
+ * Component displayed when rate limit is reached, informing users to wait before making more requests
+ * @returns {JSX.Element} The rate limited UI component
+ */
 const RateLimitedUI = () => {
     return (
         <div className="max-w-6xl mx-auto px-4 py-8">

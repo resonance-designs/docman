@@ -1,13 +1,12 @@
 /*
- * @name Register User Page
+ * @name RegUserPage
  * @file /docman/frontend/src/pages/RegUserPage.jsx
  * @page RegUserPage
- * @description Page for registering new users with role selection.
+ * @description User registration page with form validation and account creation functionality
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeftIcon, UserPlus } from 'lucide-react';

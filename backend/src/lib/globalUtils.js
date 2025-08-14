@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 // backend/src/lib/globalUtils.js
 // Universal helper and debugging functions for backend
 

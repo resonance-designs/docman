@@ -1,14 +1,12 @@
-/* eslint-disable no-unused-vars */
 /*
- * @name Create Document Page
+ * @name CreateDocPage
  * @file /docman/frontend/src/pages/CreateDocPage.jsx
  * @page CreateDocPage
- * @description Page for creating new documents with file upload and metadata.
+ * @description Document creation page with form for uploading files, setting metadata, assigning stakeholders and owners
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeftIcon, FilePlus2, X } from "lucide-react";

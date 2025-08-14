@@ -1,3 +1,12 @@
+/*
+ * @name ViewDocPage
+ * @file /docman/frontend/src/pages/ViewDocPage.jsx
+ * @page ViewDocPage
+ * @description Document detail page displaying document information, version history, file downloads, and review management
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon } from "lucide-react";

@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 // backend/src/routes/categoriesRoutes.js
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";

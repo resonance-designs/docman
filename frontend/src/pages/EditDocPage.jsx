@@ -1,4 +1,12 @@
-/* eslint-disable no-unused-vars */
+/*
+ * @name EditDocPage
+ * @file /docman/frontend/src/pages/EditDocPage.jsx
+ * @page EditDocPage
+ * @description Document editing page with form validation for updating document metadata, stakeholders, and file versions
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeftIcon, X } from "lucide-react";

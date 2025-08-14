@@ -1,13 +1,8 @@
 /*
- * @name Teams Controller
- * @file /docman/backend/src/controllers/teamsController.js
- * @module teamsController
- * @description Controller functions for team management including viewing, creating, updating, and deleting teams, as well as member management and invitations.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import Team from "../models/Team.js";
 import User from "../models/User.js";
 import crypto from "crypto";

@@ -1,13 +1,8 @@
 /*
- * @name Analytics Controller
- * @file /docman/backend/src/controllers/analyticsController.js
- * @module analyticsController
- * @description Controller functions for analytics data including document statistics, user activity, and review status analysis.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
 import Category from "../models/Category.js";

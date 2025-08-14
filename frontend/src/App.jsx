@@ -1,13 +1,8 @@
 /*
- * @name DocMan Frontend Application
- * @file /docman/frontend/src/App.jsx
- * @module App
- * @description Main entry point for the DocMan frontend application.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import { Route, Routes } from "react-router";
 import { useState, useEffect } from "react";
 import HomePage from "./pages/HomePage";

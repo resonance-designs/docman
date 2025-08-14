@@ -1,13 +1,12 @@
 /*
- * @name Authentication Controller
+ * @name authController
  * @file /docman/backend/src/controllers/authController.js
- * @module authController
- * @description Controller functions for authentication-related operations including registration, login, password reset, and token management.
+ * @controller authController
+ * @description Authentication controller handling user registration, login, logout, and password reset functionality
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";

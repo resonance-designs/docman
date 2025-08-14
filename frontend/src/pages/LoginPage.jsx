@@ -1,11 +1,10 @@
-/* eslint-disable no-unused-vars */
 /*
  * @name Login Page
  * @file /docman/frontend/src/pages/LoginPage.jsx
  * @page LoginPage
  * @description Page for user authentication and login.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
 

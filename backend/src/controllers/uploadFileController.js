@@ -1,13 +1,8 @@
 /*
- * @name Upload File Controller
- * @file /docman/backend/src/controllers/uploadFileController.js
- * @module uploadFileController
- * @description Controller functions for file upload management including versioned file uploads and document version history updates.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import File from "../models/File.js";  // Your file schema/model
 import Doc from "../models/Doc.js";    // Your document schema/model
 import path from "path";

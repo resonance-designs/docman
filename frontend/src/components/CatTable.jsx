@@ -2,9 +2,9 @@
  * @name Category Table Component
  * @file /docman/frontend/src/components/CatTable.jsx
  * @component CatTable
- * @description Component for displaying a category in a table row with actions.
+ * @description Category table component for displaying and managing document categories
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
 

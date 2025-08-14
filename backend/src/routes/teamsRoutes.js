@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 // backend/src/routes/teamsRoutes.js
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
@@ -15,6 +20,12 @@ import {
     updateMemberRole
 } from "../controllers/teamsController.js";
 
+/**
+ * Express router for team management endpoints
+ * Handles team CRUD operations, member management, and invitation workflows
+ * All routes require authentication with role-based access control
+ * @type {express.Router}
+ */
 const router = express.Router();
 
 // Get user's teams (editors and admins can create teams)

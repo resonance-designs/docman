@@ -1,3 +1,12 @@
+/*
+ * @name TeamCard
+ * @file /docman/frontend/src/components/teams/TeamCard.jsx
+ * @component TeamCard
+ * @description Team card component displaying team info, member count, project count, and management actions
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState } from "react";
 import { Link } from "react-router";
 import { UsersIcon, FolderIcon, MoreVerticalIcon, EditIcon, TrashIcon, UserPlusIcon } from "lucide-react";
@@ -5,10 +14,20 @@ import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 
+/**
+ * Team card component for displaying team information with actions
+ * @param {Object} props - Component properties
+ * @param {Object} props.team - Team object containing team data
+ * @param {Function} props.onTeamDeleted - Function called when team is deleted
+ * @returns {JSX.Element} The team card component
+ */
 const TeamCard = ({ team, onTeamDeleted }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Handle team deletion with confirmation
+     */
     const handleDeleteTeam = async () => {
         if (!window.confirm(`Are you sure you want to delete "${team.name}"? This action cannot be undone.`)) {
             return;

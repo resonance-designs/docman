@@ -1,13 +1,12 @@
 /*
- * @name Authentication Routes
+ * @name authRoutes
  * @file /docman/backend/src/routes/authRoutes.js
- * @module authRoutes
- * @description Routes for authentication-related endpoints including registration, login, password reset, and token management.
+ * @routes authRoutes
+ * @description Authentication routes for user registration, login, logout, password reset, and token refresh
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import express from "express";
 import { register, login, forgotPassword, resetPassword, refreshToken, logout } from "../controllers/authController.js";
 import { limitLogin, limitRegister, limitPasswordReset } from "../middleware/authRateLimiter.js";

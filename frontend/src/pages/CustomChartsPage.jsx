@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState, useEffect } from "react";
 import { Bar, Line, Pie, Doughnut, Radar, PolarArea } from 'react-chartjs-2';
 import {

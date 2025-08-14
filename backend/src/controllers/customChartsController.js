@@ -1,13 +1,8 @@
 /*
- * @name Custom Charts Controller
- * @file /docman/backend/src/controllers/customChartsController.js
- * @module customChartsController
- * @description Controller functions for custom chart management including viewing, creating, updating, and deleting custom charts, as well as data retrieval for visualization.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import CustomChart from "../models/CustomChart.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";

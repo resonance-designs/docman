@@ -1,14 +1,12 @@
 /*
- * @name Home Page
+ * @name HomePage
  * @file /docman/frontend/src/pages/HomePage.jsx
  * @page HomePage
- * @description The initial and main starting point of the app.
+ * @description Main dashboard page displaying document overview, recent documents, and quick access to key features
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import RateLimitedUI from "../components/RateLimitedUI";
 import api from "../lib/axios";

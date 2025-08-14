@@ -1,13 +1,8 @@
 /*
- * @name Profile Picture Controller
- * @file /docman/backend/src/controllers/profilePictureController.js
- * @module profilePictureController
- * @description Controller functions for profile picture and background image management including uploading, validation, and deletion.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import User from "../models/User.js";
 import fs from "fs";
 import path from "path";

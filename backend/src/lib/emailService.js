@@ -1,3 +1,8 @@
+/*
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import dotenv from "dotenv";
 

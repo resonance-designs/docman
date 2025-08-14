@@ -1,13 +1,8 @@
 /*
- * @name External Contacts Controller
- * @file /docman/backend/src/controllers/externalContactsController.js
- * @module externalContactsController
- * @description Controller functions for external contact management including viewing, creating, updating, and deleting external contacts and contact types.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import ExternalContact from "../models/ExternalContact.js";
 import ExternalContactType from "../models/ExternalContactType.js";
 import Doc from "../models/Doc.js";

@@ -1,13 +1,8 @@
 /*
- * @name Notifications Controller
- * @file /docman/backend/src/controllers/notificationsController.js
- * @module notificationsController
- * @description Controller functions for notification management including fetching, marking as read, and deleting notifications, as well as sending various types of notifications.
  * @author Richard Bakos
- * @version 1.1.8
+ * @version 1.1.10
  * @license UNLICENSED
  */
-
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import Team from "../models/Team.js";

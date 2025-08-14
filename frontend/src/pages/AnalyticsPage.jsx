@@ -1,3 +1,12 @@
+/*
+ * @name AnalyticsPage
+ * @file /docman/frontend/src/pages/AnalyticsPage.jsx
+ * @page AnalyticsPage
+ * @description Analytics dashboard with charts and metrics for document management insights and reporting
+ * @author Richard Bakos
+ * @version 1.1.10
+ * @license UNLICENSED
+ */
 import { useState, useEffect } from "react";
 import {
     Chart as ChartJS,
