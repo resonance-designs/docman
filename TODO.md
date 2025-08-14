@@ -45,16 +45,23 @@ A list of features I plan on implementing into the application.
 8. ~~Internal notification and messaging system~~
    1.  ~~Be able to invite members already in the system to teams through it's internal messaging and notification system.~~
    2.  ~~User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.~~
-9.  Universal debugging function(s)
-10. Add unit tests, update any existing unit tests
-11. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
-12. Cleanup and compartmentalize the code as much as possible
-13. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-14. Create a fork with local storage for data and bundle into an Electron app for desktop use
-15. Create another fork with docker and kubernetes for cloud use
-16. Create another fork with a mobile app for iOS and Android
-17. Create another fork for the purpose of refactoring into a Recipes MERN app
-18. Add comments
+9. ~~Universal helper and debugging functions for the frontend and backend~~
+ ~~1.  Should be named globalUtils.js~~
+ ~~1.  Can be used anywhere~~
+ ~~2.  Are made available across the entire project~~
+ ~~3.  Can be used for debugging, logging, handling simple yet redundant tasks, etc...~~
+ ~~4.  Can turn on or off the debugging with a debug flag~~
+ ~~5.  Should be able to log to the console, a file, or a database~~
+ ~~6.  Should be able to log errors, warnings, info, debug, etc...~~
+10. Add backend unit tests for all endpoints in __tests__ folder, update any existing unit tests
+11. Cleanup and compartmentalize the code as much as possible
+12. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+13. Add comments
+14. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
+15. Create a fork with local storage for data and bundle into an Electron app for desktop use
+16. Create another fork with docker and kubernetes for cloud use
+17. Create another fork with a mobile app for iOS and Android
+18. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 
