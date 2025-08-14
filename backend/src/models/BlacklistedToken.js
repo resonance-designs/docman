@@ -8,8 +8,7 @@ const blacklistedTokenSchema = new mongoose.Schema({
     },
     expiresAt: {
         type: Date,
-        required: true,
-        index: { expires: 0 } // TTL index to automatically remove expired tokens
+        required: true
     }
 }, {
     timestamps: true
