@@ -102,6 +102,10 @@ const EditDocPage = () => {
     // State for review assignments
     const [reviewAssignees, setReviewAssignees] = useState([]);
     const [reviewDueDate, setReviewDueDate] = useState(null);
+    
+    // State for version upload
+    const [versionLabel, setVersionLabel] = useState("");
+    const [changelog, setChangelog] = useState("");
 
     const getFullName = (user) => `${user.firstname || ""} ${user.lastname || ""}`.trim();
 
@@ -201,6 +205,33 @@ const EditDocPage = () => {
         setValue('reviewAssignees', next);
     };
 
+// Handle version upload
+    const handleVersionUpload = async (file) => {
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("versionLabel", versionLabel || "");
+            formData.append("changelog", changelog || "");
+            
+            const res = await api.post(`/docs/${id}/upload`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+            
+            toast.success("New version uploaded successfully");
+            
+            // Reset version fields
+            setVersionLabel("");
+            setChangelog("");
+            
+            // Refresh the document data to show the new version
+            // This would typically involve refetching the document or updating state
+        } catch (err) {
+            console.error("Version upload failed", err);
+            toast.error(err?.response?.data?.message || "Version upload failed");
+        }
+    };
     const handleReviewDueDateChange = (date) => {
         setReviewDueDate(date);
         setValue('reviewDueDate', date);
@@ -209,6 +240,10 @@ const EditDocPage = () => {
     const onSubmit = async (data) => {
         setSaving(true);
         try {
+            // Handle version upload first if there's a version file
+            // Note: In a real implementation, you might want to handle this separately
+            // from the main document update
+            
             const formData = new FormData();
 
             // Minimal send: only changed fields (nice-to-have)
@@ -544,6 +579,62 @@ const EditDocPage = () => {
                                     {errors.file && <p className="text-red-500 mt-1">{errors.file.message}</p>}
                                 </div>
 
+                                {/* Optional File Replace */}
+                                <div className="form-control mb-4">
+                                    <label className="label" htmlFor="file">Replace File (optional)</label>
+                                    <input id="file" type="file" {...register("file")} className="file-input" />
+                                    {errors.file && <p className="text-red-500 mt-1">{errors.file.message}</p>}
+                                </div>
+                                
+                                {/* Version Upload Section */}
+                                <div className="form-control mb-4">
+                                    <label className="label font-semibold">Upload New Version</label>
+                                    <p className="text-sm text-gray-600 mb-2">Upload a new version of this document</p>
+                                    
+                                    {/* Version Label */}
+                                    <div className="form-control mb-4">
+                                        <label className="label" htmlFor="versionLabel">Version Label (optional)</label>
+                                        <input
+                                            id="versionLabel"
+                                            type="text"
+                                            value={versionLabel}
+                                            onChange={(e) => setVersionLabel(e.target.value)}
+                                            className="input input-bordered"
+                                            placeholder="e.g., Version 2.1, Updated Requirements, etc."
+                                        />
+                                    </div>
+                                    
+                                    {/* Changelog */}
+                                    <div className="form-control mb-4">
+                                        <label className="label" htmlFor="changelog">Changelog (optional)</label>
+                                        <textarea
+                                            id="changelog"
+                                            value={changelog}
+                                            onChange={(e) => setChangelog(e.target.value)}
+                                            className="textarea textarea-bordered"
+                                            rows="3"
+                                            placeholder="Describe what changes were made in this version..."
+                                        />
+                                    </div>
+                                    
+                                    {/* Version File Upload */}
+                                    <div className="form-control mb-4">
+                                        <label className="label" htmlFor="versionFile">Upload New Version File</label>
+                                        <input
+                                            id="versionFile"
+                                            type="file"
+                                            onChange={(e) => {
+                                                // Handle version file upload separately
+                                                if (e.target.files && e.target.files.length > 0) {
+                                                    handleVersionUpload(e.target.files[0]);
+                                                }
+                                            }}
+                                            className="file-input"
+                                        />
+                                        <p className="text-sm text-gray-500 mt-1">Upload a new version of the document file</p>
+                                    </div>
+                                </div>
+                                
                                 {/* Submit */}
                                 <div className="form-control mt-4">
                                     <button

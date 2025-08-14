@@ -6,6 +6,7 @@ export async function uploadFileVersion(req, res) {
   try {
     const docId = req.params.id;
     const file = req.file;
+    const { versionLabel, changelog } = req.body;
 
     if (!file) {
       return res.status(400).json({ message: "No file uploaded" });
@@ -25,12 +26,34 @@ export async function uploadFileVersion(req, res) {
       mimetype: file.mimetype,
       size: file.size,
       documentId: doc._id, // Link to parent document
+      versionLabel: versionLabel || undefined, // Use provided label or let model set default
       uploadedAt: new Date(),
+      uploadedBy: req.user?.id || null,
+      changelog: changelog || ""
     });
 
     await newFile.save();
 
-    res.status(201).json({ message: "File version uploaded successfully", file: newFile });
+    // Update document's current version and version history
+    doc.currentVersion = newFile.version;
+    
+    // Add to version history
+    doc.versionHistory = doc.versionHistory || [];
+    doc.versionHistory.push({
+      version: newFile.version,
+      label: newFile.versionLabel,
+      uploadedAt: newFile.uploadedAt,
+      uploadedBy: newFile.uploadedBy,
+      changelog: newFile.changelog
+    });
+    
+    await doc.save();
+
+    res.status(201).json({
+      message: "File version uploaded successfully",
+      file: newFile,
+      document: doc
+    });
   } catch (error) {
     console.error("Error uploading file version:", error);
     res.status(500).json({ message: "Internal Server Error" });

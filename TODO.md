@@ -32,16 +32,16 @@ A list of features I plan on implementing into the application.
    3. Users should be able to download previous versions of the document
    4. Users should be able to compare previous versions of the document
    5. Users should be able to view the change log for the document
-5. Create a theme switcher
-6. Create a sidebar menu
-7. Delineate between when the entry in the system has been updated (review date, stakeholders, etc) and when the actual document has been updated
-8. Notification System
-9.  IT Contacts in CreateDocPage
-10. Universal debugging function(s)
-11. Add unit tests, update any existing unit tests
-12. Create a fork with local storage for data and bundle into an Electron app for desktop use
-13. Create internal messaging system
-14. Be able to invite members already in the system to teams.
+5. On the ViewDocPage, add a download button to download a calendar event for the data that a document is up for review
+6. Create a theme switcher
+7. Internal notification and messaging system
+8.  Be able to invite members already in the system to teams through it's internal messaging and notification system.
+9.  User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.
+10. IT Contacts in CreateDocPage
+11. Universal debugging function(s)
+12. Add unit tests, update any existing unit tests
+13. Create a fork with local storage for data and bundle into an Electron app for desktop use
+14. Create internal messaging system
 15. Add comments
 
 ## Authentication System Suggestions & Improvements
