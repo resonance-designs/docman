@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon } from "lucide-react";
+import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { formatDate, decodeJWT } from "../lib/utils";
@@ -11,6 +11,7 @@ const ViewDocPage = () => {
 
     const [doc, setDoc] = useState(null);
     const [files, setFiles] = useState([]);
+    const [versionHistory, setVersionHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState(null);
 
@@ -55,6 +56,15 @@ const ViewDocPage = () => {
                     console.log("Files endpoint not available:", fileError);
                     setFiles([]);
                 }
+                
+                // Fetch version history
+                try {
+                    const historyRes = await api.get(`/docs/${id}/history`);
+                    setVersionHistory(historyRes.data || []);
+                } catch (historyError) {
+                    console.log("Version history endpoint not available:", historyError);
+                    setVersionHistory([]);
+                }
             } catch (err) {
                 console.error("Failed to load document", err);
                 toast.error(err?.response?.data?.message || "Failed to load document");
@@ -68,6 +78,20 @@ const ViewDocPage = () => {
             fetchDocument();
         }
     }, [id, navigate]);
+
+    // Function to compare versions
+    const compareVersions = async (version1, version2) => {
+        try {
+            const res = await api.get(`/docs/${id}/compare?version1=${version1}&version2=${version2}`);
+            // For now, we'll just show a toast with basic comparison info
+            // In a more advanced implementation, we might show a detailed diff
+            toast.success(`Comparing version ${version1} with version ${version2}. Size difference: ${res.data.differences.sizeDifference} bytes`);
+        } catch (err) {
+            console.error("Failed to compare versions", err);
+            toast.error("Failed to compare versions");
+        }
+    };
+
 
     // Check if user can edit (editor or admin)
     const canEdit = userRole === "editor" || userRole === "admin";
@@ -239,6 +263,62 @@ const ViewDocPage = () => {
                             )}
                         </div>
                     </div>
+                    
+                    {/* Version History Section */}
+                    {versionHistory.length > 0 && (
+                        <div className="card bg-base-100 shadow-lg mt-6">
+                            <div className="card-body">
+                                <h3 className="card-title text-xl mb-4">Version History</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="table table-zebra">
+                                        <thead>
+                                            <tr>
+                                                <th>Version</th>
+                                                <th>Label</th>
+                                                <th>Uploaded</th>
+                                                <th>By</th>
+                                                <th>Changes</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {versionHistory.map((version) => (
+                                                <tr key={version.version}>
+                                                    <td>{version.version}</td>
+                                                    <td>{version.label}</td>
+                                                    <td>{formatDate(new Date(version.uploadedAt))}</td>
+                                                    <td>{version.uploadedBy ? getFullName(version.uploadedBy) : "Unknown"}</td>
+                                                    <td>{version.changelog || "No changes documented"}</td>
+                                                    <td>
+                                                        <div className="flex gap-2">
+                                                            <a
+                                                                href={`/uploads/${files.find(f => f.version === version.version)?.filename}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="btn btn-xs bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                                                disabled={!files.find(f => f.version === version.version)}
+                                                            >
+                                                                <DownloadIcon size={12} />
+                                                                Download
+                                                            </a>
+                                                            {version.version > 1 && (
+                                                                <button
+                                                                    className="btn btn-xs btn-outline"
+                                                                    onClick={() => compareVersions(version.version - 1, version.version)}
+                                                                >
+                                                                    Compare
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

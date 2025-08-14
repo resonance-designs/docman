@@ -185,7 +185,7 @@ export async function createDoc(req, res) {
 
         await newDoc.save();
 
-        // If a file was uploaded, save the file metadata
+        // If a file was uploaded, save the file metadata and initialize version history
         if (file) {
             const newFile = new File({
                 filename: file.filename,
@@ -195,8 +195,20 @@ export async function createDoc(req, res) {
                 size: file.size,
                 documentId: newDoc._id,
                 uploadedAt: new Date(),
+                uploadedBy: req.user?.id || null,
             });
             await newFile.save();
+            
+            // Initialize version history
+            newDoc.currentVersion = newFile.version;
+            newDoc.versionHistory = [{
+                version: newFile.version,
+                label: newFile.versionLabel,
+                uploadedAt: newFile.uploadedAt,
+                uploadedBy: newFile.uploadedBy,
+                changelog: newFile.changelog
+            }];
+            await newDoc.save();
         }
 
         // Populate the response
@@ -348,6 +360,97 @@ export async function markDocAsReviewed(req, res) {
         });
     } catch (error) {
         console.error("Error marking document as reviewed:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+export async function getDocVersion(req, res) {
+    try {
+        const { id, version } = req.params;
+        
+        // Find the specific version of the file
+        const file = await File.findOne({ 
+            documentId: id, 
+            version: parseInt(version) 
+        });
+        
+        if (!file) {
+            return res.status(404).json({ message: "Document version not found." });
+        }
+        
+        res.status(200).json(file);
+    } catch (error) {
+        console.error("Error fetching document version:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
+export async function getVersionHistory(req, res) {
+    try {
+        const { id } = req.params;
+        
+        // Get the document to retrieve its version history
+        const doc = await Doc.findById(id);
+        if (!doc) {
+            return res.status(404).json({ message: "Document not found." });
+        }
+        
+        // Sort version history by version number
+        const sortedHistory = (doc.versionHistory || []).sort((a, b) => b.version - a.version);
+        
+        res.status(200).json(sortedHistory);
+    } catch (error) {
+        console.error("Error fetching version history:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
+export async function compareDocVersions(req, res) {
+    try {
+        const { id } = req.params;
+        const { version1, version2 } = req.query;
+        
+        if (!version1 || !version2) {
+            return res.status(400).json({ message: "Both version1 and version2 query parameters are required." });
+        }
+        
+        // Find both versions of the file
+        const file1 = await File.findOne({ 
+            documentId: id, 
+            version: parseInt(version1) 
+        });
+        
+        const file2 = await File.findOne({ 
+            documentId: id, 
+            version: parseInt(version2) 
+        });
+        
+        if (!file1 || !file2) {
+            return res.status(404).json({ message: "One or both document versions not found." });
+        }
+        
+        // Get version history entries for context
+        const doc = await Doc.findById(id);
+        const history1 = doc.versionHistory.find(v => v.version === parseInt(version1));
+        const history2 = doc.versionHistory.find(v => v.version === parseInt(version2));
+        
+        res.status(200).json({
+            version1: {
+                file: file1,
+                history: history1
+            },
+            version2: {
+                file: file2,
+                history: history2
+            },
+            differences: {
+                // For now, we'll just provide file metadata differences
+                // In a more advanced implementation, we might do actual content diffing
+                sizeDifference: file2.size - file1.size,
+                dateDifference: file2.uploadedAt - file1.uploadedAt
+            }
+        });
+    } catch (error) {
+        console.error("Error comparing document versions:", error);
         res.status(500).send("Internal Server Error");
     }
 }

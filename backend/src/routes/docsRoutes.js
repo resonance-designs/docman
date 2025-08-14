@@ -10,6 +10,9 @@ import {
     deleteDoc,
     getDocFiles,
     markDocAsReviewed,
+    getDocVersion,
+    getVersionHistory,
+    compareDocVersions,
 } from "../controllers/docsController.js";
 import { uploadFileVersion } from "../controllers/uploadFileController.js";
 
@@ -19,6 +22,9 @@ const router = express.Router();
 router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAllDocs);
 router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocById);
 router.get("/:id/files", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocFiles);
+router.get("/:id/version/:version", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocVersion);
+router.get("/:id/history", verifyAccessToken, requireRole("viewer", "editor", "admin"), getVersionHistory);
+router.get("/:id/compare", verifyAccessToken, requireRole("viewer", "editor", "admin"), compareDocVersions);
 
 // Restricted: Only editors & admins can create/upload
 router.post("/", verifyAccessToken, requireRole("editor", "admin"), uploadMid.single("file"), createDoc);

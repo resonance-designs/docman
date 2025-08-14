@@ -54,7 +54,21 @@ const docSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: false
-        }
+        },
+        currentVersion: {
+            type: Number,
+            default: 1
+        },
+        versionHistory: [{
+            version: Number,
+            label: String,
+            uploadedAt: Date,
+            uploadedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User'
+            },
+            changelog: String
+        }]
     },
     { timestamps: true } // createdAt and updatedAt fields
 );
