@@ -4,7 +4,7 @@
  * @module server
  * @description Main entry point for the DocMan backend application.
  * @author Richard Bakos
- * @version 1.1.2
+ * @version 1.1.5
  * @license UNLICENSED
  */
 
@@ -35,6 +35,7 @@ import projectsRoutes from "./routes/projectsRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import customChartsRoutes from "./routes/customChartsRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import externalContactsRoutes from "./routes/externalContactsRoutes.js";
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -80,6 +81,7 @@ app.use("/api/system", systemRoutes); // Declare system endpoints
 app.use("/api/analytics", analyticsRoutes); // Declare analytics endpoints
 app.use("/api/custom-charts", customChartsRoutes); // Declare custom charts endpoints
 app.use("/api/reviews", reviewRoutes); // Declare review endpoints
+app.use("/api/external-contacts", externalContactsRoutes); // Declare external contacts endpoints
 app.use("/upload", uploadRoutes); // Declare uploads endpoints
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
 // Static file serving for production

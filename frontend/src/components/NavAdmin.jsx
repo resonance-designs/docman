@@ -43,6 +43,13 @@ const NavAdmin = ({ role }) => {
                     <BarChartIcon className="size-4" />
                     <span>Custom Charts</span>
                 </Link>
+                <Link
+                    to="/manage-external-contact-types"
+                    className="btn btn-sm bg-slate-950 text-resdes-orange hover:bg-slate-800 transition-colors duration-300"
+                >
+                    <UserPlus className="size-4" />
+                    <span>Manage External Contacts</span>
+                </Link>
 
             </div>
         </div>

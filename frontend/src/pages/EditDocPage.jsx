@@ -103,24 +103,73 @@ const EditDocPage = () => {
     const [reviewAssignees, setReviewAssignees] = useState([]);
     const [reviewDueDate, setReviewDueDate] = useState(null);
     
+    // State for external contacts
+    const [externalContactTypes, setExternalContactTypes] = useState([]);
+    const [selectedExternalContacts, setSelectedExternalContacts] = useState([]);
+    const [newExternalContact, setNewExternalContact] = useState({
+        name: "",
+        email: "",
+        phoneNumber: "",
+        type: ""
+    });
+    
     // State for version upload
     const [versionLabel, setVersionLabel] = useState("");
     const [changelog, setChangelog] = useState("");
 
     const getFullName = (user) => `${user.firstname || ""} ${user.lastname || ""}`.trim();
 
+    // Handle external contact input changes
+    const handleExternalContactChange = (field, value) => {
+        setNewExternalContact(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    };
+
+    // Handle adding external contact
+    const handleAddExternalContact = () => {
+        // Basic validation
+        if (!newExternalContact.name || !newExternalContact.email || !newExternalContact.type) {
+            toast.error("Name, email, and type are required for external contacts");
+            return;
+        }
+
+        // Add to selected contacts
+        const contactToAdd = {
+            ...newExternalContact,
+            id: Date.now() // Simple ID for frontend tracking
+        };
+        setSelectedExternalContacts(prev => [...prev, contactToAdd]);
+
+        // Reset form
+        setNewExternalContact({
+            name: "",
+            email: "",
+            phoneNumber: "",
+            type: ""
+        });
+    };
+
+    // Handle removing external contact
+    const handleRemoveExternalContact = (id) => {
+        setSelectedExternalContacts(prev => prev.filter(contact => contact.id !== id));
+    };
+
     // Initial load: doc + lists
     useEffect(() => {
         (async () => {
             try {
-                const [docRes, usersRes, catsRes] = await Promise.all([
+                const [docRes, usersRes, catsRes, typesRes] = await Promise.all([
                     api.get(`/docs/${id}`),
                     api.get("/users"),
                     api.get("/categories"),
+                    api.get("/external-contact-types"),
                 ]);
                 const doc = docRes.data;
                 setUsers(usersRes.data || []);
                 setCategories(catsRes.data || []);
+                setExternalContactTypes(typesRes.data || []);
 
                 // Debug: Log the structure of stakeholders and owners
                 console.log("Document stakeholders:", doc.stakeholders);
@@ -282,6 +331,11 @@ const EditDocPage = () => {
             // Optional file replace
             if (data.file && data.file.length) {
                 formData.append("file", data.file[0]);
+            }
+            
+            // Append external contacts as JSON string
+            if (selectedExternalContacts.length > 0) {
+                formData.append("externalContacts", JSON.stringify(selectedExternalContacts));
             }
 
             // Debug
@@ -570,6 +624,95 @@ const EditDocPage = () => {
                                             placeholder="Add any notes for the reviewers..."
                                         />
                                     </div>
+{/* External Contacts Section */}
+                                <div className="form-control mb-4">
+                                    <label className="label font-semibold">External Contacts</label>
+                                    <p className="text-sm text-gray-600 mb-2">Add external contacts associated with this document</p>
+                                    
+                                    {/* External Contact Form */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="label" htmlFor="externalContactName">Name</label>
+                                            <input
+                                                id="externalContactName"
+                                                type="text"
+                                                className="input input-bordered w-full"
+                                                placeholder="Contact name"
+                                                value={newExternalContact.name}
+                                                onChange={(e) => handleExternalContactChange('name', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label" htmlFor="externalContactEmail">Email</label>
+                                            <input
+                                                id="externalContactEmail"
+                                                type="email"
+                                                className="input input-bordered w-full"
+                                                placeholder="Contact email"
+                                                value={newExternalContact.email}
+                                                onChange={(e) => handleExternalContactChange('email', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label" htmlFor="externalContactPhone">Phone Number</label>
+                                            <input
+                                                id="externalContactPhone"
+                                                type="text"
+                                                className="input input-bordered w-full"
+                                                placeholder="Contact phone number"
+                                                value={newExternalContact.phoneNumber}
+                                                onChange={(e) => handleExternalContactChange('phoneNumber', e.target.value)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label" htmlFor="externalContactType">Contact Type</label>
+                                            <select
+                                                id="externalContactType"
+                                                className="select select-bordered w-full"
+                                                value={newExternalContact.type}
+                                                onChange={(e) => handleExternalContactChange('type', e.target.value)}
+                                            >
+                                                <option value="">Select contact type</option>
+                                                {externalContactTypes.map((type) => (
+                                                    <option key={type._id} value={type._id}>
+                                                        {type.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm mb-4"
+                                        onClick={handleAddExternalContact}
+                                    >
+                                        Add External Contact
+                                    </button>
+                                    
+                                    {/* Selected External Contacts */}
+                                    <div className="mt-4">
+                                        <p className="text-sm text-gray-600 mb-2">Selected external contacts:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedExternalContacts.length > 0 ? (
+                                                selectedExternalContacts.map((contact) => (
+                                                    <div key={contact.id} className="badge badge-outline gap-2">
+                                                        {contact.name} ({contact.email})
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveExternalContact(contact.id)}
+                                                            className="btn btn-xs btn-circle btn-ghost"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-gray-500 text-sm">No external contacts selected</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                                 </div>
 
                                 {/* Optional File Replace */}

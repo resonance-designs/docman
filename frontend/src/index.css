@@ -2,3 +2,156 @@
 @tailwind components;
 @tailwind utilities;
 @plugin "daisyui";
+
+/* Theme Styles */
+
+/* Current Theme (default) */
+.current-theme {
+  --resdes-bg-primary: #ffffff;
+  --resdes-bg-secondary: #f3f4f6;
+  --resdes-text-primary: #1f2937;
+  --resdes-text-secondary: #4b5563;
+  --resdes-accent: #DF6D20;
+  --resdes-accent-hover: #c25e1c;
+  --resdes-border: #e5e7eb;
+  /* Uses default Tailwind/daisyUI styles */
+}
+
+/* Clean Business Theme */
+.clean-business-theme {
+  --resdes-bg-primary: #ffffff; /* White background */
+  --resdes-bg-secondary: #f8f9fa; /* Off-white */
+  --resdes-text-primary: #000000; /* Black text */
+  --resdes-text-secondary: #495057; /* Dark grey text */
+  --resdes-accent: #001f3f; /* Navy blue */
+  --resdes-accent-hover: #003366; /* Darker navy blue */
+  --resdes-border: #dee2e6;
+}
+
+.clean-business-theme body {
+  background-color: var(--resdes-bg-primary);
+  color: var(--resdes-text-primary);
+}
+
+/* Background gradients */
+.bg-gradient-bg {
+  background: radial-gradient(125% 125% at 50% 10%, #000 60%, #DF6D20 100%);
+}
+
+.clean-business-theme .bg-gradient-bg {
+  background: radial-gradient(125% 125% at 50% 10%, #f8f9fa 60%, #f8f9fa 100%);
+}
+
+.clean-business-theme .navbar {
+  background-color: white;
+  border-bottom: 1px solid var(--resdes-border);
+}
+
+.clean-business-theme .btn {
+  background-color: var(--resdes-accent);
+  color: white;
+  border: none;
+  border-radius: 0; /* Square buttons */
+}
+
+.clean-business-theme .btn:hover {
+  background-color: var(--resdes-accent-hover);
+}
+
+/* Make all elements square */
+.clean-business-theme *,
+.clean-business-theme *::before,
+.clean-business-theme *::after {
+  border-radius: 0 !important;
+}
+
+/* Ensure form elements are also square */
+.clean-business-theme input,
+.clean-business-theme textarea,
+.clean-business-theme select {
+  border-radius: 0;
+}
+
+/* Card styling */
+.clean-business-theme .card {
+  border-radius: 0;
+  border: 1px solid var(--resdes-border);
+}
+
+/* Admin menu styling */
+.clean-business-theme .bg-gradient-to-r {
+  background: #000000 !important; /* Black background for admin menu */
+}
+
+.clean-business-theme .text-slate-950 {
+  color: #ffffff !important; /* White text for admin menu */
+}
+
+/* Retro Gaming Theme */
+.retro-gaming-theme {
+  --resdes-bg-primary: #000000;
+  --resdes-bg-secondary: #1a1a1a;
+  --resdes-text-primary: #00ff00;
+  --resdes-text-secondary: #00cc00;
+  --resdes-accent: #ff00ff;
+  --resdes-accent-hover: #cc00cc;
+  --resdes-border: #00ff00;
+  --resdes-error: #ff0000;
+  font-family: 'Courier New', monospace;
+}
+
+.retro-gaming-theme body {
+  background-color: var(--resdes-bg-primary);
+  color: var(--resdes-text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.retro-gaming-theme .navbar {
+  background-color: var(--resdes-bg-secondary);
+  border-bottom: 2px solid var(--resdes-border);
+}
+
+.retro-gaming-theme .btn {
+  background-color: var(--resdes-accent);
+  color: white;
+  border: 2px solid var(--resdes-border);
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0 var(--resdes-text-primary);
+}
+
+.retro-gaming-theme .btn:hover {
+  background-color: var(--resdes-accent-hover);
+  box-shadow: 2px 2px 0 var(--resdes-text-secondary);
+}
+
+.retro-gaming-theme .card {
+  border: 2px solid var(--resdes-border);
+  background-color: var(--resdes-bg-secondary);
+  box-shadow: 4px 4px 0 var(--resdes-text-primary);
+}
+
+.retro-gaming-theme input,
+.retro-gaming-theme textarea,
+.retro-gaming-theme select {
+  background-color: var(--resdes-bg-secondary);
+  color: var(--resdes-text-primary);
+  border: 2px solid var(--resdes-border);
+  font-family: 'Courier New', monospace;
+}
+
+.retro-gaming-theme input:focus,
+.retro-gaming-theme textarea:focus,
+.retro-gaming-theme select:focus {
+  border-color: var(--resdes-accent);
+  box-shadow: 0 0 0 2px var(--resdes-accent);
+}
+
+.retro-gaming-theme a {
+  color: var(--resdes-accent);
+  text-decoration: underline;
+}
+
+.retro-gaming-theme a:hover {
+  color: var(--resdes-accent-hover);
+}

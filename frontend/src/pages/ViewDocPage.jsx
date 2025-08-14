@@ -91,6 +91,39 @@ const ViewDocPage = () => {
             toast.error("Failed to compare versions");
         }
     };
+// Function to download calendar event
+    const downloadCalendarEvent = (doc) => {
+        try {
+            // Create calendar event content
+            const event = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'BEGIN:VEVENT',
+                `UID:${doc._id}`,
+                `DTSTAMP:${new Date().toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `DTSTART:${new Date(doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `DTEND:${new Date(doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `SUMMARY:Review Document: ${doc.title}`,
+                `DESCRIPTION:Review document "${doc.title}" for category ${doc.category?.name || 'Uncategorized'}`,
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\n');
+
+            // Create blob and download
+            const blob = new Blob([event], { type: 'text/calendar;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `document-review-${doc._id}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Failed to generate calendar event", err);
+            toast.error("Failed to generate calendar event");
+        }
+    };
 
 
     // Check if user can edit (editor or admin)
@@ -173,6 +206,14 @@ const ViewDocPage = () => {
                                         {formatDate(new Date(doc.reviewDate))}
                                         {needsReview && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">OVERDUE</span>}
                                         </p>
+                                        <button
+                                            onClick={() => downloadCalendarEvent(doc)}
+                                            className="btn btn-xs mt-2"
+                                            title="Download calendar event for review date"
+                                        >
+                                            <CalendarIcon size={12} className="mr-1" />
+                                            Add to Calendar
+                                        </button>
                                     </div>
                                 </div>
 
@@ -226,6 +267,24 @@ const ViewDocPage = () => {
                                 </div>
                             )}
                         </div>
+                        
+                        {/* External Contacts */}
+                        {doc.externalContacts && doc.externalContacts.length > 0 && (
+                            <div className="mb-6">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <UsersIcon className="text-resdes-orange" size={20} />
+                                    <h3 className="text-lg font-semibold">External Contacts</h3>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {doc.externalContacts.map((contact, index) => (
+                                        <div key={index} className="badge badge-outline">
+                                            {contact.name} ({contact.email})
+                                            {contact.phoneNumber && ` - ${contact.phoneNumber}`}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Files Section */}

@@ -29,6 +29,8 @@ import NavAdmin from "./components/NavAdmin";
 import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
 import { decodeJWT } from "./lib/utils";
+import ManageExternalContactTypesPage from "./pages/ManageExternalContactTypesPage";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const App = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
@@ -78,201 +80,212 @@ const App = () => {
     }, []);
 
     return (
-        <div className="relative h-full w-full">
-            <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_60%,#DF6D20_100%)]" />
-            <Navbar />
-            {isAuthenticated && (
-                <div className="container mx-auto px-4 pt-4">
-                    <div className="max-w-screen-xl mx-auto mt-8">
-                        <NavAdmin role={userRole} />
+        <ThemeProvider>
+            <div className="relative h-full w-full">
+                <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 bg-gradient-bg" />
+                <Navbar />
+                {isAuthenticated && (
+                    <div className="container mx-auto px-4 pt-4">
+                        <div className="max-w-screen-xl mx-auto mt-8">
+                            <NavAdmin role={userRole} />
+                        </div>
                     </div>
-                </div>
-            )}
-            <Routes>
-                <Route path="/" element={<HomePage />} />
-                {/* Protected routes */}
-                {/* <Route
-                    path="/view"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ViewPage />
-                        </ProtectedRoute>
-                    }
-                /> */}
-                <Route
-                    path="/create"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <CreateDocPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/create-category"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <CreateCatPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/doc/:id"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ViewDocPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/edit/:id"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <EditDocPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/documents"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ViewDocsPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/categories"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ViewCatsPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/users"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ViewUsersPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/teams"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <TeamsPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/teams/:id"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <TeamDetailPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/teams/:id/edit"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <EditTeamPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                                    path="/projects"
-                                    element={
-                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                            <ProjectsPage />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/projects/create"
-                                    element={
-                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                            <CreateProjectPage />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                                    path="/projects/:id"
-                                                    element={
-                                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                                            <ProjectDetailPage />
-                                                        </ProtectedRoute>
-                                                    }
-                                                />
-                                                <Route
-                                                    path="/projects/:id/edit"
-                                                    element={
-                                                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                                                            <EditProjectPage />
-                                                        </ProtectedRoute>
-                                                    }
-                                                />
-                <Route
-                    path="/my-profile"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <MyProfilePage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/user/:userId"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <ViewUserPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/edit-user/:userId"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <MyProfilePage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/system-info"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <SystemInfoPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/analytics"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <AnalyticsPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/custom-charts"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <CustomChartsPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/register"
-                    element={
-                        <ProtectedRoute isAuthenticated={isAuthenticated}>
-                            <RegUserPage />
-                        </ProtectedRoute>
-                    }
-                />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/forgot" element={<ForgotPassPage />} />
-                <Route path="/reset" element={<ResetPassPage />} />
-            </Routes>
-            <Footer />
-        </div>
+                )}
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    {/* Protected routes */}
+                    {/* <Route
+                        path="/view"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewPage />
+                            </ProtectedRoute>
+                        }
+                    /> */}
+                    <Route
+                        path="/create"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <CreateDocPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/create-category"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <CreateCatPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/doc/:id"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewDocPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/edit/:id"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <EditDocPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/documents"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewDocsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/categories"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewCatsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/users"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewUsersPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/teams"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <TeamsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/teams/:id"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <TeamDetailPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/teams/:id/edit"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <EditTeamPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/projects"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ProjectsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/projects/create"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <CreateProjectPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/projects/:id"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ProjectDetailPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/projects/:id/edit"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <EditProjectPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/my-profile"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <MyProfilePage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/user/:userId"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewUserPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/edit-user/:userId"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <MyProfilePage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/system-info"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <SystemInfoPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/analytics"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <AnalyticsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/custom-charts"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <CustomChartsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/register"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <RegUserPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/forgot" element={<ForgotPassPage />} />
+                    <Route path="/reset" element={<ResetPassPage />} />
+                    <Route
+                        path="/manage-external-contact-types"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ManageExternalContactTypesPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
+                <Footer />
+            </div>
+        </ThemeProvider>
     );
 }
-export default App
+
+export default App;

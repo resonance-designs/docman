@@ -79,7 +79,8 @@ export async function getAllDocs(req, res) {
             .populate('stakeholders', 'firstname lastname email')
             .populate('owners', 'firstname lastname email')
             .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email');
+            .populate('lastUpdatedBy', 'firstname lastname email')
+            .populate('externalContacts.type');
 
         // Apply sorting
         if (sortField === 'author' || sortField === 'category') {
@@ -127,7 +128,8 @@ export async function getDocById(req, res) {
             .populate('stakeholders', 'firstname lastname email')
             .populate('owners', 'firstname lastname email')
             .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email');
+            .populate('lastUpdatedBy', 'firstname lastname email')
+            .populate('externalContacts.type');
 
         if (!doc) return res.status(404).json({ message: "Document not found." });
         res.status(200).json(doc);
@@ -139,7 +141,7 @@ export async function getDocById(req, res) {
 
 export async function createDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt } = req.body;
+        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt, externalContacts } = req.body;
         const file = req.file;
 
         if (!title || !description || !reviewDate || !author || !category) {
@@ -149,6 +151,7 @@ export async function createDoc(req, res) {
         // Parse stakeholders and owners if they exist
         let stakeholdersArray = [];
         let ownersArray = [];
+        let externalContactsArray = [];
 
         if (stakeholders) {
             try {
@@ -167,6 +170,16 @@ export async function createDoc(req, res) {
                 return res.status(400).json({ message: "Invalid owners format" });
             }
         }
+        
+        // Parse external contacts if they exist
+        if (externalContacts) {
+            try {
+                externalContactsArray = JSON.parse(externalContacts);
+            } catch (error) {
+                console.error("Error parsing external contacts:", error);
+                return res.status(400).json({ message: "Invalid external contacts format" });
+            }
+        }
 
         // Create the document entry
         const newDoc = new Doc({
@@ -177,6 +190,7 @@ export async function createDoc(req, res) {
             category,
             stakeholders: stakeholdersArray,
             owners: ownersArray,
+            externalContacts: externalContactsArray,
             reviewCompleted: reviewCompleted || false,
             reviewCompletedAt: reviewCompletedAt || null,
             reviewCompletedBy: req.user?.id || null,
@@ -229,7 +243,7 @@ export async function createDoc(req, res) {
 
 export async function updateDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt } = req.body;
+        const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt, externalContacts } = req.body;
         const docObject = req.body;
         const objectIsEmpty = areAllObjectFieldsEmpty(docObject);
 
@@ -255,6 +269,16 @@ export async function updateDoc(req, res) {
             } catch (error) {
                 console.error("Error parsing owners:", error);
                 return res.status(400).json({ message: "Invalid owners format" });
+            }
+        }
+        
+        // Parse external contacts if they exist
+        if (externalContacts) {
+            try {
+                updateData.externalContacts = JSON.parse(externalContacts);
+            } catch (error) {
+                console.error("Error parsing external contacts:", error);
+                return res.status(400).json({ message: "Invalid external contacts format" });
             }
         }
 
@@ -348,7 +372,8 @@ export async function markDocAsReviewed(req, res) {
             .populate('stakeholders', 'firstname lastname email')
             .populate('owners', 'firstname lastname email')
             .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email');
+            .populate('lastUpdatedBy', 'firstname lastname email')
+            .populate('externalContacts.type');
 
         if (!updatedDoc) {
             return res.status(404).json({ message: "Document not found." });

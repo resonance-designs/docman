@@ -50,6 +50,11 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: false,
         },
+        theme: {
+            type: String,
+            required: false,
+            default: "current",
+        },
         bio: {
             type: String,
             required: false,

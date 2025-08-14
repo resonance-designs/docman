@@ -56,7 +56,7 @@ export async function getAllUsers(req, res) {
 
 export async function getUserById(req, res) {
     try {
-        const user = await User.findById(req.params.id, "_id firstname lastname email telephone title department bio role profilePicture backgroundImage createdAt updatedAt");
+        const user = await User.findById(req.params.id, "_id firstname lastname email telephone title department bio role profilePicture backgroundImage theme createdAt updatedAt");
         if (!user) {
             return res.status(404).json({ message: "User not found." });
         }
@@ -75,7 +75,7 @@ export async function updateUser(req, res) {
         console.log("Current user ID:", req.user._id.toString());
         console.log("Current user role:", req.user.role);
 
-        const { firstname, lastname, email, telephone, title, department, bio, password, role } = req.body;
+        const { firstname, lastname, email, telephone, title, department, bio, password, role, theme } = req.body;
         const userId = req.params.id;
         console.log("User ID from params:", req.params.id);
         const currentUserId = req.user._id.toString();
@@ -173,6 +173,7 @@ export async function updateUser(req, res) {
             if (title !== undefined) updateData.title = sanitizeString(title);
             if (department !== undefined) updateData.department = sanitizeString(department);
             if (bio !== undefined) updateData.bio = sanitizeString(bio);
+            if (theme !== undefined) updateData.theme = theme;
         } else if (currentUserRole === "admin") {
             // Admin editing another user - can only edit role and password
             if (role !== undefined) updateData.role = role;
@@ -201,7 +202,7 @@ export async function updateUser(req, res) {
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             updateData,
-            { new: true, select: "_id firstname lastname email telephone title department bio role profilePicture backgroundImage createdAt updatedAt lastUpdatedBy" }
+            { new: true, select: "_id firstname lastname email telephone title department bio role profilePicture backgroundImage theme createdAt updatedAt lastUpdatedBy" }
         );
 
         console.log("Updated user:", updatedUser);
