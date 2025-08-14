@@ -53,7 +53,7 @@ A list of features I plan on implementing into the application.
  ~~4.  Can turn on or off the debugging with a debug flag~~
  ~~5.  Should be able to log to the console, a file, or a database~~
  ~~6.  Should be able to log errors, warnings, info, debug, etc...~~
-10. Add backend unit tests for all endpoints in __tests__ folder, update any existing unit tests
+10. ~~Add backend unit tests for all endpoints in __tests__ folder, update any existing unit tests~~
 11. Cleanup and compartmentalize the code as much as possible
 12. Code audit and security review. Check against OWASP Top 10 and other security best practices.
 13. Add comments
