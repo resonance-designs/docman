@@ -8,6 +8,7 @@ import {
     validateEmail,
     sanitizeString
 } from "../lib/validation.js";
+import { sendTeamInvitationNotification } from "./notificationsController.js";
 
 // Get all teams for the current user
 export async function getUserTeams(req, res) {
@@ -304,7 +305,11 @@ export async function inviteToTeam(req, res) {
 
         await team.save();
 
-        // TODO: Send invitation email here
+        // Send notification to the user
+        const recipientUser = await User.findOne({ email });
+        if (recipientUser) {
+            await sendTeamInvitationNotification(recipientUser._id, userId, teamId, invitationToken);
+        }
 
         res.status(200).json({
             message: "Invitation sent successfully",

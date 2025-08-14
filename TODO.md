@@ -14,7 +14,7 @@ A list of features I plan on implementing into the application.
    2. ~~Email notifications~~
       1. ~~User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation, like if they are a stakeholder, owner, author, etc...~~
    3. ~~Restrict rate-limiting per IP/User and apply rate-limiting where relevant~~
-2. Enhance CreateDocPage by adding a field for the documents review to be marked as complete
+2. Enhance CreateDocPage by adding a field for the documents review to be marked as complete -- NEED TO TEST
    1. This field should only be visible to the owners and authors of the document -- NEED TO TEST
    2. This field should only be visible when the document is open for review -- NEED TO TEST
    3. Should include a hidden field that tracks the date the review was completed -- NEED TO TEST
@@ -37,14 +37,14 @@ A list of features I plan on implementing into the application.
     1. Ability to add as many external contacts as needed. Each external contact should have a name, email, phone number, and type (which should be a dropdown).
     2. The types should be stored in a collection
     3. There should be an admin page to manage the types of external contacts.
-7. Create a theme switcher
-   1. One theme is the current theme
-   2. One is a clean business theme
-   3. And the third is a retro gaming theme
-   4. Users should be able to select their preferred theme in their profile
-8. Internal notification and messaging system
-   1.  Be able to invite members already in the system to teams through it's internal messaging and notification system.
-   2.  User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.
+7. ~~Create a theme switcher~~
+   1. ~~One theme is the current theme~~
+   2. ~~One is a clean business theme~~
+   3. ~~And the third is a retro gaming theme~~
+   4. ~~Users should be able to select their preferred theme in their profile~~
+8. ~~Internal notification and messaging system~~
+   1.  ~~Be able to invite members already in the system to teams through it's internal messaging and notification system.~~
+   2.  ~~User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.~~
 9.  Universal debugging function(s)
 10. Add unit tests, update any existing unit tests
 11. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive

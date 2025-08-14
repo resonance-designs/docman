@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import LogoPic from "../assets/imgs/logo.png";
 import { decodeJWT, getLinkClass } from "../lib/utils";
 import useAutoLogout from "../hooks/useAutoLogout";
+import NotificationBell from "./NotificationBell";
 
 const getUserRole = () => {
     const token = localStorage.getItem("token");
@@ -142,6 +143,7 @@ const Navbar = () => {
                                     <UserIcon className="size-5" />
                                     <span>My Profile</span>
                                 </Link>
+                                <NotificationBell />
                                 <button
                                     onClick={handleLogout}
                                     className="btn px-3 py-3 font-semibold text-sm bg-resdes-yellow text-slate-950 hover:bg-resdes-yellow hover:opacity-[.8] transition-opacity duration-300"
@@ -231,6 +233,9 @@ const Navbar = () => {
                                 <UserIcon className="size-5" />
                                 <span>My Profile</span>
                             </Link>
+                            <div className="flex justify-center py-2">
+                                <NotificationBell />
+                            </div>
                             <button
                                 onClick={() => {
                                     handleLogout();

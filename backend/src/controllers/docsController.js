@@ -1,7 +1,9 @@
 // backend/src/controllers/docsController.js
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
+import User from "../models/User.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
+import { sendDocumentAssignedNotification } from "./notificationsController.js";
 
 export async function getAllDocs(req, res) {
     try {
@@ -225,6 +227,9 @@ export async function createDoc(req, res) {
             await newDoc.save();
         }
 
+        // Send notifications to stakeholders and owners
+        await sendDocumentNotifications(newDoc._id, stakeholdersArray, ownersArray, req.user?.id || null);
+
         // Populate the response
         const populatedDoc = await Doc.findById(newDoc._id)
             .populate('author', 'firstname lastname email')
@@ -304,6 +309,16 @@ export async function updateDoc(req, res) {
 
         if (!updatedDoc) {
             return res.status(404).json({ message: "Document not found."});
+        }
+
+        // Send notifications to stakeholders and owners if they were updated
+        if (stakeholders || owners) {
+            await sendDocumentNotifications(
+                updatedDoc._id,
+                stakeholders ? updateData.stakeholders : updatedDoc.stakeholders,
+                owners ? updateData.owners : updatedDoc.owners,
+                req.user?.id || null
+            );
         }
 
         res.status(200).json({ message: "Document updated successfully", doc: updatedDoc });
@@ -451,6 +466,27 @@ export async function compareDocVersions(req, res) {
         
         if (!file1 || !file2) {
             return res.status(404).json({ message: "One or both document versions not found." });
+        }
+        
+        // Helper function to send document assigned notifications
+        async function sendDocumentNotifications(docId, stakeholders, owners, senderId) {
+            try {
+                // Combine stakeholders and owners into a single array
+                const recipients = [...(stakeholders || []), ...(owners || [])];
+                
+                // Remove duplicates
+                const uniqueRecipients = [...new Set(recipients.map(id => id.toString()))];
+                
+                // Send notifications to each recipient
+                for (const recipientId of uniqueRecipients) {
+                    // Skip if the recipient is the sender
+                    if (recipientId.toString() !== senderId.toString()) {
+                        await sendDocumentAssignedNotification(recipientId, senderId, docId);
+                    }
+                }
+            } catch (error) {
+                console.error("Error sending document notifications:", error);
+            }
         }
         
         // Get version history entries for context
