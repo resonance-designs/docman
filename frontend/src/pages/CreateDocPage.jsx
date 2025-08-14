@@ -1,4 +1,14 @@
 /* eslint-disable no-unused-vars */
+/*
+ * @name Create Document Page
+ * @file /docman/frontend/src/pages/CreateDocPage.jsx
+ * @page CreateDocPage
+ * @description Page for creating new documents with file upload and metadata.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { ArrowLeftIcon, FilePlus2, X } from "lucide-react";
@@ -57,6 +67,10 @@ const schema = z.object({
     reviewNotes: z.string().optional(),
 });
 
+/**
+ * Page component for creating new documents with file upload and metadata
+ * @returns {JSX.Element} The create document page component
+ */
 const CreateDocPage = () => {
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
@@ -92,7 +106,11 @@ const CreateDocPage = () => {
     const [reviewAssignees, setReviewAssignees] = useState([]);
     const [reviewDueDate, setReviewDueDate] = useState(null);
 
-    // Handle external contact input changes
+    /**
+     * Handle external contact input changes
+     * @param {string} field - The field name to update
+     * @param {string} value - The new value for the field
+     */
     const handleExternalContactChange = (field, value) => {
         setNewExternalContact(prev => ({
             ...prev,
@@ -100,7 +118,9 @@ const CreateDocPage = () => {
         }));
     };
 
-    // Handle adding external contact
+    /**
+     * Handle adding external contact to the selected contacts list
+     */
     const handleAddExternalContact = () => {
         // Basic validation
         if (!newExternalContact.name || !newExternalContact.email || !newExternalContact.type) {
@@ -124,12 +144,17 @@ const CreateDocPage = () => {
         });
     };
 
-    // Handle removing external contact
+    /**
+     * Handle removing external contact from the selected contacts list
+     * @param {number} id - The ID of the contact to remove
+     */
     const handleRemoveExternalContact = (id) => {
         setSelectedExternalContacts(prev => prev.filter(contact => contact.id !== id));
     };
 
-    // Load users and categories on component mount
+    /**
+     * Load users and categories on component mount
+     */
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -148,12 +173,20 @@ const CreateDocPage = () => {
         loadData();
     }, []);
 
-    // Helper function to get full name from your User model
+    /**
+     * Helper function to get full name from user object
+     * @param {Object} user - User object with firstname and lastname properties
+     * @returns {string} Full name of the user
+     */
     const getFullName = (user) => {
         return `${user.firstname || ''} ${user.lastname || ''}`.trim();
     };
 
-    // Calculate review date based on interval
+    /**
+     * Calculate review date based on selected interval
+     * @param {string} intervalValue - The selected interval value
+     * @returns {Date} The calculated review date
+     */
     const calculateReviewDate = (intervalValue) => {
         const interval = REVIEW_INTERVALS.find(i => i.value === intervalValue);
         if (!interval) return new Date();
@@ -163,7 +196,10 @@ const CreateDocPage = () => {
         return reviewDate;
     };
 
-    // Handle stakeholder selection
+    /**
+     * Handle stakeholder selection by adding to selected stakeholders list
+     * @param {string} userId - The ID of the user to add as stakeholder
+     */
     const handleStakeholderAdd = (userId) => {
         if (!selectedStakeholders.includes(userId)) {
             const newStakeholders = [...selectedStakeholders, userId];
@@ -172,14 +208,20 @@ const CreateDocPage = () => {
         }
     };
 
-    // Handle stakeholder removal
+    /**
+     * Handle stakeholder removal by removing from selected stakeholders list
+     * @param {string} userId - The ID of the user to remove as stakeholder
+     */
     const handleStakeholderRemove = (userId) => {
         const newStakeholders = selectedStakeholders.filter(id => id !== userId);
         setSelectedStakeholders(newStakeholders);
         setValue('stakeholders', newStakeholders);
     };
 
-    // Handle owner selection
+    /**
+     * Handle owner selection by adding to selected owners list
+     * @param {string} userId - The ID of the user to add as owner
+     */
     const handleOwnerAdd = (userId) => {
         if (!selectedOwners.includes(userId)) {
             const newOwners = [...selectedOwners, userId];
@@ -188,14 +230,20 @@ const CreateDocPage = () => {
         }
     };
 
-    // Handle owner removal
+    /**
+     * Handle owner removal by removing from selected owners list
+     * @param {string} userId - The ID of the user to remove as owner
+     */
     const handleOwnerRemove = (userId) => {
         const newOwners = selectedOwners.filter(id => id !== userId);
         setSelectedOwners(newOwners);
         setValue('owners', newOwners);
     };
 
-    // Review assignment handlers
+    /**
+     * Handle review assignee selection by adding to review assignees list
+     * @param {string} userId - The ID of the user to add as review assignee
+     */
     const handleReviewAssigneeAdd = (userId) => {
         if (!userId) return;
         if (!reviewAssignees.includes(userId)) {
@@ -205,17 +253,29 @@ const CreateDocPage = () => {
         }
     };
 
+    /**
+     * Handle review assignee removal by removing from review assignees list
+     * @param {string} userId - The ID of the user to remove as review assignee
+     */
     const handleReviewAssigneeRemove = (userId) => {
         const next = reviewAssignees.filter(id => id !== userId);
         setReviewAssignees(next);
         setValue('reviewAssignees', next);
     };
 
+    /**
+     * Handle review due date change
+     * @param {Date} date - The selected review due date
+     */
     const handleReviewDueDateChange = (date) => {
         setReviewDueDate(date);
         setValue('reviewDueDate', date);
     };
 
+    /**
+     * Handle form submission for creating a new document
+     * @param {Object} data - Form data from react-hook-form
+     */
     const onSubmit = async (data) => {
         setLoading(true);
         try {

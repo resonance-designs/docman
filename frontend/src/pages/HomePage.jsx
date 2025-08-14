@@ -1,3 +1,13 @@
+/*
+ * @name Home Page
+ * @file /docman/frontend/src/pages/HomePage.jsx
+ * @page HomePage
+ * @description The initial and main starting point of the app.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import RateLimitedUI from "../components/RateLimitedUI";
@@ -10,7 +20,11 @@ import { Link } from "react-router";
 import { LogIn, ShieldQuestionMark, Search, LibraryBig } from 'lucide-react';
 // Removed useAutoLogout import - handled by Navbar component
 
-
+/**
+ * Main home page component that displays either login form for unauthenticated users
+ * or documents dashboard for authenticated users
+ * @returns {JSX.Element} The home page component
+ */
 const HomePage = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
     const [isRateLimited, setIsRateLimited] = useState(false);
@@ -21,10 +35,11 @@ const HomePage = () => {
 
     // Auto logout functionality moved to Navbar component to avoid conflicts
 
-
-
-    // Filter documents that need review (for DocCard section)
-    // Get the 6 most recent documents that became overdue
+    /**
+     * Filter documents that need review (for DocCard section)
+     * Get the 6 most recent documents that became overdue
+     * Sort by review date descending (most recently overdue first)
+     */
     const docsNeedingReview = docs
         .filter(doc => {
             const needsReview = new Date(doc.reviewDate) <= new Date();
@@ -36,10 +51,18 @@ const HomePage = () => {
         })
         .slice(0, 6); // Limit to 6 results
 
+    /**
+     * Handle form input changes
+     * @param {Object} e - Event object from input change
+     */
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
+    /**
+     * Handle login form submission
+     * @param {Object} e - Event object from form submission
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage("");
@@ -69,7 +92,10 @@ const HomePage = () => {
         }
     };
 
-    // Listen for auth state changes (like logout from Navbar)
+    /**
+     * Listen for auth state changes (like logout from Navbar)
+     * This effect handles authentication state changes from other components
+     */
     useEffect(() => {
         const handleAuthChange = () => {
             const token = localStorage.getItem("token");
@@ -89,7 +115,10 @@ const HomePage = () => {
         return () => window.removeEventListener("authStateChanged", handleAuthChange);
     }, [isAuthenticated]); // Add isAuthenticated as dependency to track changes
 
-    // Move fetchDocs inside useEffect or make it a separate function
+    /**
+     * Fetch documents from the API
+     * This effect fetches documents when the component mounts or when authentication state changes
+     */
     useEffect(() => {
         const fetchDocs = async () => {
             setLoading(true); // Set loading when starting to fetch

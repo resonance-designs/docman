@@ -1,3 +1,13 @@
+/*
+ * @name Custom Charts Controller
+ * @file /docman/backend/src/controllers/customChartsController.js
+ * @module customChartsController
+ * @description Controller functions for custom chart management including viewing, creating, updating, and deleting custom charts, as well as data retrieval for visualization.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import CustomChart from "../models/CustomChart.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
@@ -5,7 +15,12 @@ import Category from "../models/Category.js";
 import Team from "../models/Team.js";
 import Project from "../models/Project.js";
 
-// Get all custom charts
+/**
+ * Get all custom charts
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of charts or error message
+ */
 export async function getAllCustomCharts(req, res) {
     try {
         const charts = await CustomChart.find({ isPublic: true })
@@ -29,7 +44,12 @@ export async function getAllCustomCharts(req, res) {
     }
 }
 
-// Get a specific custom chart by ID
+/**
+ * Get a specific custom chart by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with chart data or error message
+ */
 export async function getCustomChartById(req, res) {
     try {
         const chart = await CustomChart.findById(req.params.id)
@@ -51,7 +71,12 @@ export async function getCustomChartById(req, res) {
     }
 }
 
-// Create a new custom chart
+/**
+ * Create a new custom chart
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created chart data or error message
+ */
 export async function createCustomChart(req, res) {
     try {
         const { name, description, chartType, dataSource, xAxisField, yAxisField, groupByField, filters, colorPalette, isPublic } = req.body;
@@ -86,7 +111,12 @@ export async function createCustomChart(req, res) {
     }
 }
 
-// Update a custom chart
+/**
+ * Update a custom chart
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated chart data or error message
+ */
 export async function updateCustomChart(req, res) {
     try {
         const chart = await CustomChart.findById(req.params.id);
@@ -129,7 +159,12 @@ export async function updateCustomChart(req, res) {
     }
 }
 
-// Delete a custom chart
+/**
+ * Delete a custom chart
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteCustomChart(req, res) {
     try {
         const chart = await CustomChart.findById(req.params.id);
@@ -152,7 +187,12 @@ export async function deleteCustomChart(req, res) {
     }
 }
 
-// Get chart data based on configuration
+/**
+ * Get chart data based on configuration
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with chart data or error message
+ */
 export async function getChartData(req, res) {
     try {
         const chartId = req.params.id;
@@ -204,7 +244,11 @@ export async function getChartData(req, res) {
     }
 }
 
-// Helper functions for getting data
+/**
+ * Get document data for chart
+ * @param {Object} chart - Chart configuration object
+ * @returns {Array} Array of document statistics
+ */
 async function getDocumentData(chart) {
     const matchConditions = {};
     
@@ -235,6 +279,11 @@ async function getDocumentData(chart) {
     return await Doc.aggregate(aggregationPipeline);
 }
 
+/**
+ * Get user data for chart
+ * @param {Object} chart - Chart configuration object
+ * @returns {Array} Array of user statistics
+ */
 async function getUserData(chart) {
     const matchConditions = {};
     
@@ -265,6 +314,11 @@ async function getUserData(chart) {
     return await User.aggregate(aggregationPipeline);
 }
 
+/**
+ * Get category data for chart
+ * @param {Object} chart - Chart configuration object
+ * @returns {Array} Array of category statistics
+ */
 async function getCategoryData(chart) {
     const matchConditions = {};
     
@@ -295,6 +349,11 @@ async function getCategoryData(chart) {
     return await Category.aggregate(aggregationPipeline);
 }
 
+/**
+ * Get team data for chart
+ * @param {Object} chart - Chart configuration object
+ * @returns {Array} Array of team statistics
+ */
 async function getTeamData(chart) {
     const matchConditions = {};
     
@@ -325,6 +384,11 @@ async function getTeamData(chart) {
     return await Team.aggregate(aggregationPipeline);
 }
 
+/**
+ * Get project data for chart
+ * @param {Object} chart - Chart configuration object
+ * @returns {Array} Array of project statistics
+ */
 async function getProjectData(chart) {
     const matchConditions = {};
     

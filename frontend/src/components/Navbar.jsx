@@ -1,3 +1,13 @@
+/*
+ * @name Navigation Bar Component
+ * @file /docman/frontend/src/components/Navbar.jsx
+ * @component Navbar
+ * @description Component for the main navigation bar with responsive menu and authentication handling.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
 import { LogOut, FolderIcon, UsersIcon, FileTextIcon, UserIcon, MenuIcon, XIcon, Users2Icon, BarChart3Icon } from "lucide-react";
@@ -7,6 +17,10 @@ import { decodeJWT, getLinkClass } from "../lib/utils";
 import useAutoLogout from "../hooks/useAutoLogout";
 import NotificationBell from "./NotificationBell";
 
+/**
+ * Get user role from JWT token in localStorage
+ * @returns {string|null} User role or null if not authenticated
+ */
 const getUserRole = () => {
     const token = localStorage.getItem("token");
     if (!token) return null;
@@ -18,6 +32,10 @@ const getUserRole = () => {
     }
 };
 
+/**
+ * Navigation bar component with responsive menu and authentication handling
+ * @returns {JSX.Element} The navigation bar component
+ */
 const Navbar = () => {
     const [role, setRole] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,7 +43,10 @@ const Navbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // Auto logout functionality
+    /**
+     * Auto logout functionality handler
+     * Removes token, updates state, and navigates to home page
+     */
     const handleAutoLogout = () => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);
@@ -35,11 +56,15 @@ const Navbar = () => {
         navigate("/");
     };
 
-    // Use auto logout hook (15 minutes timeout to match token expiry)
-    // To enable debugging: useAutoLogout(isAuthenticated, handleAutoLogout, 15, 'Navbar', true);
+    /**
+     * Use auto logout hook (15 minutes timeout to match token expiry)
+     * To enable debugging: useAutoLogout(isAuthenticated, handleAutoLogout, 15, 'Navbar', true);
+     */
     useAutoLogout(isAuthenticated, handleAutoLogout, 15, 'Navbar');
 
-    // Function to check and update auth state
+    /**
+     * Function to check and update authentication state
+     */
     const updateAuthState = () => {
         const token = localStorage.getItem("token");
         const authenticated = !!token;
@@ -53,16 +78,23 @@ const Navbar = () => {
         }
     };
 
-    // Initial auth state check on component mount
+    /**
+     * Initial auth state check on component mount
+     */
     useEffect(() => {
         updateAuthState();
     }, []); // Run once on mount
 
+    /**
+     * Update auth state when location changes (including when navigating after login)
+     */
     useEffect(() => {
         updateAuthState();
     }, [location]); // Update when location changes (including when navigating after login)
 
-    // Listen to storage changes for multiple tabs
+    /**
+     * Listen to storage changes for multiple tabs
+     */
     useEffect(() => {
         const onStorageChange = () => {
             updateAuthState();
@@ -72,7 +104,9 @@ const Navbar = () => {
         return () => window.removeEventListener("storage", onStorageChange);
     }, []);
 
-    // Listen to custom auth events (optional - see alternative solution below)
+    /**
+     * Listen to custom auth events (optional - see alternative solution below)
+     */
     useEffect(() => {
         const handleAuthChange = () => {
             updateAuthState();
@@ -82,6 +116,9 @@ const Navbar = () => {
         return () => window.removeEventListener("authStateChanged", handleAuthChange);
     }, []);
 
+    /**
+     * Handle user logout
+     */
     const handleLogout = () => {
         localStorage.removeItem("token");
         setIsAuthenticated(false);

@@ -1,3 +1,13 @@
+/*
+ * @name Users Routes
+ * @file /docman/backend/src/routes/usersRoutes.js
+ * @module usersRoutes
+ * @description Routes for user management including viewing, updating, and deleting users, as well as profile picture and background image management.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
@@ -7,28 +17,28 @@ import { uploadProfilePicture, deleteProfilePicture, uploadBackgroundImage, dele
 
 const router = express.Router();
 
-// Everyone can view users
+// GET /api/users - Get all users (viewers, editors, and admins can view users)
 router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAllUsers);
 
-// Get specific user (for profile editing)
+// GET /api/users/:id - Get specific user by ID (for profile editing)
 router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), getUserById);
 
-// Update user (users can update themselves, admins can update anyone)
+// PUT /api/users/:id - Update user information (users can update themselves, admins can update anyone)
 router.put("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), updateUser);
 
-// Profile picture upload (users can upload their own, admins can upload for anyone)
+// POST /api/users/:id/profile-picture - Upload profile picture (users can upload their own, admins can upload for anyone)
 router.post("/:id/profile-picture", verifyAccessToken, requireRole("viewer", "editor", "admin"), uploadMid.single("profilePicture"), uploadProfilePicture);
 
-// Profile picture delete (users can delete their own, admins can delete for anyone)
+// DELETE /api/users/:id/profile-picture - Delete profile picture (users can delete their own, admins can delete for anyone)
 router.delete("/:id/profile-picture", verifyAccessToken, requireRole("viewer", "editor", "admin"), deleteProfilePicture);
 
-// Background image upload (users can upload their own, admins can upload for anyone)
+// POST /api/users/:id/background-image - Upload background image (users can upload their own, admins can upload for anyone)
 router.post("/:id/background-image", verifyAccessToken, requireRole("viewer", "editor", "admin"), uploadMid.single("backgroundImage"), uploadBackgroundImage);
 
-// Background image delete (users can delete their own, admins can delete for anyone)
+// DELETE /api/users/:id/background-image - Delete background image (users can delete their own, admins can delete for anyone)
 router.delete("/:id/background-image", verifyAccessToken, requireRole("viewer", "editor", "admin"), deleteBackgroundImage);
 
-// Only admins can delete users
+// DELETE /api/users/:id - Delete a user (only admins can delete users)
 router.delete("/:id", verifyAccessToken, requireRole("admin"), deleteUser);
 
 export default router;

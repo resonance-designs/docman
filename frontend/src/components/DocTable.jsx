@@ -1,3 +1,13 @@
+/*
+ * @name Document Table Component
+ * @file /docman/frontend/src/components/DocTable.jsx
+ * @component DocTable
+ * @description Component for displaying a document in a table row with actions.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { EyeIcon, Trash2Icon } from "lucide-react";
 import { Link } from "react-router";
 import { formatDate, decodeJWT } from "../lib/utils";
@@ -5,10 +15,19 @@ import api from "../lib/axios";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 
+/**
+ * Component for displaying a document in a table row with actions
+ * @param {Object} props - Component properties
+ * @param {Object} props.doc - Document object to display
+ * @param {Function} props.setDocs - Function to update the documents list
+ * @returns {JSX.Element} The document table row component
+ */
 const DocTable = ({ doc, setDocs }) => {
     const [userRole, setUserRole] = useState(null);
 
-    // Get user role from token
+    /**
+     * Get user role from token when component mounts
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -17,6 +36,11 @@ const DocTable = ({ doc, setDocs }) => {
         }
     }, []);
 
+    /**
+     * Handle document deletion
+     * @param {Object} e - Event object from button click
+     * @param {string} id - ID of the document to delete
+     */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
         if (!window.confirm("Are you sure you want to delete this document?")) return;
@@ -30,7 +54,11 @@ const DocTable = ({ doc, setDocs }) => {
         }
     };
 
-    // Helper function to format author name
+    /**
+     * Helper function to format author name
+     * @param {string|Object} author - Author information (string for backward compatibility or object with firstname/lastname)
+     * @returns {string} Formatted author name
+     */
     const getAuthorName = (author) => {
         if (typeof author === 'string') {
             return author; // Backward compatibility if some docs still have string authors

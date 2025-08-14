@@ -1,10 +1,24 @@
-// backend/src/controllers/notificationsController.js
+/*
+ * @name Notifications Controller
+ * @file /docman/backend/src/controllers/notificationsController.js
+ * @module notificationsController
+ * @description Controller functions for notification management including fetching, marking as read, and deleting notifications, as well as sending various types of notifications.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";
 
-// Get all notifications for the current user
+/**
+ * Get all notifications for the current user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of notifications or error message
+ */
 export async function getUserNotifications(req, res) {
     try {
         const userId = req.user._id.toString();
@@ -22,7 +36,12 @@ export async function getUserNotifications(req, res) {
     }
 }
 
-// Get unread notifications count for the current user
+/**
+ * Get unread notifications count for the current user
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with unread count or error message
+ */
 export async function getUnreadNotificationsCount(req, res) {
     try {
         const userId = req.user._id.toString();
@@ -39,7 +58,12 @@ export async function getUnreadNotificationsCount(req, res) {
     }
 }
 
-// Mark notification as read
+/**
+ * Mark notification as read
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function markAsRead(req, res) {
     try {
         const notificationId = req.params.id;
@@ -69,7 +93,12 @@ export async function markAsRead(req, res) {
     }
 }
 
-// Mark all notifications as read
+/**
+ * Mark all notifications as read
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function markAllAsRead(req, res) {
     try {
         const userId = req.user._id.toString();
@@ -92,7 +121,12 @@ export async function markAllAsRead(req, res) {
     }
 }
 
-// Delete notification
+/**
+ * Delete notification
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteNotification(req, res) {
     try {
         const notificationId = req.params.id;
@@ -114,7 +148,11 @@ export async function deleteNotification(req, res) {
     }
 }
 
-// Create a notification (internal function, not exposed as an API endpoint)
+/**
+ * Create a notification (internal function, not exposed as an API endpoint)
+ * @param {Object} notificationData - Notification data object
+ * @returns {Object|null} Created notification object or null if error
+ */
 export async function createNotification(notificationData) {
     try {
         const notification = new Notification(notificationData);
@@ -126,7 +164,14 @@ export async function createNotification(notificationData) {
     }
 }
 
-// Send team invitation notification
+/**
+ * Send team invitation notification
+ * @param {string} recipientId - Recipient user ID
+ * @param {string} senderId - Sender user ID
+ * @param {string} teamId - Team ID
+ * @param {string} invitationToken - Invitation token
+ * @returns {Object|null} Created notification object or null if error
+ */
 export async function sendTeamInvitationNotification(recipientId, senderId, teamId, invitationToken) {
     try {
         const sender = await User.findById(senderId);
@@ -154,7 +199,13 @@ export async function sendTeamInvitationNotification(recipientId, senderId, team
     }
 }
 
-// Send document assigned notification
+/**
+ * Send document assigned notification
+ * @param {string} recipientId - Recipient user ID
+ * @param {string} senderId - Sender user ID
+ * @param {string} docId - Document ID
+ * @returns {Object|null} Created notification object or null if error
+ */
 export async function sendDocumentAssignedNotification(recipientId, senderId, docId) {
     try {
         const sender = await User.findById(senderId);
@@ -181,7 +232,12 @@ export async function sendDocumentAssignedNotification(recipientId, senderId, do
     }
 }
 
-// Send document review due notification
+/**
+ * Send document review due notification
+ * @param {string} recipientId - Recipient user ID
+ * @param {string} docId - Document ID
+ * @returns {Object|null} Created notification object or null if error
+ */
 export async function sendDocumentReviewDueNotification(recipientId, docId) {
     try {
         const doc = await Doc.findById(docId);

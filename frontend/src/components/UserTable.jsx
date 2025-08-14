@@ -1,3 +1,13 @@
+/*
+ * @name User Table Component
+ * @file /docman/frontend/src/components/UserTable.jsx
+ * @component UserTable
+ * @description Component for displaying a user in a table row with actions.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { EyeIcon, Trash2Icon, EditIcon } from "lucide-react";
 import { formatDate, decodeJWT } from "../lib/utils";
 import api from "../lib/axios";
@@ -6,11 +16,20 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import PropTypes from "prop-types";
 
+/**
+ * Component for displaying a user in a table row with actions
+ * @param {Object} props - Component properties
+ * @param {Object} props.user - User object to display
+ * @param {Function} props.setUsers - Function to update the users list
+ * @returns {JSX.Element} The user table row component
+ */
 const UserTable = ({ user, setUsers }) => {
     const [userRole, setUserRole] = useState(null);
     const [currentUserId, setCurrentUserId] = useState(null);
 
-    // Get user role and ID from token
+    /**
+     * Get user role and ID from token when component mounts
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -20,6 +39,11 @@ const UserTable = ({ user, setUsers }) => {
         }
     }, []);
 
+    /**
+     * Handle user deletion
+     * @param {Object} e - Event object from button click
+     * @param {string} id - ID of the user to delete
+     */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
 
@@ -40,12 +64,20 @@ const UserTable = ({ user, setUsers }) => {
         }
     };
 
-    // Helper function to format user name
+    /**
+     * Helper function to format user name
+     * @param {Object} user - User object with firstname and lastname properties
+     * @returns {string} Formatted full name of the user
+     */
     const getFullName = (user) => {
         return `${user.firstname || ''} ${user.lastname || ''}`.trim() || 'Unknown User';
     };
 
-    // Helper function to format role with badge styling
+    /**
+     * Helper function to format role with badge styling
+     * @param {string} role - User role
+     * @returns {JSX.Element} Badge element with appropriate styling for the role
+     */
     const getRoleBadge = (role) => {
         const roleColors = {
             admin: 'badge-error',

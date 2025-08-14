@@ -1,3 +1,13 @@
+/*
+ * @name Category Table Component
+ * @file /docman/frontend/src/components/CatTable.jsx
+ * @component CatTable
+ * @description Component for displaying a category in a table row with actions.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { EyeIcon, Trash2Icon } from "lucide-react";
 import { formatDate, decodeJWT } from "../lib/utils";
 import api from "../lib/axios";
@@ -5,10 +15,19 @@ import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 
+/**
+ * Component for displaying a category in a table row with actions
+ * @param {Object} props - Component properties
+ * @param {Object} props.category - Category object to display
+ * @param {Function} props.setCategories - Function to update the categories list
+ * @returns {JSX.Element} The category table row component
+ */
 const CatTable = ({ category, setCategories }) => {
     const [userRole, setUserRole] = useState(null);
 
-    // Get user role from token
+    /**
+     * Get user role from token when component mounts
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -17,6 +36,11 @@ const CatTable = ({ category, setCategories }) => {
         }
     }, []);
 
+    /**
+     * Handle category deletion
+     * @param {Object} e - Event object from button click
+     * @param {string} id - ID of the category to delete
+     */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
         if (!window.confirm("Are you sure you want to delete this category?")) return;

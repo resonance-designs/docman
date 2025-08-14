@@ -1,3 +1,13 @@
+/*
+ * @name DocMan Frontend Application
+ * @file /docman/frontend/src/App.jsx
+ * @module App
+ * @description Main entry point for the DocMan frontend application.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { Route, Routes } from "react-router";
 import { useState, useEffect } from "react";
 import HomePage from "./pages/HomePage";
@@ -32,11 +42,19 @@ import { decodeJWT } from "./lib/utils";
 import ManageExternalContactTypesPage from "./pages/ManageExternalContactTypesPage";
 import { ThemeProvider } from "./context/ThemeContext";
 
+/**
+ * Main application component that handles routing and authentication state
+ * @returns {JSX.Element} The main application component
+ */
 const App = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
     const [userRole, setUserRole] = useState(null);
 
-    // Get user role from token
+    /**
+     * Get user role from token on component mount
+     * This effect runs once when the component mounts to check if there's a valid token
+     * in localStorage and decode it to get the user's role
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -55,7 +73,11 @@ const App = () => {
         }
     }, []);
 
-    // Listen for auth state changes
+    /**
+     * Listen for auth state changes
+     * This effect sets up an event listener to handle authentication state changes
+     * that might occur from other parts of the application
+     */
     useEffect(() => {
         const handleAuthChange = () => {
             const token = localStorage.getItem("token");

@@ -1,10 +1,52 @@
-// backend/src/controllers/docsController.js
+/*
+ * @name Documents Controller
+ * @file /docman/backend/src/controllers/docsController.js
+ * @module docsController
+ * @description Controller functions for document management including viewing, creating, updating, and deleting documents, as well as versioning and file management.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
 import User from "../models/User.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 import { sendDocumentAssignedNotification } from "./notificationsController.js";
 
+/**
+ * Helper function to send document assigned notifications
+ * @param {string} docId - Document ID
+ * @param {Array} stakeholders - Array of stakeholder user IDs
+ * @param {Array} owners - Array of owner user IDs
+ * @param {string} senderId - ID of the user sending the notifications
+ */
+async function sendDocumentNotifications(docId, stakeholders, owners, senderId) {
+    try {
+        // Combine stakeholders and owners into a single array
+        const recipients = [...(stakeholders || []), ...(owners || [])];
+        
+        // Remove duplicates
+        const uniqueRecipients = [...new Set(recipients.map(id => id.toString()))];
+        
+        // Send notifications to each recipient
+        for (const recipientId of uniqueRecipients) {
+            // Skip if the recipient is the sender
+            if (recipientId.toString() !== senderId.toString()) {
+                await sendDocumentAssignedNotification(recipientId, senderId, docId);
+            }
+        }
+    } catch (error) {
+        console.error("Error sending document notifications:", error);
+    }
+}
+
+/**
+ * Get all documents with optional filtering and sorting
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of documents or error message
+ */
 export async function getAllDocs(req, res) {
     try {
         const {
@@ -122,6 +164,12 @@ export async function getAllDocs(req, res) {
     }
 }
 
+/**
+ * Get a specific document by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with document data or error message
+ */
 export async function getDocById(req, res) {
     try {
         const doc = await Doc.findById(req.params.id)
@@ -141,6 +189,12 @@ export async function getDocById(req, res) {
     }
 }
 
+/**
+ * Create a new document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created document data or error message
+ */
 export async function createDoc(req, res) {
     try {
         const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt, externalContacts } = req.body;
@@ -246,6 +300,12 @@ export async function createDoc(req, res) {
     }
 }
 
+/**
+ * Update a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated document data or error message
+ */
 export async function updateDoc(req, res) {
     try {
         const { title, description, reviewDate, author, category, stakeholders, owners, reviewCompleted, reviewCompletedAt, externalContacts } = req.body;
@@ -328,6 +388,12 @@ export async function updateDoc(req, res) {
     }
 }
 
+/**
+ * Delete a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteDoc(req, res) {
     try {
         const deletedDoc = await Doc.findByIdAndDelete(req.params.id);
@@ -341,6 +407,12 @@ export async function deleteDoc(req, res) {
     }
 }
 
+/**
+ * Get all files associated with a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of files or error message
+ */
 export async function getDocFiles(req, res) {
     try {
         const docId = req.params.id;
@@ -361,6 +433,12 @@ export async function getDocFiles(req, res) {
     }
 }
 
+/**
+ * Mark a document as reviewed
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated document data or error message
+ */
 export async function markDocAsReviewed(req, res) {
     try {
         const { id } = req.params;
@@ -403,6 +481,13 @@ export async function markDocAsReviewed(req, res) {
         res.status(500).send("Internal Server Error");
     }
 }
+
+/**
+ * Get a specific version of a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with file data or error message
+ */
 export async function getDocVersion(req, res) {
     try {
         const { id, version } = req.params;
@@ -424,6 +509,12 @@ export async function getDocVersion(req, res) {
     }
 }
 
+/**
+ * Get version history for a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with version history or error message
+ */
 export async function getVersionHistory(req, res) {
     try {
         const { id } = req.params;
@@ -444,6 +535,12 @@ export async function getVersionHistory(req, res) {
     }
 }
 
+/**
+ * Compare two versions of a document
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with comparison data or error message
+ */
 export async function compareDocVersions(req, res) {
     try {
         const { id } = req.params;
@@ -466,27 +563,6 @@ export async function compareDocVersions(req, res) {
         
         if (!file1 || !file2) {
             return res.status(404).json({ message: "One or both document versions not found." });
-        }
-        
-        // Helper function to send document assigned notifications
-        async function sendDocumentNotifications(docId, stakeholders, owners, senderId) {
-            try {
-                // Combine stakeholders and owners into a single array
-                const recipients = [...(stakeholders || []), ...(owners || [])];
-                
-                // Remove duplicates
-                const uniqueRecipients = [...new Set(recipients.map(id => id.toString()))];
-                
-                // Send notifications to each recipient
-                for (const recipientId of uniqueRecipients) {
-                    // Skip if the recipient is the sender
-                    if (recipientId.toString() !== senderId.toString()) {
-                        await sendDocumentAssignedNotification(recipientId, senderId, docId);
-                    }
-                }
-            } catch (error) {
-                console.error("Error sending document notifications:", error);
-            }
         }
         
         // Get version history entries for context

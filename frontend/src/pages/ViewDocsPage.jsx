@@ -1,3 +1,13 @@
+/*
+ * @name View Documents Page
+ * @file /docman/frontend/src/pages/ViewDocsPage.jsx
+ * @page ViewDocsPage
+ * @description Page for viewing and filtering documents with search and sort capabilities.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { FileTextIcon, PlusIcon, FilePlus2 } from "lucide-react";
@@ -7,6 +17,10 @@ import { decodeJWT } from "../lib/utils";
 import PaginatedDocTable from "../components/PaginatedDocTable";
 import FilterBar from "../components/filters/FilterBar";
 
+/**
+ * Page component for viewing and filtering documents
+ * @returns {JSX.Element} The view documents page component
+ */
 const ViewDocsPage = () => {
     const [docs, setDocs] = useState([]);
     const [filteredDocs, setFilteredDocs] = useState([]);
@@ -23,7 +37,9 @@ const ViewDocsPage = () => {
     const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
     const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
 
-    // Get user role from token
+    /**
+     * Get user role from token when component mounts
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -32,7 +48,10 @@ const ViewDocsPage = () => {
         }
     }, []);
 
-    // Fetch initial data
+    /**
+     * Fetch initial data when component mounts
+     * Gets documents, categories, and users in parallel requests
+     */
     useEffect(() => {
         const fetchInitialData = async () => {
             setLoading(true);
@@ -61,7 +80,10 @@ const ViewDocsPage = () => {
         fetchInitialData();
     }, []);
 
-    // Fetch filtered documents when filters change
+    /**
+     * Fetch filtered documents when filter parameters change
+     * Builds query parameters and makes API request with filters
+     */
     useEffect(() => {
         const fetchFilteredDocs = async () => {
             try {
@@ -143,7 +165,9 @@ const ViewDocsPage = () => {
         }
     ];
 
-    // Clear all filters
+    /**
+     * Clear all filter parameters and reset to default values
+     */
     const handleClearAllFilters = () => {
         setSearchValue("");
         setCategoryFilter("");

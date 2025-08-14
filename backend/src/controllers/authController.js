@@ -1,3 +1,13 @@
+/*
+ * @name Authentication Controller
+ * @file /docman/backend/src/controllers/authController.js
+ * @module authController
+ * @description Controller functions for authentication-related operations including registration, login, password reset, and token management.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
@@ -13,7 +23,11 @@ import {
     sanitizeEmail
 } from "../lib/validation.js";
 
-// Helper to set refresh cookie
+/**
+ * Helper function to set refresh token cookie
+ * @param {Object} res - Express response object
+ * @param {string} token - Refresh token to set in cookie
+ */
 function setRefreshCookie(res, token) {
     res.cookie('refreshToken', token, {
         httpOnly: true,
@@ -23,6 +37,12 @@ function setRefreshCookie(res, token) {
     });
 }
 
+/**
+ * Register a new user account
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with access token and user data or error message
+ */
 export async function register(req, res) {
     try {
         const { email, firstname, lastname, username, password, role } = req.body;
@@ -102,6 +122,12 @@ export async function register(req, res) {
     }
 }
 
+/**
+ * Authenticate a user and generate access/refresh tokens
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with access token and user data or error message
+ */
 export async function login(req, res) {
     try {
         const { email, password } = req.body;
@@ -129,6 +155,12 @@ export async function login(req, res) {
     }
 }
 
+/**
+ * Request a password reset email
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function forgotPassword(req, res) {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -156,6 +188,12 @@ export async function forgotPassword(req, res) {
     }
 }
 
+/**
+ * Reset a user's password using a token
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function resetPassword(req, res) {
     const { token, password } = req.body;
     const user = await User.findOne({
@@ -172,6 +210,12 @@ export async function resetPassword(req, res) {
     res.json({ message: "Password has been reset." });
 }
 
+/**
+ * Refresh an expired access token using a refresh token
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with new access token or error message
+ */
 export async function refreshToken(req, res) {
     try {
         const cookieToken = req.cookies?.refreshToken;
@@ -201,6 +245,12 @@ export async function refreshToken(req, res) {
     }
 }
 
+/**
+ * Invalidate a user's refresh token and clear authentication cookies
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function logout(req, res) {
     try {
         const cookieToken = req.cookies?.refreshToken;

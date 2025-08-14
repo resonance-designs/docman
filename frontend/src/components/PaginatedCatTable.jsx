@@ -1,8 +1,26 @@
+/*
+ * @name Paginated Category Table Component
+ * @file /docman/frontend/src/components/PaginatedCatTable.jsx
+ * @component PaginatedCatTable
+ * @description Component for displaying categories in a paginated table.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { useState, useMemo, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import CatTable from "./CatTable";
 import PropTypes from "prop-types";
 
+/**
+ * Component for displaying categories in a paginated table
+ * @param {Object} props - Component properties
+ * @param {Array} props.categories - Array of category objects to display
+ * @param {Function} props.setCategories - Function to update the categories list
+ * @param {number} [props.itemsPerPage=25] - Number of items to display per page
+ * @returns {JSX.Element} The paginated category table component
+ */
 const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
@@ -13,23 +31,39 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
     const endIndex = startIndex + pageSize;
     const currentCategories = useMemo(() => categories.slice(startIndex, endIndex), [categories, startIndex, endIndex]);
 
-    // Handle page changes
+    /**
+     * Handle page changes
+     * @param {number} page - The page number to navigate to
+     */
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
             setCurrentPage(page);
         }
     };
 
+    /**
+     * Navigate to the previous page
+     */
     const goToPrevious = () => goToPage(currentPage - 1);
+
+    /**
+     * Navigate to the next page
+     */
     const goToNext = () => goToPage(currentPage + 1);
 
-    // Handle page size change
+    /**
+     * Handle page size change
+     * @param {number} newPageSize - The new page size to set
+     */
     const handlePageSizeChange = (newPageSize) => {
         setPageSize(newPageSize);
         setCurrentPage(1); // Reset to first page when changing page size
     };
 
-    // Generate page numbers for pagination controls
+    /**
+     * Generate page numbers for pagination controls
+     * @returns {Array} Array of page numbers and ellipsis for pagination display
+     */
     const getPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 5;
@@ -62,7 +96,9 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
         return pages;
     };
 
-    // Reset to page 1 when categories change
+    /**
+     * Reset to page 1 when categories change
+     */
     useEffect(() => {
         if (currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);

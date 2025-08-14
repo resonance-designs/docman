@@ -1,3 +1,13 @@
+/*
+ * @name My Profile Page
+ * @file /docman/frontend/src/pages/MyProfilePage.jsx
+ * @page MyProfilePage
+ * @description User profile management page for viewing and editing user information.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router";
 import { UserIcon, SaveIcon, EyeIcon, EyeOffIcon, CameraIcon, TrashIcon } from "lucide-react";
@@ -23,6 +33,10 @@ const getUserId = (user) => {
     return user?.id || user?._id || user?.userId || user?.sub;
 };
 
+/**
+ * User profile page component that allows users to view and edit their profile information
+ * @returns {JSX.Element} The profile page component
+ */
 const MyProfilePage = () => {
     const { currentTheme, setCurrentTheme } = useTheme(); // Use the theme context
     const { userId } = useParams(); // For admin editing other users
@@ -56,7 +70,10 @@ const MyProfilePage = () => {
         role: "viewer"
     });
 
-    // Get current user info and determine if admin
+    /**
+     * Get current user info and determine if admin
+     * This effect runs when the component mounts to check authentication status
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (token) {
@@ -76,7 +93,10 @@ const MyProfilePage = () => {
         }
     }, [userId, navigate]);
 
-    // Fetch user data
+    /**
+     * Fetch user data from the API
+     * This effect fetches user data when currentUser or userId changes
+     */
     useEffect(() => {
         const fetchUserData = async () => {
             if (!currentUser) return;
@@ -144,6 +164,10 @@ const MyProfilePage = () => {
         fetchUserData();
     }, [currentUser, userId, isEditingOther, navigate]);
 
+    /**
+     * Handle form input changes
+     * @param {Object} e - Event object from input change
+     */
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -155,6 +179,12 @@ const MyProfilePage = () => {
         validateField(name, value);
     };
 
+    /**
+     * Validate a single form field
+     * @param {string} fieldName - Name of the field to validate
+     * @param {string} value - Value of the field to validate
+     * @returns {string|null} Error message or null if valid
+     */
     const validateField = (fieldName, value) => {
         let error = null;
 
@@ -198,6 +228,10 @@ const MyProfilePage = () => {
         return error;
     };
 
+    /**
+     * Validate the entire form
+     * @returns {boolean} True if form is valid, false otherwise
+     */
     const validateForm = () => {
         const newErrors = {};
         let isValid = true;
@@ -267,6 +301,10 @@ const MyProfilePage = () => {
         return isValid;
     };
 
+    /**
+     * Handle profile picture file selection
+     * @param {Object} e - Event object from file input change
+     */
     const handleProfilePictureChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -310,6 +348,9 @@ const MyProfilePage = () => {
         }
     };
 
+    /**
+     * Upload profile picture to the server
+     */
     const handleProfilePictureUpload = async () => {
         if (!profilePicture) return;
 
@@ -351,6 +392,9 @@ const MyProfilePage = () => {
         }
     };
 
+    /**
+     * Delete profile picture from the server
+     */
     const handleProfilePictureDelete = async () => {
         if (!window.confirm("Are you sure you want to delete your profile picture?")) return;
 
@@ -380,6 +424,10 @@ const MyProfilePage = () => {
         }
     };
 
+    /**
+     * Handle background image file selection
+     * @param {Object} e - Event object from file input change
+     */
     const handleBackgroundImageChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -424,6 +472,9 @@ const MyProfilePage = () => {
         }
     };
 
+    /**
+     * Upload background image to the server
+     */
     const handleBackgroundImageUpload = async () => {
         if (!backgroundImage) return;
 
@@ -465,6 +516,9 @@ const MyProfilePage = () => {
         }
     };
 
+    /**
+     * Delete background image from the server
+     */
     const handleBackgroundImageDelete = async () => {
         if (!window.confirm("Are you sure you want to delete your background image?")) return;
 
@@ -494,6 +548,10 @@ const MyProfilePage = () => {
         }
     };
 
+    /**
+     * Handle form submission for updating user profile
+     * @param {Object} e - Event object from form submission
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -608,14 +666,14 @@ const MyProfilePage = () => {
 
                         {/* View My Profile Button - Only for self-editing */}
                         {!isEditingOther && currentUser && (
-    <Link
-        to={`/user/${getUserId(currentUser)}`}
-        className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
-    >
-        <EyeIcon size={16} />
-        View My Profile
-    </Link>
-)}
+                            <Link
+                                to={`/user/${getUserId(currentUser)}`}
+                                className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
+                            >
+                                <EyeIcon size={16} />
+                                View My Profile
+                            </Link>
+                        )}
                     </div>
 
                     {/* Profile Form */}

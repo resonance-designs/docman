@@ -1,4 +1,13 @@
-// controllers/usersController.js
+/*
+ * @name Users Controller
+ * @file /docman/backend/src/controllers/usersController.js
+ * @module usersController
+ * @description Controller functions for user management including viewing, updating, and deleting users, as well as profile picture and background image management.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import {
@@ -12,6 +21,12 @@ import {
     sanitizeEmail
 } from "../lib/validation.js";
 
+/**
+ * Get all users with optional filtering and sorting
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of users or error message
+ */
 export async function getAllUsers(req, res) {
     try {
         const {
@@ -54,6 +69,12 @@ export async function getAllUsers(req, res) {
     }
 }
 
+/**
+ * Get a specific user by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with user data or error message
+ */
 export async function getUserById(req, res) {
     try {
         const user = await User.findById(req.params.id, "_id firstname lastname email telephone title department bio role profilePicture backgroundImage theme createdAt updatedAt");
@@ -67,17 +88,16 @@ export async function getUserById(req, res) {
     }
 }
 
+/**
+ * Update user information (users can update themselves, admins can update anyone)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated user data or error message
+ */
 export async function updateUser(req, res) {
     try {
-        console.log("Update user request received");
-        console.log("Request body:", req.body);
-
-        console.log("Current user ID:", req.user._id.toString());
-        console.log("Current user role:", req.user.role);
-
         const { firstname, lastname, email, telephone, title, department, bio, password, role, theme } = req.body;
         const userId = req.params.id;
-        console.log("User ID from params:", req.params.id);
         const currentUserId = req.user._id.toString();
         const currentUserRole = req.user.role;
 
@@ -136,7 +156,6 @@ export async function updateUser(req, res) {
         }
 
         // Return validation errors if any
-        console.log("Validation errors:", validationErrors);
         if (validationErrors.length > 0) {
             return res.status(400).json({
                 message: "Validation failed",
@@ -147,15 +166,12 @@ export async function updateUser(req, res) {
             });
         }
 
-        console.log("Checking if user exists with ID:", userId);
         // Check if user exists
         const user = await User.findById(userId);
-        console.log("User found:", user);
         if (!user) {
             return res.status(404).json({ message: "User not found." });
         }
 
-        console.log("Authorization check - userId:", userId, "currentUserId:", currentUserId, "currentUserRole:", currentUserRole);
         // Authorization check: users can only edit themselves, admins can edit anyone
         if (userId !== currentUserId && currentUserRole !== "admin") {
             return res.status(403).json({ message: "You can only edit your own profile." });
@@ -184,17 +200,13 @@ export async function updateUser(req, res) {
             updateData.password = await bcrypt.hash(password, 12);
         }
 
-        console.log("Checking email uniqueness - email:", email, "user.email:", user.email);
         // Check for email uniqueness if email is being changed
         if (email && email !== user.email) {
             const existingUser = await User.findOne({ email, _id: { $ne: userId } });
-            console.log("Existing user with same email:", existingUser);
             if (existingUser) {
                 return res.status(409).json({ message: "Email already in use." });
             }
         }
-
-        console.log("Update data being sent to database:", updateData);
 
         // Add last updated by field
         updateData.lastUpdatedBy = currentUserId;
@@ -205,9 +217,6 @@ export async function updateUser(req, res) {
             { new: true, select: "_id firstname lastname email telephone title department bio role profilePicture backgroundImage theme createdAt updatedAt lastUpdatedBy" }
         );
 
-        console.log("Updated user:", updatedUser);
-
-        console.log("User updated successfully:", updatedUser);
         res.status(200).json({
             message: "User updated successfully",
             user: updatedUser
@@ -218,6 +227,12 @@ export async function updateUser(req, res) {
     }
 }
 
+/**
+ * Delete a user (only admins can delete users)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteUser(req, res) {
     try {
         const deletedUser = await User.findByIdAndDelete(req.params.id);

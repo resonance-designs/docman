@@ -1,17 +1,39 @@
 /* eslint-disable no-unused-vars */
+/*
+ * @name Login Page
+ * @file /docman/frontend/src/pages/LoginPage.jsx
+ * @page LoginPage
+ * @description Page for user authentication and login.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import { useState } from "react";
 import { Link } from "react-router";
 import { ShieldQuestionMark } from 'lucide-react';
 
+/**
+ * Page component for user login and authentication
+ * @returns {JSX.Element} The login page component
+ */
 function LoginPage() {
     const [loading] = useState(false);
     const [form, setForm] = useState({ email: "", password: "" });
     const [message, setMessage] = useState("");
 
+    /**
+     * Handle form input changes
+     * @param {Object} e - Event object from input change
+     */
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
+    /**
+     * Handle login form submission
+     * @param {Object} e - Event object from form submission
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage("");

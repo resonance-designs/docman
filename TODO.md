@@ -54,14 +54,16 @@ A list of features I plan on implementing into the application.
  ~~5.  Should be able to log to the console, a file, or a database~~
  ~~6.  Should be able to log errors, warnings, info, debug, etc...~~
 10. ~~Add backend unit tests for all endpoints in __tests__ folder, update any existing unit tests~~
-11. Cleanup and compartmentalize the code as much as possible
-12. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-13. Add comments
-14. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
-15. Create a fork with local storage for data and bundle into an Electron app for desktop use
-16. Create another fork with docker and kubernetes for cloud use
-17. Create another fork with a mobile app for iOS and Android
-18. Create another fork for the purpose of refactoring into a Recipes MERN app
+11. Add informational and usage comments throughout the frontend code
+12. Add informational and usage comments throughout the backend code
+13. Make certain comments dynamic somehow
+14. Cleanup and compartmentalize the code as much as possible
+15. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+16. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
+17. Create a fork with local storage for data and bundle into an Electron app for desktop use
+18. Create another fork with docker and kubernetes for cloud use
+19. Create another fork with a mobile app for iOS and Android
+20. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 

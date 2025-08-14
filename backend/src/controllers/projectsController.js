@@ -1,4 +1,13 @@
-// backend/src/controllers/projectsController.js
+/*
+ * @name Projects Controller
+ * @file /docman/backend/src/controllers/projectsController.js
+ * @module projectsController
+ * @description Controller functions for project management including viewing, creating, updating, and deleting projects, as well as collaborator and document management.
+ * @author Richard Bakos
+ * @version 1.1.8
+ * @license UNLICENSED
+ */
+
 import Project from "../models/Project.js";
 import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";
@@ -7,7 +16,12 @@ import {
     sanitizeString 
 } from "../lib/validation.js";
 
-// Get projects for a team
+/**
+ * Get projects for a specific team
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of projects or error message
+ */
 export async function getTeamProjects(req, res) {
     try {
         const teamId = req.params.teamId;
@@ -64,7 +78,12 @@ export async function getTeamProjects(req, res) {
     }
 }
 
-// Get user's projects across all teams
+/**
+ * Get user's projects across all teams
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of projects or error message
+ */
 export async function getUserProjects(req, res) {
     try {
         const userId = req.user._id.toString();
@@ -119,7 +138,12 @@ export async function getUserProjects(req, res) {
     }
 }
 
-// Get project by ID
+/**
+ * Get project by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with project data or error message
+ */
 export async function getProjectById(req, res) {
     try {
         const projectId = req.params.id;
@@ -151,23 +175,28 @@ export async function getProjectById(req, res) {
     }
 }
 
-// Create new project
+/**
+ * Create new project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with created project data or error message
+ */
 export async function createProject(req, res) {
     try {
         const { name, description, teamId, status, priority, startDate, endDate, tags } = req.body;
         const userId = req.user._id.toString();
 
         // Validation
-                const validationErrors = [];
+        const validationErrors = [];
 
-                if (!name) {
-                    validationErrors.push("Project name is required");
-                } else {
-                    const nameValidationError = validateName(name, "Project name");
-                    if (nameValidationError) {
-                        validationErrors.push(nameValidationError);
-                    }
-                }
+        if (!name) {
+            validationErrors.push("Project name is required");
+        } else {
+            const nameValidationError = validateName(name, "Project name");
+            if (nameValidationError) {
+                validationErrors.push(nameValidationError);
+            }
+        }
 
         if (!teamId) {
             validationErrors.push("Team ID is required");
@@ -237,7 +266,12 @@ export async function createProject(req, res) {
     }
 }
 
-// Update project
+/**
+ * Update project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated project data or error message
+ */
 export async function updateProject(req, res) {
     try {
         const projectId = req.params.id;
@@ -307,7 +341,12 @@ export async function updateProject(req, res) {
     }
 }
 
-// Delete project
+/**
+ * Delete project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function deleteProject(req, res) {
     try {
         const projectId = req.params.id;
@@ -338,11 +377,16 @@ export async function deleteProject(req, res) {
     }
 }
 
-// Add collaborator to project
+/**
+ * Add collaborator to project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function addCollaborator(req, res) {
     try {
         const projectId = req.params.id;
-                const userId = req.user._id.toString();
+        const userId = req.user._id.toString();
         const { collaboratorId, role = 'contributor' } = req.body;
 
         if (!['viewer', 'contributor', 'manager'].includes(role)) {
@@ -385,7 +429,12 @@ export async function addCollaborator(req, res) {
     }
 }
 
-// Remove collaborator from project
+/**
+ * Remove collaborator from project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function removeCollaborator(req, res) {
     try {
         const projectId = req.params.id;
@@ -425,7 +474,12 @@ export async function removeCollaborator(req, res) {
     }
 }
 
-// Add document to project
+/**
+ * Add document to project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function addDocument(req, res) {
     try {
         const projectId = req.params.id;
@@ -470,7 +524,12 @@ export async function addDocument(req, res) {
     }
 }
 
-// Remove document from project
+/**
+ * Remove document from project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
 export async function removeDocument(req, res) {
     try {
         const projectId = req.params.id;
