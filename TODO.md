@@ -6,7 +6,7 @@ DocMan hopes to be the most comprehensive piece of software to manage all of you
 
 A list of features I plan on implementing into the application.
 
-1. Check my authentication and User setup is sound and secure
+1. ~~Check my authentication and User setup is sound and secure~~
    1. ~~JWT authentication system~~
       1. ~~Check that there is email format, username length, password complexity, regex validation, etc...~~
       2. ~~Check that there are no issues with the inactivity/auto-logout functionality~~

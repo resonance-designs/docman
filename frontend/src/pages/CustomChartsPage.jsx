@@ -312,72 +312,74 @@ const CustomChartsPage = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Chart List */}
                         <div className="lg:col-span-1">
-                            <div className="bg-base-100 rounded-xl shadow-md p-6">
-                                <h2 className="text-xl font-bold text-base-content mb-4">Your Charts</h2>
-                                {charts.length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-base-content">No custom charts found.</p>
-                                        <button
-                                            onClick={handleCreateNew}
-                                            className="btn btn-sm mt-4 bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
-                                        >
-                                            Create Your First Chart
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                                        {charts.map((chart) => (
-                                            <div 
-                                                key={chart._id} 
-                                                className={`p-4 rounded-lg border ${
-                                                    selectedChart && selectedChart._id === chart._id 
-                                                        ? 'border-resdes-orange bg-resdes-orange/10' 
-                                                        : 'border-base-300'
-                                                }`}
+                            <div className="card bg-base-100">
+                                <div className="card-body">
+                                    <h2 className="text-xl font-bold text-base-content mb-4">Your Charts</h2>
+                                    {charts.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <p className="text-base-content">No custom charts found.</p>
+                                            <button
+                                                onClick={handleCreateNew}
+                                                className="btn btn-sm mt-4 bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
                                             >
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <h3 className="font-bold text-base-content">{chart.name}</h3>
-                                                        <p className="text-sm text-base-content/70 mt-1">{chart.description}</p>
-                                                        <div className="flex items-center gap-2 mt-2">
-                                                            <span className="badge badge-sm badge-primary">
-                                                                {chart.chartType}
-                                                            </span>
-                                                            {chart.isPublic && (
-                                                                <span className="badge badge-sm badge-success">
-                                                                    Public
+                                                Create Your First Chart
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                                            {charts.map((chart) => (
+                                                <div
+                                                    key={chart._id}
+                                                    className={`p-4 rounded-lg border ${
+                                                        selectedChart && selectedChart._id === chart._id
+                                                            ? 'border-resdes-orange bg-resdes-orange/10'
+                                                            : 'border-base-300'
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <h3 className="font-bold text-base-content">{chart.name}</h3>
+                                                            <p className="text-sm text-base-content/70 mt-1">{chart.description}</p>
+                                                            <div className="flex items-center gap-2 mt-2">
+                                                                <span className="badge badge-sm badge-primary">
+                                                                    {chart.chartType}
                                                                 </span>
-                                                            )}
+                                                                {chart.isPublic && (
+                                                                    <span className="badge badge-sm badge-success">
+                                                                        Public
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => handleView(chart)}
+                                                                className="btn btn-xs btn-ghost"
+                                                                title="View"
+                                                            >
+                                                                <EyeIcon size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleEdit(chart)}
+                                                                className="btn btn-xs btn-ghost"
+                                                                title="Edit"
+                                                            >
+                                                                <EditIcon size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(chart._id)}
+                                                                className="btn btn-xs btn-ghost text-red-500"
+                                                                title="Delete"
+                                                            >
+                                                                <TrashIcon size={14} />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-1">
-                                                        <button
-                                                            onClick={() => handleView(chart)}
-                                                            className="btn btn-xs btn-ghost"
-                                                            title="View"
-                                                        >
-                                                            <EyeIcon size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleEdit(chart)}
-                                                            className="btn btn-xs btn-ghost"
-                                                            title="Edit"
-                                                        >
-                                                            <EditIcon size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(chart._id)}
-                                                            className="btn btn-xs btn-ghost text-red-500"
-                                                            title="Delete"
-                                                        >
-                                                            <TrashIcon size={14} />
-                                                        </button>
-                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -385,174 +387,12 @@ const CustomChartsPage = () => {
                         <div className="lg:col-span-2">
                             {(isCreating || isEditing) ? (
                                 // Chart Editor Form
-                                <div className="bg-base-100 rounded-xl shadow-md p-6">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h2 className="text-xl font-bold text-base-content">
-                                            {isEditing ? "Edit Chart" : "Create New Chart"}
-                                        </h2>
-                                        <button
-                                            onClick={handleCancel}
-                                            className="btn btn-sm btn-ghost"
-                                        >
-                                            <XIcon size={16} />
-                                        </button>
-                                    </div>
-
-                                    <form onSubmit={handleSave}>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text">Chart Name *</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="name"
-                                                    value={formData.name}
-                                                    onChange={handleInputChange}
-                                                    className="input input-bordered w-full"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text">Chart Type</span>
-                                                </label>
-                                                <select
-                                                    name="chartType"
-                                                    value={formData.chartType}
-                                                    onChange={handleInputChange}
-                                                    className="select select-bordered w-full"
-                                                >
-                                                    {chartTypes.map(type => (
-                                                        <option key={type.value} value={type.value}>
-                                                            {type.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text">Data Source</span>
-                                                </label>
-                                                <select
-                                                    name="dataSource"
-                                                    value={formData.dataSource}
-                                                    onChange={handleInputChange}
-                                                    className="select select-bordered w-full"
-                                                >
-                                                    {dataSources.map(source => (
-                                                        <option key={source.value} value={source.value}>
-                                                            {source.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div>
-                                                <label className="label">
-                                                    <span className="label-text">Group By Field</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="groupByField"
-                                                    value={formData.groupByField}
-                                                    onChange={handleInputChange}
-                                                    className="input input-bordered w-full"
-                                                    placeholder="e.g., category, status"
-                                                />
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="label">
-                                                    <span className="label-text">Description</span>
-                                                </label>
-                                                <textarea
-                                                    name="description"
-                                                    value={formData.description}
-                                                    onChange={handleInputChange}
-                                                    className="textarea textarea-bordered w-full"
-                                                    rows="3"
-                                                />
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="label">
-                                                    <span className="label-text">Color Palette</span>
-                                                </label>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {colorPalettes.map((palette, index) => (
-                                                        <button
-                                                            key={index}
-                                                            type="button"
-                                                            onClick={() => handleColorPaletteSelect(palette)}
-                                                            className={`flex gap-1 p-1 rounded ${
-                                                                formData.colorPalette === palette 
-                                                                    ? 'ring-2 ring-resdes-orange' 
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {palette.map((color, i) => (
-                                                                <div 
-                                                                    key={i} 
-                                                                    className="w-4 h-4 rounded" 
-                                                                    style={{ backgroundColor: color }}
-                                                                />
-                                                            ))}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="label cursor-pointer justify-start gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        name="isPublic"
-                                                        checked={formData.isPublic}
-                                                        onChange={handleInputChange}
-                                                        className="checkbox"
-                                                    />
-                                                    <span className="label-text">Make this chart public</span>
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-end gap-3 mt-6">
-                                            <button
-                                                type="button"
-                                                onClick={handleCancel}
-                                                className="btn btn-ghost"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
-                                            >
-                                                <SaveIcon size={16} />
-                                                Save Chart
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            ) : selectedChart && chartData ? (
-                                // Chart Viewer
-                                <div className="bg-base-100 rounded-xl shadow-md p-6">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div>
-                                            <h2 className="text-xl font-bold text-base-content">{chartData.chartName}</h2>
-                                            <p className="text-base-content/70">{selectedChart.description}</p>
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => handleEdit(selectedChart)}
-                                                className="btn btn-sm btn-ghost"
-                                            >
-                                                <EditIcon size={16} />
-                                                Edit
-                                            </button>
+                                <div className="card bg-base-100">
+                                    <div className="card-body">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h2 className="text-xl font-bold text-base-content">
+                                                {isEditing ? "Edit Chart" : "Create New Chart"}
+                                            </h2>
                                             <button
                                                 onClick={handleCancel}
                                                 className="btn btn-sm btn-ghost"
@@ -560,49 +400,217 @@ const CustomChartsPage = () => {
                                                 <XIcon size={16} />
                                             </button>
                                         </div>
-                                    </div>
 
-                                    <div className="h-96">
-                                        {renderChart()}
-                                    </div>
+                                        <form onSubmit={handleSave}>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="label">
+                                                        <span className="label-text">Chart Name *</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        name="name"
+                                                        value={formData.name}
+                                                        onChange={handleInputChange}
+                                                        className="input input-bordered w-full"
+                                                        required
+                                                    />
+                                                </div>
 
-                                    <div className="mt-6">
-                                        <h3 className="font-bold text-base-content mb-2">Chart Data</h3>
-                                        <div className="overflow-x-auto">
-                                            <table className="table table-zebra">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Label</th>
-                                                        <th>Value</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {chartData.data.map((item, index) => (
-                                                        <tr key={index}>
-                                                            <td>{item._id || 'Unknown'}</td>
-                                                            <td>{item.count || item.value || 0}</td>
+                                                <div>
+                                                    <label className="label">
+                                                        <span className="label-text">Chart Type</span>
+                                                    </label>
+                                                    <select
+                                                        name="chartType"
+                                                        value={formData.chartType}
+                                                        onChange={handleInputChange}
+                                                        className="select select-bordered w-full"
+                                                    >
+                                                        {chartTypes.map(type => (
+                                                            <option key={type.value} value={type.value}>
+                                                                {type.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="label">
+                                                        <span className="label-text">Data Source</span>
+                                                    </label>
+                                                    <select
+                                                        name="dataSource"
+                                                        value={formData.dataSource}
+                                                        onChange={handleInputChange}
+                                                        className="select select-bordered w-full"
+                                                    >
+                                                        {dataSources.map(source => (
+                                                            <option key={source.value} value={source.value}>
+                                                                {source.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <label className="label">
+                                                        <span className="label-text">Group By Field</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        name="groupByField"
+                                                        value={formData.groupByField}
+                                                        onChange={handleInputChange}
+                                                        className="input input-bordered w-full"
+                                                        placeholder="e.g., category, status"
+                                                    />
+                                                </div>
+
+                                                <div className="md:col-span-2">
+                                                    <label className="label">
+                                                        <span className="label-text">Description</span>
+                                                    </label>
+                                                    <textarea
+                                                        name="description"
+                                                        value={formData.description}
+                                                        onChange={handleInputChange}
+                                                        className="textarea textarea-bordered w-full"
+                                                        rows="3"
+                                                    />
+                                                </div>
+
+                                                <div className="md:col-span-2">
+                                                    <label className="label">
+                                                        <span className="label-text">Color Palette</span>
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {colorPalettes.map((palette, index) => (
+                                                            <button
+                                                                key={index}
+                                                                type="button"
+                                                                onClick={() => handleColorPaletteSelect(palette)}
+                                                                className={`flex gap-1 p-1 rounded ${
+                                                                    formData.colorPalette === palette 
+                                                                        ? 'ring-2 ring-resdes-orange' 
+                                                                        : ''
+                                                                }`}
+                                                            >
+                                                                {palette.map((color, i) => (
+                                                                    <div 
+                                                                        key={i} 
+                                                                        className="w-4 h-4 rounded" 
+                                                                        style={{ backgroundColor: color }}
+                                                                    />
+                                                                ))}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="md:col-span-2">
+                                                    <label className="label cursor-pointer justify-start gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="isPublic"
+                                                            checked={formData.isPublic}
+                                                            onChange={handleInputChange}
+                                                            className="checkbox"
+                                                        />
+                                                        <span className="label-text">Make this chart public</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end gap-3 mt-6">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCancel}
+                                                    className="btn btn-ghost"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
+                                                >
+                                                    <SaveIcon size={16} />
+                                                    Save Chart
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            ) : selectedChart && chartData ? (
+                                // Chart Viewer
+                                <div className="card bg-base-100">
+                                    <div className="card-body">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div>
+                                                <h2 className="text-xl font-bold text-base-content">{chartData.chartName}</h2>
+                                                <p className="text-base-content/70">{selectedChart.description}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(selectedChart)}
+                                                    className="btn btn-sm btn-ghost"
+                                                >
+                                                    <EditIcon size={16} />
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={handleCancel}
+                                                    className="btn btn-sm btn-ghost"
+                                                >
+                                                    <XIcon size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="h-96">
+                                            {renderChart()}
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <h3 className="font-bold text-base-content mb-2">Chart Data</h3>
+                                            <div className="overflow-x-auto">
+                                                <table className="table table-zebra">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Label</th>
+                                                            <th>Value</th>
                                                         </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                                    </thead>
+                                                    <tbody>
+                                                        {chartData.data.map((item, index) => (
+                                                            <tr key={index}>
+                                                                <td>{item._id || 'Unknown'}</td>
+                                                                <td>{item.count || item.value || 0}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 // Empty State
-                                <div className="bg-base-100 rounded-xl shadow-md p-12 text-center">
-                                    <BarChart3Icon className="size-16 text-resdes-orange mx-auto mb-4" />
-                                    <h2 className="text-2xl font-bold text-base-content mb-2">Custom Charts</h2>
-                                    <p className="text-base-content/70 mb-6">
-                                        Create custom charts to visualize your data in meaningful ways.
-                                    </p>
-                                    <button
-                                        onClick={handleCreateNew}
-                                        className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
-                                    >
-                                        <PlusIcon size={16} />
-                                        Create Your First Chart
-                                    </button>
+                                <div className="card bg-base-100">
+                                    <div className="card-body text-center">
+                                        <BarChart3Icon className="size-16 text-resdes-orange mx-auto mb-4" />
+                                        <h2 className="text-2xl font-bold text-base-content mb-2">Custom Charts</h2>
+                                        <p className="text-base-content/70 mb-6">
+                                            Create custom charts to visualize your data in meaningful ways.
+                                        </p>
+                                        <button
+                                            onClick={handleCreateNew}
+                                            className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
+                                        >
+                                            <PlusIcon size={16} />
+                                            Create Your First Chart
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

@@ -63,13 +63,15 @@ const SystemInfoPage = () => {
     }
 
     const InfoCard = ({ icon: Icon, title, children }) => (
-        <div className="bg-base-100 rounded-xl shadow-md p-6">
-            <div className="flex items-center gap-3 mb-4">
-                <Icon className="size-6 text-resdes-orange" />
-                <h3 className="text-xl font-bold text-base-content">{title}</h3>
-            </div>
-            <div className="space-y-3">
-                {children}
+        <div className="card bg-base-100">
+            <div className="card-body">
+                <div className="flex items-center gap-3 mb-4">
+                    <Icon className="size-6 text-resdes-orange" />
+                    <h3 className="text-xl font-bold text-base-content">{title}</h3>
+                </div>
+                <div className="space-y-3">
+                    {children}
+                </div>
             </div>
         </div>
     );
@@ -145,19 +147,21 @@ const SystemInfoPage = () => {
                     {/* Additional Information */}
                     {systemInfo.additional && (
                         <div className="mt-6">
-                            <div className="bg-base-100 rounded-xl p-6">
-                                <h3 className="text-lg font-bold text-base-content mb-4">Additional Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {Object.entries(systemInfo.additional).map(([key, value]) => (
-                                        <div key={key} className="bg-base-300 rounded-lg p-3">
-                                            <div className="text-sm font-medium text-base-content capitalize">
-                                                {key.replace(/([A-Z])/g, ' $1').trim()}
+                            <div className="card bg-base-100">
+                                <div className="card-body">
+                                    <h3 className="text-lg font-bold text-base-content mb-4">Additional Information</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {Object.entries(systemInfo.additional).map(([key, value]) => (
+                                            <div key={key} className="bg-base-300 rounded-lg p-3">
+                                                <div className="text-sm font-medium text-base-content capitalize">
+                                                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                                                </div>
+                                                <div className="text-base font-semibold text-base-content">
+                                                    {typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value)}
+                                                </div>
                                             </div>
-                                            <div className="text-base font-semibold text-base-content">
-                                                {typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value)}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -630,6 +630,8 @@ const MyProfilePage = () => {
                 confirmPassword: ""
             }));
 
+// Reset dataFetched to allow fetching updated data
+            setDataFetched(false);
             // If editing own profile and email changed, might need to re-login
             if (!isEditingOther && formData.email !== originalEmail) {
                 toast.success("Email updated. You may need to log in again.");

@@ -56,23 +56,32 @@ const ViewDocsPage = () => {
         const fetchInitialData = async () => {
             setLoading(true);
             try {
-                const token = localStorage.getItem("token");
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
                 // Fetch all data in parallel
                 const [docsRes, categoriesRes, usersRes] = await Promise.all([
-                    api.get("/docs", { headers }),
-                    api.get("/categories", { headers }),
-                    api.get("/users", { headers })
+                    api.get("/docs"),
+                    api.get("/categories"),
+                    api.get("/users")
                 ]);
 
-                console.log("📄 ViewDocsPage: Raw docs response:", docsRes.data);
-                setDocs(ensureArray(docsRes.data));
+                // Handle different response structures for docs
+                let docsArray = [];
+                if (Array.isArray(docsRes.data)) {
+                    docsArray = docsRes.data;
+                } else if (docsRes.data && Array.isArray(docsRes.data.documents)) {
+                    docsArray = docsRes.data.documents;
+                } else if (docsRes.data && Array.isArray(docsRes.data.docs)) {
+                    docsArray = docsRes.data.docs;
+                } else {
+                    console.warn("📄 ViewDocsPage: Unexpected docs response structure:", docsRes.data);
+                }
+                
+                setDocs(ensureArray(docsArray));
                 setCategories(ensureArray(categoriesRes.data));
                 setUsers(ensureArray(usersRes.data));
-                setFilteredDocs(ensureArray(docsRes.data));
+                setFilteredDocs(ensureArray(docsArray));
             } catch (error) {
                 console.error("Error fetching data:", error);
+                console.error("Error details:", error.response?.data || error.message);
                 toast.error("Failed to load data");
             } finally {
                 setLoading(false);
@@ -89,9 +98,6 @@ const ViewDocsPage = () => {
     useEffect(() => {
         const fetchFilteredDocs = async () => {
             try {
-                const token = localStorage.getItem("token");
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
                 // Build query parameters
                 const params = new URLSearchParams();
                 if (searchValue) params.append('search', searchValue);
@@ -106,20 +112,30 @@ const ViewDocsPage = () => {
                 const queryString = params.toString();
                 const url = queryString ? `/docs?${queryString}` : '/docs';
 
-                const res = await api.get(url, { headers });
-                setFilteredDocs(ensureArray(res.data));
+                const res = await api.get(url);
+                // Handle different response structures for docs
+                let docsArray = [];
+                if (Array.isArray(res.data)) {
+                    docsArray = res.data;
+                } else if (res.data && Array.isArray(res.data.documents)) {
+                    docsArray = res.data.documents;
+                } else if (res.data && Array.isArray(res.data.docs)) {
+                    docsArray = res.data.docs;
+                } else {
+                    console.warn("📄 ViewDocsPage: Unexpected filtered docs response structure:", res.data);
+                }
+                
+                setFilteredDocs(ensureArray(docsArray));
             } catch (error) {
                 console.error("Error fetching filtered documents:", error);
                 toast.error("Failed to filter documents");
             }
         };
 
-        // Only fetch if we have initial data
-        const safeDocsArray = ensureArray(docs);
-        if (safeDocsArray.length > 0 || searchValue || categoryFilter || authorFilter || overdueFilter || dateRange.startDate || dateRange.endDate) {
-            fetchFilteredDocs();
-        }
-    }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig, docs.length]);
+        // Fetch filtered docs when filters change, or when initial data is loaded
+        // Always fetch on initial load to ensure data consistency
+        fetchFilteredDocs();
+    }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig]);
 
     // Check if user can create documents (editor or admin)
     const canCreateDocument = userRole === "editor" || userRole === "admin";
@@ -208,7 +224,7 @@ const ViewDocsPage = () => {
                             </Link>
                         )}
                     </div>
-
+                    
                     {/* Loading State */}
                     {loading && (
                         <div className="text-center text-resdes-teal py-10">
@@ -216,8 +232,8 @@ const ViewDocsPage = () => {
                         </div>
                     )}
 
-                    {/* Filter Bar */}
-                    {!loading && docs.length > 0 && (
+                    {/* Filter Bar - Show when not loading and we have docs or are admin */}
+                    {!loading && (docs.length > 0 || userRole === 'admin') && (
                         <FilterBar
                             searchValue={searchValue}
                             onSearchChange={setSearchValue}
