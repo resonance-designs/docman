@@ -72,7 +72,7 @@ export function useUserRole({ autoUpdate = true } = {}) {
         } finally {
             setLoading(false);
         }
-    }, []); // Empty dependency array to prevent infinite loops
+    }, [setIsAuthenticated, setUserRole, setUserId, setUserInfo, setLoading]); // Include state setters as dependencies
 
     /**
      * Check if user has specific role
@@ -129,12 +129,15 @@ export function useUserRole({ autoUpdate = true } = {}) {
      */
     const logout = useCallback(() => {
         localStorage.removeItem("token");
-        // Manually update state instead of calling updateAuthState to avoid dependency issues
+        // Update state immediately
         setIsAuthenticated(false);
         setUserRole(null);
         setUserId(null);
         setUserInfo(null);
         setLoading(false);
+
+        // Dispatch event to notify other components
+        window.dispatchEvent(new Event('authStateChanged'));
     }, []);
 
     /**
@@ -167,7 +170,7 @@ export function useUserRole({ autoUpdate = true } = {}) {
             window.removeEventListener("storage", handleStorageChange);
             window.removeEventListener("authStateChanged", handleAuthStateChange);
         };
-    }, [autoUpdate]); // Remove updateAuthState dependency to prevent infinite loops
+    }, [autoUpdate, updateAuthState]); // Include updateAuthState to ensure fresh closure
 
     return {
         // State
