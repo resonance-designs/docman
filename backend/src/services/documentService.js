@@ -8,6 +8,7 @@
  * @license UNLICENSED
  */
 import Doc from "../models/Doc.js";
+import File from "../models/File.js";
 import { sanitizeErrorMessage, logError } from "../lib/utils.js";
 
 /**
@@ -351,21 +352,42 @@ export async function createDocument(documentData, file, user) {
             category: documentData.category,
             reviewDate: documentData.reviewDate,
             ...parsedFields,
-            createdBy: user.id,
-            lastUpdatedBy: user.id
+            createdBy: user._id || user.id,
+            lastUpdatedBy: user._id || user.id
         };
-
-        // Add file information if provided
-        if (file) {
-            docData.filename = file.filename;
-            docData.originalname = file.originalname;
-            docData.mimetype = file.mimetype;
-            docData.size = file.size;
-            docData.url = `/uploads/${file.filename}`;
-        }
 
         const doc = new Doc(docData);
         await doc.save();
+
+        // Create file record if file is provided
+        if (file) {
+            const newFile = new File({
+                filename: file.filename,
+                originalname: file.originalname,
+                path: file.path,
+                mimetype: file.mimetype,
+                size: file.size,
+                documentId: doc._id,
+                versionLabel: "Initial Version",
+                uploadedAt: new Date(),
+                uploadedBy: user._id || user.id,
+                changelog: "Initial document upload"
+            });
+
+            await newFile.save();
+
+            // Update document's current version and version history
+            doc.currentVersion = newFile.version;
+            doc.versionHistory = [{
+                version: newFile.version,
+                label: newFile.versionLabel,
+                uploadedAt: newFile.uploadedAt,
+                uploadedBy: newFile.uploadedBy,
+                changelog: newFile.changelog
+            }];
+            
+            await doc.save();
+        }
 
         // Populate the created document
         await doc.populate([

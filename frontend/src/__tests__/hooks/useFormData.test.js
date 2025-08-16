@@ -42,7 +42,7 @@ describe('useFormData', () => {
                     return Promise.resolve({ data: mockUsers });
                 case '/categories':
                     return Promise.resolve({ data: mockCategories });
-                case '/external-contact-types':
+                case '/external-contacts/types':
                     return Promise.resolve({ data: mockExternalContactTypes });
                 default:
                     return Promise.reject(new Error('Unknown endpoint'));
@@ -132,7 +132,7 @@ describe('useFormData', () => {
 
             expect(api.get).not.toHaveBeenCalledWith('/users');
             expect(api.get).toHaveBeenCalledWith('/categories');
-            expect(api.get).not.toHaveBeenCalledWith('/external-contact-types');
+            expect(api.get).not.toHaveBeenCalledWith('/external-contacts/types');
         });
 
         test('should load only external contact types when specified', async () => {
@@ -154,7 +154,7 @@ describe('useFormData', () => {
 
             expect(api.get).not.toHaveBeenCalledWith('/users');
             expect(api.get).not.toHaveBeenCalledWith('/categories');
-            expect(api.get).toHaveBeenCalledWith('/external-contact-types');
+            expect(api.get).toHaveBeenCalledWith('/external-contacts/types');
         });
 
         test('should not make any API calls when all loading options are false', async () => {
@@ -197,7 +197,7 @@ describe('useFormData', () => {
                         return Promise.resolve({ data: mockUsers });
                     case '/categories':
                         return Promise.reject(new Error('Categories API Error'));
-                    case '/external-contact-types':
+                    case '/external-contacts/types':
                         return Promise.resolve({ data: mockExternalContactTypes });
                     default:
                         return Promise.reject(new Error('Unknown endpoint'));

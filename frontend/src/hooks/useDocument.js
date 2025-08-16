@@ -50,7 +50,7 @@ export function useDocument(documentId, {
                 requests.push(api.get(`/docs/${documentId}/files`));
             }
             if (loadVersionHistory) {
-                requests.push(api.get(`/docs/${documentId}/versions`));
+                requests.push(api.get(`/docs/${documentId}/history`));
             }
 
             const responses = await Promise.all(requests);

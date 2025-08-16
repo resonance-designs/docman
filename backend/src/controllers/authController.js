@@ -49,27 +49,25 @@ export async function register(req, res) {
         // Validation
         const validationErrors = [];
 
-        const firstnameError = validateName(firstname, "First name");
-        if (firstnameError) validationErrors.push({ field: "firstname", message: firstnameError });
+        const firstnameResult = validateName(firstname, "First name");
+        if (!firstnameResult.isValid) validationErrors.push({ field: "firstname", message: firstnameResult.error });
 
-        const lastnameError = validateName(lastname, "Last name");
-        if (lastnameError) validationErrors.push({ field: "lastname", message: lastnameError });
+        const lastnameResult = validateName(lastname, "Last name");
+        if (!lastnameResult.isValid) validationErrors.push({ field: "lastname", message: lastnameResult.error });
 
-        const emailError = validateEmail(email);
-        if (emailError) validationErrors.push({ field: "email", message: emailError });
+        const emailResult = validateEmail(email);
+        if (!emailResult.isValid) validationErrors.push({ field: "email", message: emailResult.error });
 
-        const passwordError = validatePassword(password);
-        if (passwordError) validationErrors.push({ field: "password", message: passwordError });
+        const passwordResult = validatePassword(password);
+        if (!passwordResult.isValid) validationErrors.push({ field: "password", message: passwordResult.error });
 
         if (role) {
-            const roleError = validateRole(role);
-            if (roleError) validationErrors.push({ field: "role", message: roleError });
+            const roleResult = validateRole(role);
+            if (!roleResult.isValid) validationErrors.push({ field: "role", message: roleResult.error });
         }
 
-        if (!username || typeof username !== 'string') {
-            const usernameError = validateUsername(username);
-            if (usernameError) validationErrors.push({ field: "username", message: usernameError });
-        }
+        const usernameError = validateUsername(username);
+        if (usernameError) validationErrors.push({ field: "username", message: usernameError });
 
         // Return validation errors if any
         if (validationErrors.length > 0) {
@@ -81,11 +79,12 @@ export async function register(req, res) {
                 }, {})
             });
         }
-        // Sanitize input data
-        const sanitizedEmail = sanitizeEmail(email);
-        const sanitizedFirstname = sanitizeString(firstname);
-        const sanitizedLastname = sanitizeString(lastname);
-        const sanitizedUsername = sanitizeString(username);
+        
+        // Use sanitized values from validation results
+        const sanitizedEmail = emailResult.sanitized;
+        const sanitizedFirstname = firstnameResult.sanitized;
+        const sanitizedLastname = lastnameResult.sanitized;
+        const sanitizedUsername = sanitizeString(username); // validateUsername doesn't return sanitized value
 
         const existingUser = await User.findOne({
             $or: [{ email: sanitizedEmail }, { username: sanitizedUsername }]
