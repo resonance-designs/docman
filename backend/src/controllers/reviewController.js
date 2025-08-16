@@ -30,12 +30,12 @@ export async function createReviewAssignments(req, res) {
             const newAssignment = new ReviewAssignment({
                 document: documentId,
                 assignee: assignment.assignee,
-                assignedBy: req.user.id,
+                assignedBy: req.user._id || req.user.id,
                 dueDate: assignment.dueDate,
                 notes: assignment.notes,
                 status: 'pending'
             });
-
+            
             await newAssignment.save();
             createdAssignments.push(newAssignment);
 

@@ -78,7 +78,7 @@ const EditDocPage = () => {
                     api.get(`/docs/${id}`),
                     api.get("/users"),
                     api.get("/categories"),
-                    api.get("/external-contact-types"),
+                    api.get("/external-contacts/types"),
                 ]);
                 const doc = docRes.data;
                 setUsers(usersRes.data || []);

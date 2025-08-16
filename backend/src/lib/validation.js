@@ -7,33 +7,33 @@
 export const validateEmail = (email) => {
     // More robust email regex
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    if (!email) return "Email is required";
-    if (typeof email !== 'string') return "Email must be a string";
-    if (!emailRegex.test(email)) return "Please enter a valid email address";
-    if (email.length > 254) return "Email address is too long";
-    return null;
+    if (!email) return { isValid: false, error: "Email is required" };
+    if (typeof email !== 'string') return { isValid: false, error: "Email must be a string" };
+    if (!emailRegex.test(email)) return { isValid: false, error: "Please enter a valid email address" };
+    if (email.length > 254) return { isValid: false, error: "Email address is too long" };
+    return { isValid: true, sanitized: email.trim().toLowerCase() };
 };
 
 export const validatePassword = (password) => {
-    if (!password) return "Password is required";
-    if (typeof password !== 'string') return "Password must be a string";
-    if (password.length < 8) return "Password must be at least 8 characters long";
-    if (password.length > 128) return "Password is too long";
-    if (!/(?=.*[a-z])/.test(password)) return "Password must contain at least one lowercase letter";
-    if (!/(?=.*[A-Z])/.test(password)) return "Password must contain at least one uppercase letter";
-    if (!/(?=.*\d)/.test(password)) return "Password must contain at least one number";
-    if (!/(?=.*[@$!%*?&])/.test(password)) return "Password must contain at least one special character (@$!%*?&)";
-    return null;
+    if (!password) return { isValid: false, error: "Password is required" };
+    if (typeof password !== 'string') return { isValid: false, error: "Password must be a string" };
+    if (password.length < 8) return { isValid: false, error: "Password must be at least 8 characters long" };
+    if (password.length > 128) return { isValid: false, error: "Password is too long" };
+    if (!/(?=.*[a-z])/.test(password)) return { isValid: false, error: "Password must contain at least one lowercase letter" };
+    if (!/(?=.*[A-Z])/.test(password)) return { isValid: false, error: "Password must contain at least one uppercase letter" };
+    if (!/(?=.*\d)/.test(password)) return { isValid: false, error: "Password must contain at least one number" };
+    if (!/(?=.*[@$!%*?&])/.test(password)) return { isValid: false, error: "Password must contain at least one special character (@$!%*?&)" };
+    return { isValid: true, sanitized: password };
 };
 
 export const validateName = (name, fieldName = "Name") => {
-    if (!name) return `${fieldName} is required`;
-    if (typeof name !== 'string') return `${fieldName} must be a string`;
+    if (!name) return { isValid: false, error: `${fieldName} is required` };
+    if (typeof name !== 'string') return { isValid: false, error: `${fieldName} must be a string` };
     const trimmedName = name.trim();
-    if (trimmedName.length < 2) return `${fieldName} must be at least 2 characters long`;
-    if (trimmedName.length > 50) return `${fieldName} must be less than 50 characters`;
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmedName)) return `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`;
-    return null;
+    if (trimmedName.length < 2) return { isValid: false, error: `${fieldName} must be at least 2 characters long` };
+    if (trimmedName.length > 50) return { isValid: false, error: `${fieldName} must be less than 50 characters` };
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmedName)) return { isValid: false, error: `${fieldName} can only contain letters, spaces, hyphens, and apostrophes` };
+    return { isValid: true, sanitized: trimmedName };
 };
 
 export const validateUsername = (username) => {
@@ -69,23 +69,23 @@ export const validateUsername = (username) => {
 };
 
 export const validatePhone = (phone) => {
-    if (!phone) return null; // Phone is optional
-    if (typeof phone !== 'string') return "Phone number must be a string";
+    if (!phone) return { isValid: true, sanitized: "" }; // Phone is optional
+    if (typeof phone !== 'string') return { isValid: false, error: "Phone number must be a string" };
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
     if (cleanPhone.length > 0) {
         const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
         if (!phoneRegex.test(cleanPhone)) {
-            return "Please enter a valid phone number";
+            return { isValid: false, error: "Please enter a valid phone number" };
         }
     }
-    return null;
+    return { isValid: true, sanitized: phone.trim() };
 };
 
 export const validateTitle = (title) => {
-    if (!title) return null; // Title is optional
-    if (typeof title !== 'string') return "Title must be a string";
-    if (title.trim().length > 100) return "Title must be less than 100 characters";
-    return null;
+    if (!title) return { isValid: true, sanitized: "" }; // Title is optional
+    if (typeof title !== 'string') return { isValid: false, error: "Title must be a string" };
+    if (title.trim().length > 100) return { isValid: false, error: "Title must be less than 100 characters" };
+    return { isValid: true, sanitized: title.trim() };
 };
 
 export const validateDocumentTitle = (title) => {
@@ -125,10 +125,10 @@ export const validateCategoryDescription = (description) => {
 
 export const validateRole = (role) => {
     const validRoles = ['viewer', 'editor', 'admin'];
-    if (!role) return "Role is required";
-    if (typeof role !== 'string') return "Role must be a string";
-    if (!validRoles.includes(role)) return "Please select a valid role";
-    return null;
+    if (!role) return { isValid: false, error: "Role is required" };
+    if (typeof role !== 'string') return { isValid: false, error: "Role must be a string" };
+    if (!validRoles.includes(role)) return { isValid: false, error: "Please select a valid role" };
+    return { isValid: true, sanitized: role };
 };
 
 export const validateTeamName = (name) => {

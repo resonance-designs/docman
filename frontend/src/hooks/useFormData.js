@@ -50,7 +50,7 @@ export function useFormData({
                     requests.push(api.get("/categories"));
                 }
                 if (loadExternalContactTypes) {
-                    requests.push(api.get("/external-contact-types"));
+                    requests.push(api.get("/external-contacts/types"));
                 }
 
                 const responses = await Promise.all(requests);

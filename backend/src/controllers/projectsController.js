@@ -187,9 +187,9 @@ export async function createProject(req, res) {
         if (!name) {
             validationErrors.push("Project name is required");
         } else {
-            const nameValidationError = validateName(name, "Project name");
-            if (nameValidationError) {
-                validationErrors.push(nameValidationError);
+            const nameValidationResult = validateName(name, "Project name");
+            if (!nameValidationResult.isValid) {
+                validationErrors.push(nameValidationResult.error);
             }
         }
 
@@ -287,9 +287,9 @@ export async function updateProject(req, res) {
         const validationErrors = [];
 
         if (name) {
-            const nameValidationError = validateName(name, "Project name");
-            if (nameValidationError) {
-                validationErrors.push(nameValidationError);
+            const nameValidationResult = validateName(name, "Project name");
+            if (!nameValidationResult.isValid) {
+                validationErrors.push(nameValidationResult.error);
             }
         }
 

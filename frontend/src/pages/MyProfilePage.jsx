@@ -124,7 +124,7 @@ const MyProfilePage = () => {
 
                 const targetUserId = isEditingOther ? userId : currentUserId;
                 console.log("Target user ID:", targetUserId); // Debug log
-                
+
                 const res = await api.get(`/users/${targetUserId}`, { headers });
 
                 const userData = ensureObject(res.data);
@@ -568,6 +568,10 @@ const MyProfilePage = () => {
 
         // Validate form
         if (!validateForm()) {
+            console.log("Form validation failed");
+            console.log("Form data:", formData);
+            console.log("Validation errors:", errors);
+
             toast.error("Please fix the errors below");
             return;
         }
@@ -578,6 +582,7 @@ const MyProfilePage = () => {
             const headers = { Authorization: `Bearer ${token}` };
 
             const currentUserId = getUserId(currentUser);
+            console.log("Current User ID:", currentUserId);
 
             // Check if we have a valid user ID
             if (!isEditingOther && !currentUserId) {
@@ -612,12 +617,12 @@ const MyProfilePage = () => {
             const targetUserId = isEditingOther ? userId : currentUserId;
             console.log("Sending update data:", updateData);
             console.log("Target user ID:", targetUserId);
-            
+
             const response = await api.put(`/users/${targetUserId}`, updateData, { headers });
             console.log("Update response:", response);
 
             toast.success(isEditingOther ? "User updated successfully" : "Profile updated successfully");
-            
+
             // Update the theme context with the new theme
             if (formData.theme !== currentTheme) {
                 setCurrentTheme(formData.theme);
@@ -679,14 +684,14 @@ const MyProfilePage = () => {
 
                         {/* View My Profile Button - Only for self-editing */}
                         {!isEditingOther && currentUser && (
-    <Link
-        to={`/user/${getUserId(currentUser)}`}
-        className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
-    >
-        <EyeIcon size={16} />
-        View My Profile
-    </Link>
-)}
+                            <Link
+                                to={`/user/${getUserId(currentUser)}`}
+                                className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
+                            >
+                                <EyeIcon size={16} />
+                                View My Profile
+                            </Link>
+                        )}
                     </div>
 
                     {/* Profile Form */}

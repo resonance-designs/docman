@@ -36,19 +36,26 @@ const CreateProjectPage = () => {
         const token = localStorage.getItem("token");
         if (token) {
             const decoded = decodeJWT(token);
+            console.log("Decoded JWT:", decoded);
+            console.log("User role:", decoded?.role);
             setUserRole(decoded?.role);
+        } else {
+            console.log("No token found");
         }
     }, []);
 
     // Fetch user's teams
     useEffect(() => {
         const fetchTeams = async () => {
+            console.log("Fetching teams...");
             setTeamsLoading(true);
             try {
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
+                console.log("Making request to /teams/my-teams with headers:", headers);
                 const res = await api.get("/teams/my-teams", { headers });
+                console.log("Teams response:", res.data);
                 setTeams(res.data);
             } catch (error) {
                 console.error("Error fetching teams:", error);
@@ -58,9 +65,12 @@ const CreateProjectPage = () => {
             }
         };
 
+        console.log("User role:", userRole);
         if (userRole === "editor" || userRole === "admin") {
+            console.log("User has permission to fetch teams");
             fetchTeams();
         } else {
+            console.log("User does not have permission to fetch teams");
             setTeamsLoading(false);
         }
     }, [userRole]);
@@ -145,10 +155,13 @@ const CreateProjectPage = () => {
             if (error.response?.data?.errors) {
                 const serverErrors = {};
                 error.response.data.errors.forEach(err => {
-                    if (err.includes("name")) {
-                        serverErrors.name = err;
-                    } else if (err.includes("team")) {
-                        serverErrors.teamId = err;
+                    // Convert error to string if it's not already a string
+                    const errorMessage = typeof err === 'string' ? err : err.message || String(err);
+                    
+                    if (errorMessage.toLowerCase().includes("name")) {
+                        serverErrors.name = errorMessage;
+                    } else if (errorMessage.toLowerCase().includes("team")) {
+                        serverErrors.teamId = errorMessage;
                     }
                 });
                 setErrors(serverErrors);

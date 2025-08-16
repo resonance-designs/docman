@@ -34,8 +34,9 @@ function RegisterUser() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        if (!email.trim() || !username.trim() || !password.trim()) {
+        if (!email.trim() || !firstname.trim() || !lastname.trim() || !username.trim() || !password.trim()) {
             toast.error("All fields are required");
+            setLoading(false);
             return;
         }
         try {
@@ -51,11 +52,24 @@ function RegisterUser() {
             navigate("/");
         } catch (error) {
             console.log("Error creating user", error);
-            if (error.response.status === 429) {
+            if (error.response?.status === 429) {
                 toast.error("Slow down! You're registering users too fast", {
                     duration: 4000,
                     icon: "💀",
                 });
+            } else if (error.response?.status === 409) {
+                toast.error("User already exists with this email or username");
+            } else if (error.response?.status === 400) {
+                // Show specific validation errors if available
+                const errorMessage = error.response?.data?.message || "Validation failed";
+                const errors = error.response?.data?.errors;
+                if (errors) {
+                    // Show the first validation error
+                    const firstError = Object.values(errors)[0];
+                    toast.error(firstError);
+                } else {
+                    toast.error(errorMessage);
+                }
             } else {
                 toast.error("Failed to register user");
             }
@@ -89,9 +103,9 @@ function RegisterUser() {
                                     </label>
                                     <input
                                         id="firstname"
-                                        type="test"
+                                        type="text"
                                         name="firstname"
-                                        placeholder="Enter the  users first name"
+                                        placeholder="Enter the users first name"
                                         className="input input-bordered"
                                         value={firstname}
                                         onChange={(e) => setFirstName(e.target.value)}
@@ -105,7 +119,7 @@ function RegisterUser() {
                                     </label>
                                     <input
                                         id="lastname"
-                                        type="test"
+                                        type="text"
                                         name="lastname"
                                         placeholder="Enter the users last name"
                                         className="input input-bordered"
@@ -137,7 +151,7 @@ function RegisterUser() {
                                     </label>
                                     <input
                                         id="username"
-                                        type="username"
+                                        type="text"
                                         name="username"
                                         placeholder="Choose a username"
                                         className="input input-bordered"
