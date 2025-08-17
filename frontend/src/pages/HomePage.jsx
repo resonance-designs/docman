@@ -4,7 +4,7 @@
  * @page HomePage
  * @description Main dashboard page displaying document overview, recent documents, and quick access to key features
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ import api from "../lib/axios";
 import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
 import PaginatedDocTable from "../components/PaginatedDocTable";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { useUserRole } from "../hooks";
 
 import { Link } from "react-router";
@@ -30,6 +31,8 @@ const HomePage = () => {
     const [docs, setDocs] = useState([]); // Always initialize as empty array
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
+    const [pagination, setPagination] = useState(null);
+    const [pageSize, setPageSize] = useState(10);
 
     console.log("🏠 HomePage render:", {
         isAuthenticated,
@@ -127,6 +130,49 @@ const HomePage = () => {
         }
     };
 
+    // Handle page change
+    const handlePageChange = async (page) => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.append('page', page);
+            params.append('limit', pageSize);
+            
+            const res = await api.get(`/docs?${params.toString()}`);
+            
+            // Handle different response structures
+            let docsArray = [];
+            if (Array.isArray(res.data)) {
+                docsArray = res.data;
+            } else if (res.data && Array.isArray(res.data.docs)) {
+                docsArray = res.data.docs;
+            } else if (res.data && Array.isArray(res.data.documents)) {
+                docsArray = res.data.documents;
+            } else {
+                console.warn("🏠 HomePage: Unexpected response structure:", res.data);
+            }
+            
+            setDocs(docsArray);
+            setPagination(res.data.pagination || null);
+            setIsRateLimited(false);
+        } catch (error) {
+            console.error("🏠 HomePage: Error fetching documents:", error);
+            if (error.response?.status === 429) {
+                setIsRateLimited(true);
+            }
+            // Don't crash on error, just show empty state
+            setDocs([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (newPageSize) => {
+        setPageSize(newPageSize);
+        // This will trigger the useEffect to refetch data with new page size
+    };
+
     /**
      * Listen for auth state changes (like logout from Navbar)
      * This effect handles authentication state changes from other components
@@ -154,7 +200,11 @@ const HomePage = () => {
             console.log("🏠 HomePage: Fetching documents...");
             setLoading(true); // Set loading when starting to fetch
             try {
-                const res = await api.get("/docs");
+                const params = new URLSearchParams();
+                params.append('page', 1);
+                params.append('limit', pageSize);
+                
+                const res = await api.get(`/docs?${params.toString()}`);
                 console.log("🏠 HomePage: Raw API response:", res);
                 console.log("🏠 HomePage: Response data:", res.data);
                 console.log("🏠 HomePage: Response data type:", typeof res.data, "isArray:", Array.isArray(res.data));
@@ -174,6 +224,7 @@ const HomePage = () => {
                 console.log("🏠 HomePage: Final docs array:", docsArray.length, "documents");
                 console.log("🏠 HomePage: Sample doc:", docsArray[0]);
                 setDocs(docsArray);
+                setPagination(res.data.pagination || null);
                 setIsRateLimited(false);
             } catch (error) {
                 console.error("🏠 HomePage: Error fetching documents:", error);
@@ -188,7 +239,7 @@ const HomePage = () => {
         };
 
         fetchDocs();
-    }, [isAuthenticated]); // Add isAuthenticated as dependency
+    }, [isAuthenticated, pageSize]); // Add isAuthenticated and pageSize as dependencies
 
     return (
         <div className="min-h-screen">
@@ -262,7 +313,7 @@ const HomePage = () => {
                                     Documents That Need Review
                                 </h1>
                             </div>
-                            {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
+                            {loading && <LoadingSpinner message="Loading documents..." size="md" color="teal" />}
                             {docsNeedingReview.length === 0 && !loading && !isRateLimited && (
                                 <div className="text-center py-8 text-gray-500">
                                     No documents need review at this time.
@@ -288,9 +339,15 @@ const HomePage = () => {
                                 <p className="text-sm text-gray-500 mb-4">
                                     Debug: Passing {Array.isArray(docs) ? docs.length : 'non-array'} docs to table
                                 </p>
-                                <PaginatedDocTable docs={docs} setDocs={setDocs} />
+                                <PaginatedDocTable
+                                    docs={docs}
+                                    setDocs={setDocs}
+                                    pagination={pagination}
+                                    onPageChange={handlePageChange}
+                                    onPageSizeChange={handlePageSizeChange}
+                                />
                             </div>
-                            {loading && <div className="text-center text-resdes-teal py-10">Loading docs...</div>}
+                            {loading && <LoadingSpinner message="Loading documents..." size="md" color="teal" />}
                         </>
                     )}
                 </div>

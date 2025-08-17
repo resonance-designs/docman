@@ -1,6 +1,10 @@
 /*
+ * @name Document Not Found Component
+ * @file /docman/frontend/src/components/DocNotFound.jsx
+ * @component DocNotFound
+ * @description Empty state component displayed when no documents are found with call-to-action
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { NotebookIcon } from "lucide-react";

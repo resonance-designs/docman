@@ -1,12 +1,17 @@
 /*
+ * @name SystemInfoPage
+ * @file /docman/frontend/src/pages/SystemInfoPage.jsx
+ * @page SystemInfoPage
+ * @description System information dashboard displaying server status, database info, and application metrics
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
 import { ServerIcon, DatabaseIcon, MonitorIcon, ShieldIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const SystemInfoPage = () => {
     const [systemInfo, setSystemInfo] = useState(null);
@@ -43,7 +48,11 @@ const SystemInfoPage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-8">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading system information...
+                        <LoadingSpinner 
+                            message="Loading system information..." 
+                            size="lg" 
+                            color="red" 
+                        />
                     </div>
                 </div>
             </div>

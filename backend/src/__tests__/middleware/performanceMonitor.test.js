@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/middleware/performanceMonitor.test.js
  * @description Unit tests for performance monitoring middleware
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { jest } from '@jest/globals';

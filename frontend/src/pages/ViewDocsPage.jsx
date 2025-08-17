@@ -4,7 +4,7 @@
  * @page ViewDocsPage
  * @description Document listing page with search, filtering, sorting, and bulk operations for managing documents
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
 import PaginatedDocTable from "../components/PaginatedDocTable";
 import FilterBar from "../components/filters/FilterBar";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { ensureArray, createSafeArray } from "../lib/safeUtils";
 
 /**
@@ -28,6 +29,8 @@ const ViewDocsPage = () => {
     const [userRole, setUserRole] = useState(null);
     const [categories, setCategories] = useState([]);
     const [users, setUsers] = useState([]);
+    const [pagination, setPagination] = useState(null);
+    const [pageSize, setPageSize] = useState(10);
 
     // Filter states
     const [searchValue, setSearchValue] = useState("");
@@ -57,8 +60,12 @@ const ViewDocsPage = () => {
             setLoading(true);
             try {
                 // Fetch all data in parallel
+                const params = new URLSearchParams();
+                params.append('page', 1);
+                params.append('limit', pageSize);
+                
                 const [docsRes, categoriesRes, usersRes] = await Promise.all([
-                    api.get("/docs"),
+                    api.get(`/docs?${params.toString()}`),
                     api.get("/categories"),
                     api.get("/users")
                 ]);
@@ -79,6 +86,7 @@ const ViewDocsPage = () => {
                 setCategories(ensureArray(categoriesRes.data));
                 setUsers(ensureArray(usersRes.data));
                 setFilteredDocs(ensureArray(docsArray));
+                setPagination(docsRes.data.pagination || null);
             } catch (error) {
                 console.error("Error fetching data:", error);
                 console.error("Error details:", error.response?.data || error.message);
@@ -89,7 +97,7 @@ const ViewDocsPage = () => {
         };
 
         fetchInitialData();
-    }, []);
+    }, [pageSize]);
 
     /**
      * Fetch filtered documents when filter parameters change
@@ -108,6 +116,8 @@ const ViewDocsPage = () => {
                 if (dateRange.endDate) params.append('endDate', dateRange.endDate);
                 if (sortConfig.key) params.append('sortBy', sortConfig.key);
                 if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+                params.append('page', 1);
+                params.append('limit', pageSize);
 
                 const queryString = params.toString();
                 const url = queryString ? `/docs?${queryString}` : '/docs';
@@ -126,6 +136,7 @@ const ViewDocsPage = () => {
                 }
                 
                 setFilteredDocs(ensureArray(docsArray));
+                setPagination(res.data.pagination || null);
             } catch (error) {
                 console.error("Error fetching filtered documents:", error);
                 toast.error("Failed to filter documents");
@@ -135,7 +146,7 @@ const ViewDocsPage = () => {
         // Fetch filtered docs when filters change, or when initial data is loaded
         // Always fetch on initial load to ensure data consistency
         fetchFilteredDocs();
-    }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig]);
+    }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig, pageSize]);
 
     // Check if user can create documents (editor or admin)
     const canCreateDocument = userRole === "editor" || userRole === "admin";
@@ -199,6 +210,55 @@ const ViewDocsPage = () => {
         setSortConfig({ key: "createdAt", direction: "desc" });
     };
 
+    // Handle page change
+    const handlePageChange = async (page) => {
+        setLoading(true);
+        try {
+            // Build query parameters
+            const params = new URLSearchParams();
+            if (searchValue) params.append('search', searchValue);
+            if (categoryFilter) params.append('category', categoryFilter);
+            if (authorFilter) params.append('author', authorFilter);
+            if (overdueFilter) params.append('overdue', overdueFilter);
+            if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+            if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            if (sortConfig.key) params.append('sortBy', sortConfig.key);
+            if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+            params.append('page', page);
+            params.append('limit', pageSize);
+
+            const queryString = params.toString();
+            const url = queryString ? `/docs?${queryString}` : '/docs';
+
+            const res = await api.get(url);
+            // Handle different response structures for docs
+            let docsArray = [];
+            if (Array.isArray(res.data)) {
+                docsArray = res.data;
+            } else if (res.data && Array.isArray(res.data.documents)) {
+                docsArray = res.data.documents;
+            } else if (res.data && Array.isArray(res.data.docs)) {
+                docsArray = res.data.docs;
+            } else {
+                console.warn("📄 ViewDocsPage: Unexpected filtered docs response structure:", res.data);
+            }
+            
+            setFilteredDocs(ensureArray(docsArray));
+            setPagination(res.data.pagination || null);
+        } catch (error) {
+            console.error("Error fetching filtered documents:", error);
+            toast.error("Failed to filter documents");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (newPageSize) => {
+        setPageSize(newPageSize);
+        // This will trigger the useEffect to refetch data with new page size
+    };
+
     // Determine which docs to display
     const displayDocs = filteredDocs.length > 0 || searchValue || categoryFilter || authorFilter || overdueFilter || dateRange.startDate || dateRange.endDate
         ? filteredDocs
@@ -227,9 +287,11 @@ const ViewDocsPage = () => {
                     
                     {/* Loading State */}
                     {loading && (
-                        <div className="text-center text-resdes-teal py-10">
-                            Loading documents...
-                        </div>
+                        <LoadingSpinner 
+                            message="Loading documents..." 
+                            size="lg" 
+                            color="teal" 
+                        />
                     )}
 
                     {/* Filter Bar - Show when not loading and we have docs or are admin */}
@@ -280,6 +342,9 @@ const ViewDocsPage = () => {
                             setDocs={setFilteredDocs}
                             sortConfig={sortConfig}
                             onSort={setSortConfig}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPageSizeChange={handlePageSizeChange}
                         />
                     )}
                 </div>

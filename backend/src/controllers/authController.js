@@ -4,7 +4,7 @@
  * @controller authController
  * @description Authentication controller handling user registration, login, logout, and password reset functionality
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import crypto from "crypto";

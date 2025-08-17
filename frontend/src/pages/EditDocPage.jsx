@@ -4,7 +4,7 @@
  * @page EditDocPage
  * @description Document editing page with form validation for updating document metadata, stakeholders, and file versions
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

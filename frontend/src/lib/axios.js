@@ -1,6 +1,10 @@
 /*
+ * @name axios Configuration
+ * @file /docman/backend/config/axios.config.ts
+ * @module AxiosConfig
+ * @description Axios HTTP client configuration with base URL, interceptors, and authentication headers
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import axios from "axios";

@@ -4,7 +4,7 @@
  * @controller usersController
  * @description User management controller for CRUD operations, profile updates, and user administration
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import bcrypt from "bcrypt";
@@ -28,8 +28,8 @@ import {
  */
 export async function getAllUsers(req, res) {
     try {
-        const users = await userService.getUsers(req.query, req.user);
-        res.status(200).json(users);
+        const result = await userService.getUsers(req.query, req.user);
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error fetching users:", error);
         const statusCode = error.message.includes("Access denied") ? 403 : 500;

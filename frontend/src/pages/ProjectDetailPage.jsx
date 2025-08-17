@@ -1,6 +1,10 @@
 /*
+ * @name ProjectDetailPage
+ * @file /docman/frontend/src/pages/ProjectDetailsPage.jsx
+ * @page ProjectDetailPage
+ * @description Project detail page showing project information, documents, and team collaboration
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -17,6 +21,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 import DocCard from "../components/DocCard";
 import { ensureArray, ensureObject } from "../lib/safeUtils";
 
@@ -97,7 +102,11 @@ const ProjectDetailPage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-4">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading project...
+                        <LoadingSpinner 
+                            message="Loading project..." 
+                            size="lg" 
+                            color="green" 
+                        />
                     </div>
                 </div>
             </div>
@@ -320,7 +329,11 @@ const ProjectDetailPage = () => {
                         <div className="p-6">
                             {docsLoading ? (
                                 <div className="text-center text-resdes-teal py-10">
-                                    Loading documents...
+                                    <LoadingSpinner 
+                                        message="Loading documents..." 
+                                        size="md" 
+                                        color="teal" 
+                                    />
                                 </div>
                             ) : documents.length === 0 ? (
                                 <div className="text-center py-8">

@@ -4,7 +4,7 @@
  * @page ProjectsPage
  * @description Project management page with filtering, search, and project creation for organizing documents by project
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import { FolderIcon, PlusIcon, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 import ProjectCard from "../components/projects/ProjectCard";
 import FilterBar from "../components/filters/FilterBar";
 
@@ -187,7 +188,11 @@ const ProjectsPage = () => {
                     {/* Loading State */}
                     {loading && (
                         <div className="text-center text-resdes-teal py-10">
-                            Loading projects...
+                            <LoadingSpinner 
+                                message="Loading projects..." 
+                                size="lg" 
+                                color="green" 
+                            />
                         </div>
                     )}
 

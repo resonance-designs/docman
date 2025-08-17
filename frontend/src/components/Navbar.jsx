@@ -4,7 +4,7 @@
  * @component Navbar
  * @description Component for the main navigation bar with responsive menu and authentication handling.
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 
@@ -17,6 +17,7 @@ import { getLinkClass } from "../lib/utils";
 import { useUserRole } from "../hooks";
 import useAutoLogout from "../hooks/useAutoLogout";
 import NotificationBell from "./NotificationBell";
+import AccountNav from "./AccountNav";
 
 
 
@@ -93,22 +94,7 @@ const Navbar = () => {
                                     <BarChart3Icon className="size-5" />
                                     <span>Analytics</span>
                                 </Link>
-                                {(role === "editor" || role === "admin") && (
-                                    <>
-                                        <Link to="/teams" className={getLinkClass(location.pathname, "/teams")}>
-                                            <Users2Icon className="size-5" />
-                                            <span>Teams</span>
-                                        </Link>
-                                        <Link to="/projects" className={getLinkClass(location.pathname, "/projects")}>
-                                            <FolderIcon className="size-5" />
-                                            <span>Projects</span>
-                                        </Link>
-                                    </>
-                                )}
-                                <Link to="/my-profile" className={getLinkClass(location.pathname, "/my-profile")}>
-                                    <UserIcon className="size-5" />
-                                    <span>My Profile</span>
-                                </Link>
+                                <AccountNav />
                                 <NotificationBell />
                                 <button
                                     onClick={handleLogout}
@@ -171,6 +157,14 @@ const Navbar = () => {
                                 <BarChart3Icon className="size-5" />
                                 <span>Analytics</span>
                             </Link>
+                            <Link
+                                to="/my-profile"
+                                className={getLinkClass(location.pathname, "/my-profile", "btn w-full justify-start")}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <UserIcon className="size-5" />
+                                <span>Profile</span>
+                            </Link>
                             {(role === "editor" || role === "admin") && (
                                 <>
                                     <Link
@@ -191,14 +185,6 @@ const Navbar = () => {
                                     </Link>
                                 </>
                             )}
-                            <Link
-                                to="/my-profile"
-                                className={getLinkClass(location.pathname, "/my-profile", "btn w-full justify-start")}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                <UserIcon className="size-5" />
-                                <span>My Profile</span>
-                            </Link>
                             <div className="flex justify-center py-2">
                                 <NotificationBell />
                             </div>

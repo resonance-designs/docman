@@ -4,7 +4,7 @@
  * @component DocumentBasicFields
  * @description Reusable form component for basic document fields (title, description, author, category, review date)
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { Controller } from "react-hook-form";
@@ -87,7 +87,7 @@ export default function DocumentBasicFields({
                     className="select select-bordered"
                 >
                     <option value="">Select an author</option>
-                    {users.map((user) => (
+                    {Array.isArray(users) && users.map((user) => (
                         <option key={user._id} value={user._id}>
                             {getFullName(user)}
                         </option>
@@ -109,7 +109,7 @@ export default function DocumentBasicFields({
                     className="select select-bordered"
                 >
                     <option value="">Select a category</option>
-                    {categories.map((cat) => (
+                    {Array.isArray(categories) && categories.map((cat) => (
                         <option key={cat._id} value={cat._id}>
                             {cat.name}
                         </option>

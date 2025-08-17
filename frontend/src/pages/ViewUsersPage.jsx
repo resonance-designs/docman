@@ -4,7 +4,7 @@
  * @page ViewUsersPage
  * @description User management page with filtering, search, and user administration for system administrators
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -21,6 +21,8 @@ const ViewUsersPage = () => {
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const { userRole } = useUserRole();
+    const [pagination, setPagination] = useState(null);
+    const [pageSize, setPageSize] = useState(10);
 
     // Filter states
     const [searchValue, setSearchValue] = useState("");
@@ -32,8 +34,12 @@ const ViewUsersPage = () => {
         const fetchUsers = async () => {
             setLoading(true);
             try {
-                const res = await api.get("/users");
-                setUsers(res.data);
+                const params = new URLSearchParams();
+                params.append('page', 1);
+                params.append('limit', pageSize);
+                
+                const res = await api.get(`/users?${params.toString()}`);
+                setUsers(res.data.users || res.data);
             } catch (error) {
                 console.error("Error fetching users:", error);
                 toast.error("Failed to load users");
@@ -43,7 +49,7 @@ const ViewUsersPage = () => {
         };
 
         fetchUsers();
-    }, []);
+    }, [pageSize]);
 
     // Fetch filtered users when filters change
     useEffect(() => {
@@ -58,12 +64,14 @@ const ViewUsersPage = () => {
                 if (roleFilter) params.append('role', roleFilter);
                 if (sortConfig.key) params.append('sortBy', sortConfig.key);
                 if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+                params.append('page', 1);
+                params.append('limit', pageSize);
 
                 const queryString = params.toString();
                 const url = queryString ? `/users?${queryString}` : '/users';
-
+                
                 const res = await api.get(url, { headers });
-                setFilteredUsers(res.data);
+                setFilteredUsers(res.data.users || res.data);
             } catch (error) {
                 console.error("Error fetching filtered users:", error);
                 toast.error("Failed to filter users");
@@ -74,7 +82,7 @@ const ViewUsersPage = () => {
         if (users.length > 0 || searchValue || roleFilter) {
             fetchFilteredUsers();
         }
-    }, [searchValue, roleFilter, sortConfig, users.length]);
+    }, [searchValue, roleFilter, sortConfig, users.length, pageSize]);
 
     // Check if user can create users (admin only)
     const canCreateUser = userRole === "admin";
@@ -98,11 +106,49 @@ const ViewUsersPage = () => {
         }
     ];
 
+    // Handle page change
+    const handlePageChange = async (page) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            if (searchValue) params.append('search', searchValue);
+            if (roleFilter) params.append('role', roleFilter);
+            if (sortConfig.key) params.append('sortBy', sortConfig.key);
+            if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+            params.append('page', page);
+            params.append('limit', pageSize);
+            
+            const queryString = params.toString();
+            const url = queryString ? `/users?${queryString}` : '/users';
+            
+            const res = await api.get(url, { headers });
+            const data = res.data;
+            const usersArray = Array.isArray(data) ? data : (data.users || []);
+            setFilteredUsers(usersArray);
+            setPagination(data.pagination || null);
+        } catch (error) {
+            console.error("Error fetching users:", error);
+            toast.error("Failed to load users");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Clear all filters
     const handleClearAllFilters = () => {
         setSearchValue("");
         setRoleFilter("");
         setSortConfig({ key: "firstname", direction: "asc" });
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (newPageSize) => {
+        setPageSize(newPageSize);
+        // This will trigger the useEffect to refetch data with new page size
     };
 
     // Determine which users to display
@@ -184,6 +230,9 @@ const ViewUsersPage = () => {
                             setUsers={setFilteredUsers}
                             sortConfig={sortConfig}
                             onSort={setSortConfig}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPageSizeChange={handlePageSizeChange}
                         />
                     )}
                 </div>

@@ -1,6 +1,10 @@
 /*
+ * @name ViewCatsPage
+ * @file /docman/frontend/src/pages/ViewCatsPage.jsx
+ * @page ViewCatsPage
+ * @description Category management page for viewing, creating, and organizing document categories
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -9,12 +13,15 @@ import { PlusIcon, FolderIcon, FolderPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 import PaginatedCatTable from "../components/PaginatedCatTable";
 
 const ViewCatsPage = () => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState(null);
+    const [pagination, setPagination] = useState(null);
+    const [pageSize, setPageSize] = useState(10);
 
     // Get user role from token
     useEffect(() => {
@@ -33,8 +40,15 @@ const ViewCatsPage = () => {
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-                const res = await api.get("/categories", { headers });
-                setCategories(res.data);
+                const params = new URLSearchParams();
+                params.append('page', 1);
+                params.append('limit', pageSize);
+                
+                const res = await api.get(`/categories?${params.toString()}`, { headers });
+                const data = res.data;
+                const categoriesArray = Array.isArray(data) ? data : (data.categories || []);
+                setCategories(categoriesArray);
+                setPagination(data.pagination || null);
             } catch (error) {
                 console.error("Error fetching categories:", error);
                 toast.error("Failed to load categories");
@@ -44,7 +58,37 @@ const ViewCatsPage = () => {
         };
 
         fetchCategories();
-    }, []);
+    }, [pageSize]);
+
+    // Handle page change
+    const handlePageChange = async (page) => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+            
+            const params = new URLSearchParams();
+            params.append('page', page);
+            params.append('limit', pageSize);
+            
+            const res = await api.get(`/categories?${params.toString()}`, { headers });
+            const data = res.data;
+            const categoriesArray = Array.isArray(data) ? data : (data.categories || []);
+            setCategories(categoriesArray);
+            setPagination(data.pagination || null);
+        } catch (error) {
+            console.error("Error fetching categories:", error);
+            toast.error("Failed to load categories");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (newPageSize) => {
+        setPageSize(newPageSize);
+        // This will trigger the useEffect to refetch data with new page size
+    };
 
     // Check if user can create categories (editor or admin)
     const canCreateCategory = userRole === "editor" || userRole === "admin";
@@ -73,7 +117,11 @@ const ViewCatsPage = () => {
                     {/* Loading State */}
                     {loading && (
                         <div className="text-center text-resdes-teal py-10">
-                            Loading categories...
+                            <LoadingSpinner 
+                                message="Loading categories..." 
+                                size="lg" 
+                                color="blue" 
+                            />
                         </div>
                     )}
 
@@ -98,6 +146,9 @@ const ViewCatsPage = () => {
                         <PaginatedCatTable
                             categories={categories}
                             setCategories={setCategories}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPageSizeChange={handlePageSizeChange}
                         />
                     )}
                 </div>

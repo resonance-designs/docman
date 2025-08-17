@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { Ratelimit } from "@upstash/ratelimit";

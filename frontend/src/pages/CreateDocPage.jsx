@@ -4,7 +4,7 @@
  * @page CreateDocPage
  * @description Document creation page with form for uploading files, setting metadata, assigning stakeholders and owners
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useNavigate, Link } from "react-router";
@@ -29,6 +29,7 @@ import DocumentBasicFields from "../components/forms/DocumentBasicFields";
 import StakeholderSelection from "../components/forms/StakeholderSelection";
 import ExternalContactsManager from "../components/forms/ExternalContactsManager";
 import ReviewAssignments from "../components/forms/ReviewAssignments";
+import InlineLoader from "../components/InlineLoader";
 
 
 
@@ -48,7 +49,19 @@ const CreateDocPage = () => {
     });
 
     // Custom hooks for complex state management
-    const { users = [], categories = [], externalContactTypes = [], loading: formDataLoading } = useFormData() || {};
+    const formDataResult = useFormData();
+    const { 
+        users: rawUsers = [], 
+        categories: rawCategories = [], 
+        externalContactTypes: rawExternalContactTypes = [], 
+        loading: formDataLoading 
+    } = formDataResult || {};
+    
+    // Ensure arrays are always arrays to prevent .map() errors
+    const users = Array.isArray(rawUsers) ? rawUsers : [];
+    const categories = Array.isArray(rawCategories) ? rawCategories : [];
+    const externalContactTypes = Array.isArray(rawExternalContactTypes) ? rawExternalContactTypes : [];
+    
     const stakeholderManagement = useStakeholderManagement(setValue);
     const externalContactsManagement = useExternalContacts();
     const reviewManagement = useReviewManagement(setValue);
@@ -147,8 +160,21 @@ const CreateDocPage = () => {
     if (formDataLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="loading loading-spinner loading-lg"></div>
-                <span className="ml-2">Loading form data...</span>
+                <InlineLoader message="Loading form data..." size="lg" color="teal" />
+            </div>
+        );
+    }
+
+    // Show error state if form data failed to load
+    if (formDataResult?.error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="alert alert-error max-w-md">
+                    <div>
+                        <h3 className="font-bold">Failed to load form data</h3>
+                        <div className="text-xs">Please refresh the page or check your connection.</div>
+                    </div>
+                </div>
             </div>
         );
     }

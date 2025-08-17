@@ -4,7 +4,7 @@
  * @component PaginatedCatTable
  * @description Component for displaying categories in a paginated table.
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 
@@ -18,18 +18,34 @@ import PropTypes from "prop-types";
  * @param {Object} props - Component properties
  * @param {Array} props.categories - Array of category objects to display
  * @param {Function} props.setCategories - Function to update the categories list
- * @param {number} [props.itemsPerPage=25] - Number of items to display per page
+ * @param {number} [props.itemsPerPage=10] - Number of items to display per page
  * @returns {JSX.Element} The paginated category table component
  */
-const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => {
+const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 10, pagination, onPageChange, onPageSizeChange }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
 
-    // Calculate pagination values
-    const totalPages = Math.ceil(categories.length / pageSize);
-    const startIndex = (currentPage - 1) * pageSize;
+    // Use backend pagination if available, otherwise fallback to client-side
+    const totalPages = pagination ? pagination.pages : Math.ceil(categories.length / pageSize);
+    const displayCurrentPage = pagination ? pagination.page : currentPage;
+    
+    // Calculate display values
+    const startIndex = (displayCurrentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const currentCategories = useMemo(() => categories.slice(startIndex, endIndex), [categories, startIndex, endIndex]);
+    const displayStart = startIndex + 1;
+    const displayEnd = pagination ? Math.min(endIndex, pagination.total) : Math.min(endIndex, categories.length);
+    const displayTotal = pagination ? pagination.total : categories.length;
+    
+    // Calculate current categories for display
+    const currentCategories = useMemo(() => {
+        if (pagination) {
+            // Backend pagination - use all categories (they're already paginated)
+            return categories;
+        } else {
+            // Client-side pagination
+            return categories.slice(startIndex, endIndex);
+        }
+    }, [categories, startIndex, endIndex, pagination]);
 
     /**
      * Handle page changes
@@ -37,19 +53,23 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
      */
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
+            if (onPageChange) {
+                onPageChange(page);
+            } else {
+                setCurrentPage(page);
+            }
         }
     };
 
     /**
      * Navigate to the previous page
      */
-    const goToPrevious = () => goToPage(currentPage - 1);
+    const goToPrevious = () => goToPage(displayCurrentPage - 1);
 
     /**
      * Navigate to the next page
      */
-    const goToNext = () => goToPage(currentPage + 1);
+    const goToNext = () => goToPage(displayCurrentPage + 1);
 
     /**
      * Handle page size change
@@ -57,7 +77,15 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
      */
     const handlePageSizeChange = (newPageSize) => {
         setPageSize(newPageSize);
-        setCurrentPage(1); // Reset to first page when changing page size
+        if (onPageSizeChange) {
+            // Use dedicated page size change handler if provided
+            onPageSizeChange(newPageSize);
+        } else if (onPageChange) {
+            // Fallback: trigger page change to reset to page 1
+            onPageChange(1);
+        } else {
+            setCurrentPage(1); // Reset to first page when changing page size
+        }
     };
 
     /**
@@ -75,8 +103,9 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
             }
         } else {
             // Show smart pagination with ellipsis
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
+            const displayCurrentPage = pagination ? pagination.page : currentPage;
+            const startPage = Math.max(1, displayCurrentPage - 2);
+            const endPage = Math.min(totalPages, displayCurrentPage + 2);
 
             if (startPage > 1) {
                 pages.push(1);
@@ -97,13 +126,13 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
     };
 
     /**
-     * Reset to page 1 when categories change
+     * Reset to page 1 when categories change (client-side only)
      */
     useEffect(() => {
-        if (currentPage > totalPages && totalPages > 0) {
+        if (!pagination && currentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);
         }
-    }, [categories.length, totalPages, currentPage]);
+    }, [categories.length, totalPages, currentPage, pagination]);
 
     if (categories.length === 0) {
         return (
@@ -151,19 +180,19 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {displayTotal > 0 && (
                 <div className="flex items-center justify-between p-4 border-t border-resdes-orange bg-resdes-orange text-slate-950 font-mono font-bold rounded-b-xl">
                     {/* Results info and page size selector */}
                     <div className="flex items-center gap-4">
                         <div className="text-sm">
-                            Showing {startIndex + 1} to {Math.min(endIndex, categories.length)} of {categories.length} categories
+                            Showing {displayStart} to {displayEnd} of {displayTotal} categories
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Show:</span>
                             <select
                                 value={pageSize}
                                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                                className="select select-sm select-bordered bg-white text-black"
+                                className="select select-sm select-bordered bg-white text-slate-950"
                             >
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
@@ -174,13 +203,14 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
                         </div>
                     </div>
 
-                    {/* Pagination buttons */}
+                    {/* Pagination buttons - only show if more than 1 page */}
+                    {totalPages > 1 && (
                     <div className="flex items-center gap-2">
                         {/* Previous button */}
                         <button
                             onClick={goToPrevious}
-                            disabled={currentPage === 1}
-                            className="btn btn-sm bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={displayCurrentPage === 1}
+                            className="btn btn-sm bg-white text-slate-950 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Previous page"
                         >
                             <ChevronLeftIcon size={16} />
@@ -189,14 +219,14 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
                         {/* Page numbers */}
                         <div className="flex items-center gap-1">
                             {getPageNumbers().map((page, index) => {
-                                const isCurrentPage = page === currentPage;
+                                const isCurrentPage = page === displayCurrentPage;
                                 const isEllipsis = page === '...';
 
-                                let buttonClass = 'bg-white text-black hover:bg-gray-100';
+                                let buttonClass = 'bg-white text-slate-950 hover:bg-gray-100';
                                 if (isCurrentPage) {
-                                    buttonClass = 'bg-resdes-teal text-white';
+                                    buttonClass = 'bg-resdes-teal text-slate-950';
                                 } else if (isEllipsis) {
-                                    buttonClass = 'bg-white text-black cursor-default';
+                                    buttonClass = 'bg-white text-slate-950 cursor-default';
                                 }
 
                                 return (
@@ -215,13 +245,14 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 25 }) => 
                         {/* Next button */}
                         <button
                             onClick={goToNext}
-                            disabled={currentPage === totalPages}
-                            className="btn btn-sm bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={displayCurrentPage === totalPages}
+                            className="btn btn-sm bg-white text-slate-950 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Next page"
                         >
                             <ChevronRightIcon size={16} />
                         </button>
                     </div>
+                    )}
                 </div>
             )}
         </div>
@@ -239,6 +270,14 @@ PaginatedCatTable.propTypes = {
     ).isRequired,
     setCategories: PropTypes.func.isRequired,
     itemsPerPage: PropTypes.number,
+    pagination: PropTypes.shape({
+        total: PropTypes.number.isRequired,
+        page: PropTypes.number.isRequired,
+        limit: PropTypes.number.isRequired,
+        pages: PropTypes.number.isRequired
+    }),
+    onPageChange: PropTypes.func,
+    onPageSizeChange: PropTypes.func
 };
 
 export default PaginatedCatTable;

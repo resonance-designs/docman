@@ -1,6 +1,10 @@
 /*
+ * @name ManageExternalContactTypesPage
+ * @file /docman/frontend/src/pages/ManageExternalContactTypesPage.jsx
+ * @page ManageExternalContactTypesPage
+ * @description External contact type management page for organizing contact categories
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -9,6 +13,7 @@ import { PlusIcon, EditIcon, TrashIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const ManageExternalContactTypesPage = () => {
     const [contactTypes, setContactTypes] = useState([]);
@@ -129,7 +134,11 @@ const ManageExternalContactTypesPage = () => {
                     {/* Loading State */}
                     {loading && (
                         <div className="text-center text-resdes-teal py-10">
-                            Loading contact types...
+                            <LoadingSpinner 
+                                message="Loading contact types..." 
+                                size="lg" 
+                                color="yellow" 
+                            />
                         </div>
                     )}
 

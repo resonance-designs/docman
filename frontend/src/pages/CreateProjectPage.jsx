@@ -1,6 +1,10 @@
 /*
+ * @name CreateProjectPage
+ * @file /docman/frontend/src/pages/CreateProjectPage.jsx
+ * @page CreateProjectPage
+ * @description Project creation page with form for setting up new projects and team assignments
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -9,6 +13,7 @@ import { FolderIcon, ArrowLeftIcon, CalendarIcon, TagIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import InlineLoader from "../components/InlineLoader";
 
 const CreateProjectPage = () => {
     const navigate = useNavigate();
@@ -242,7 +247,7 @@ const CreateProjectPage = () => {
                                         Team *
                                     </label>
                                     {teamsLoading ? (
-                                        <div className="text-sm text-gray-500">Loading teams...</div>
+                                        <InlineLoader message="Loading teams..." size="xs" color="teal" />
                                     ) : (
                                         <select
                                             id="teamId"

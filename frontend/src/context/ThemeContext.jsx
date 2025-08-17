@@ -4,7 +4,7 @@
  * @context ThemeContext
  * @description React context for managing application theme state with persistence and user preferences
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { createContext, useContext, useState, useEffect } from "react";

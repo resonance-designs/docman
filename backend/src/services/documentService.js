@@ -4,9 +4,10 @@
  * @service documentService
  * @description Business logic service for document operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
+import mongoose from "mongoose";
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
 import { sanitizeErrorMessage, logError } from "../lib/utils.js";
@@ -45,31 +46,35 @@ export function buildDocumentFilter(queryParams) {
         category,
         author,
         reviewStatus,
+        overdue,
         startDate,
         endDate
     } = queryParams;
 
-    const filter = {};
+    const conditions = [];
+    let searchCondition = null;
 
     // Search filter - sanitize search input
     if (search && typeof search === 'string') {
         const sanitizedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         if (sanitizedSearch.trim().length > 0 && sanitizedSearch.length <= 100) {
-            filter.$or = [
-                { title: { $regex: sanitizedSearch, $options: 'i' } },
-                { description: { $regex: sanitizedSearch, $options: 'i' } }
-            ];
+            searchCondition = {
+                $or: [
+                    { title: { $regex: sanitizedSearch, $options: 'i' } },
+                    { description: { $regex: sanitizedSearch, $options: 'i' } }
+                ]
+            };
         }
     }
 
     // Category filter - validate ObjectId format
     if (category && typeof category === 'string' && /^[0-9a-fA-F]{24}$/.test(category)) {
-        filter.category = category;
+        conditions.push({ category: new mongoose.Types.ObjectId(category) });
     }
 
     // Author filter - validate ObjectId format
     if (author && typeof author === 'string' && /^[0-9a-fA-F]{24}$/.test(author)) {
-        filter.author = author;
+        conditions.push({ author: new mongoose.Types.ObjectId(author) });
     }
 
     // Review status filter - validate enum values
@@ -77,29 +82,65 @@ export function buildDocumentFilter(queryParams) {
         const allowedStatuses = ['completed', 'pending'];
         if (allowedStatuses.includes(reviewStatus)) {
             if (reviewStatus === 'completed') {
-                filter.reviewCompleted = true;
+                conditions.push({ reviewCompleted: true });
             } else if (reviewStatus === 'pending') {
-                filter.reviewCompleted = { $ne: true };
+                conditions.push({ reviewCompleted: { $ne: true } });
             }
+        }
+    }
+
+    // Overdue filter (from frontend) - validate enum values
+    if (overdue && typeof overdue === 'string') {
+        if (overdue === 'true') {
+            // Overdue: reviewDate has passed AND document is not yet reviewed
+            conditions.push({ 
+                $and: [
+                    { reviewDate: { $lt: new Date() } },
+                    { reviewCompleted: { $ne: true } }
+                ]
+            });
+        } else if (overdue === 'false') {
+            // Not overdue: either reviewDate hasn't passed OR document is already reviewed
+            conditions.push({
+                $or: [
+                    { reviewDate: { $gte: new Date() } },
+                    { reviewCompleted: true }
+                ]
+            });
         }
     }
 
     // Date range filter - validate date format
     if (startDate || endDate) {
-        filter.createdAt = {};
+        const dateFilter = {};
         if (startDate && typeof startDate === 'string') {
             const start = new Date(startDate);
             if (!isNaN(start.getTime())) {
-                filter.createdAt.$gte = start;
+                dateFilter.$gte = start;
             }
         }
         if (endDate && typeof endDate === 'string') {
             const end = new Date(endDate);
             if (!isNaN(end.getTime())) {
                 end.setDate(end.getDate() + 1);
-                filter.createdAt.$lt = end;
+                dateFilter.$lt = end;
             }
         }
+        if (Object.keys(dateFilter).length > 0) {
+            conditions.push({ createdAt: dateFilter });
+        }
+    }
+
+    // Combine all conditions
+    const filter = {};
+    if (searchCondition) {
+        conditions.push(searchCondition);
+    }
+    
+    if (conditions.length > 1) {
+        filter.$and = conditions;
+    } else if (conditions.length === 1) {
+        Object.assign(filter, conditions[0]);
     }
 
     return filter;
@@ -186,14 +227,44 @@ export async function getDocuments(queryParams, user) {
         const filter = buildDocumentFilter(queryParams);
         const sort = buildDocumentSort(queryParams.sortBy, queryParams.sortOrder);
         
+        console.log('📄 Document filter query params:', queryParams);
+        console.log('📄 Built filter before user access:', JSON.stringify(filter, null, 2));
+        
         // Add user-based filtering for non-admins
         if (user.role !== 'admin') {
-            filter.$or = [
-                { author: user.id },
-                { stakeholders: user.id },
-                { owners: user.id }
-            ];
+            const userId = new mongoose.Types.ObjectId(user.id);
+            const userAccessFilter = {
+                $or: [
+                    { author: userId },
+                    { stakeholders: userId },
+                    { owners: userId }
+                ]
+            };
+            
+            // If there are already filters, combine them with AND logic
+            if (Object.keys(filter).length > 0) {
+                if (filter.$and) {
+                    // Already has $and conditions, add user access to it
+                    filter.$and.push(userAccessFilter);
+                } else {
+                    // Convert existing filter to $and structure
+                    filter.$and = [
+                        { ...filter },
+                        userAccessFilter
+                    ];
+                    // Clean up the original filter properties that are now in $and
+                    Object.keys(filter).forEach(key => {
+                        if (key !== '$and') {
+                            delete filter[key];
+                        }
+                    });
+                }
+            } else {
+                Object.assign(filter, userAccessFilter);
+            }
         }
+        
+        console.log('📄 Final filter with user access:', JSON.stringify(filter, null, 2));
 
         // Parse pagination
         const limitNum = Math.min(parseInt(limit) || 50, 100); // Max 100 docs per page

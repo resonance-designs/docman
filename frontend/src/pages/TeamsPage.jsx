@@ -4,7 +4,7 @@
  * @page TeamsPage
  * @description Team management page displaying user teams with creation, editing, and member management capabilities
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import { UsersIcon, PlusIcon, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 import TeamCard from "../components/teams/TeamCard";
 import CreateTeamModal from "../components/teams/CreateTeamModal";
 
@@ -110,7 +111,11 @@ const TeamsPage = () => {
                     {/* Loading State */}
                     {loading && (
                         <div className="text-center text-resdes-teal py-10">
-                            Loading teams...
+                            <LoadingSpinner 
+                                message="Loading teams..." 
+                                size="lg" 
+                                color="purple" 
+                            />
                         </div>
                     )}
 

@@ -1,6 +1,10 @@
 /*
+ * @name Project Card Component
+ * @file /docman/frontend/src/components/projects/ProjectCard.jsx
+ * @component ProjectCard
+ * @description Project card component displaying project summary, status, priority, and quick actions
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState } from "react";
@@ -103,15 +107,15 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
     const isOverdue = project.endDate && new Date(project.endDate) < new Date();
 
     return (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+        <div className="bg-base-100 rounded-lg shadow-md border-2 border-resdes-orange hover:shadow-lg transition-shadow">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b-2 border-resdes-orange">
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-2">
                             <Link 
                                 to={`/projects/${project._id}`}
-                                className="text-xl font-semibold text-gray-900 hover:text-resdes-blue"
+                                className="text-xl font-semibold text-base hover:text-resdes-blue"
                             >
                                 {project.name}
                             </Link>
@@ -119,7 +123,7 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
                         </div>
                         
                         {project.description && (
-                            <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                            <p className="text-base mt-1 text-sm line-clamp-2 mb-3">
                                 {project.description}
                             </p>
                         )}
@@ -173,7 +177,8 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
 
             {/* Stats */}
             <div className="p-6">
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                <h3 className="font-semibold text-base mb-2">Project Details</h3>
+                <div className="flex items-center justify-between text-sm text-base">
                     <div className="flex items-center">
                         <FileTextIcon size={16} className="mr-1" />
                         <span>{documentCount} document{documentCount !== 1 ? 's' : ''}</span>
@@ -186,15 +191,15 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
 
                 {/* Dates */}
                 {(project.startDate || project.endDate) && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="mt-4 pt-4 border-t border-base-300">
                         {project.startDate && (
-                            <div className="flex items-center text-xs text-gray-500 mb-1">
+                            <div className="flex items-center text-xs text-base mb-1">
                                 <CalendarIcon size={12} className="mr-1" />
                                 Started: {new Date(project.startDate).toLocaleDateString()}
                             </div>
                         )}
                         {project.endDate && (
-                            <div className={`flex items-center text-xs mb-1 ${isOverdue ? 'text-red-600' : 'text-gray-500'}`}>
+                            <div className={`flex items-center text-xs mb-1 ${isOverdue ? 'text-red-600' : 'text-base'}`}>
                                 <CalendarIcon size={12} className="mr-1" />
                                 Due: {new Date(project.endDate).toLocaleDateString()}
                                 {isOverdue && <span className="ml-1 font-medium">(Overdue)</span>}
@@ -205,11 +210,11 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
 
                 {/* Team */}
                 {project.team && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                        <p className="text-xs text-gray-500 mb-1">Team</p>
+                    <div className="mt-4 pt-4 border-t border-base-300">
+                        <p className="text-sm font-semibold text-base mb-1">Team</p>
                         <Link 
                             to={`/teams/${project.team._id || project.team}`}
-                            className="text-sm font-medium text-resdes-blue hover:text-resdes-blue hover:opacity-80"
+                            className="text-xs underline text-resdes-teal"
                         >
                             {project.team.name || 'View Team'}
                         </Link>
@@ -218,7 +223,8 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
 
                 {/* Tags */}
                 {project.tags && project.tags.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="mt-4 pt-4 border-t border-base-300">
+                        <p className="text-sm font-semibold text-base mb-2">Tags</p>
                         <div className="flex flex-wrap gap-1">
                             {project.tags.slice(0, 3).map((tag, index) => (
                                 <span

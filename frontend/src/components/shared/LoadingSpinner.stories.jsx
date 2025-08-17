@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/shared/LoadingSpinner.stories.jsx
  * @description Storybook stories for LoadingSpinner component
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import LoadingSpinner from './LoadingSpinner';

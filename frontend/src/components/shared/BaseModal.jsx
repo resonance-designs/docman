@@ -4,7 +4,7 @@
  * @component BaseModal
  * @description Reusable base modal component with consistent styling and behavior
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect } from "react";

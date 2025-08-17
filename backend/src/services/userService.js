@@ -4,7 +4,7 @@
  * @service userService
  * @description Business logic service for user operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import User from "../models/User.js";
@@ -51,12 +51,27 @@ export function buildUserFilter(queryParams) {
     if (search && typeof search === 'string') {
         const sanitizedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         if (sanitizedSearch.trim().length > 0 && sanitizedSearch.length <= 100) {
-            filter.$or = [
-                { firstname: { $regex: sanitizedSearch, $options: 'i' } },
-                { lastname: { $regex: sanitizedSearch, $options: 'i' } },
-                { email: { $regex: sanitizedSearch, $options: 'i' } },
-                { username: { $regex: sanitizedSearch, $options: 'i' } }
-            ];
+            // Split search terms by spaces to handle multi-word searches
+            const searchTerms = sanitizedSearch.trim().split(/\s+/);
+            
+            if (searchTerms.length === 1) {
+                // Single term search
+                filter.$or = [
+                    { firstname: { $regex: sanitizedSearch, $options: 'i' } },
+                    { lastname: { $regex: sanitizedSearch, $options: 'i' } },
+                    { email: { $regex: sanitizedSearch, $options: 'i' } },
+                    { username: { $regex: sanitizedSearch, $options: 'i' } }
+                ];
+            } else {
+                // Multi-term search - search for full name combinations
+                const fullNameRegex = sanitizedSearch;
+                filter.$or = [
+                    { $expr: { $regexMatch: { input: { $concat: ["$firstname", " ", "$lastname"] }, regex: fullNameRegex, options: "i" } } },
+                    { $expr: { $regexMatch: { input: { $concat: ["$lastname", " ", "$firstname"] }, regex: fullNameRegex, options: "i" } } },
+                    { email: { $regex: sanitizedSearch, $options: 'i' } },
+                    { username: { $regex: sanitizedSearch, $options: 'i' } }
+                ];
+            }
         }
     }
 
@@ -188,20 +203,40 @@ export function validateUserData(userData, isUpdate = false) {
  * Get users with filtering, sorting, and pagination
  * @param {Object} queryParams - Query parameters
  * @param {Object} requestingUser - User making the request
- * @returns {Promise<Array>} Array of users
+ * @returns {Promise<Object>} Users and pagination metadata
  */
 export async function getUsers(queryParams, requestingUser) {
     try {
+        const { limit = 50, page = 1 } = queryParams;
+        
+        // Build filter and sort
         const filter = buildUserFilter(queryParams);
         const sort = buildUserSort(queryParams.sortBy, queryParams.sortOrder);
 
         // Select fields based on user role
-        const selectFields = requestingUser.role === 'admin' 
+        const selectFields = requestingUser.role === 'admin'
             ? "_id firstname lastname email role profilePicture backgroundImage createdAt telephone title department"
             : "_id firstname lastname email role profilePicture backgroundImage createdAt";
 
-        const users = await User.find(filter, selectFields).sort(sort);
-        return users;
+        // Parse pagination
+        const limitNum = Math.min(parseInt(limit) || 50, 100); // Max 100 users per page
+        const skip = (Math.max(parseInt(page) || 1, 1) - 1) * limitNum;
+
+        // Execute query with pagination
+        const [users, totalCount] = await Promise.all([
+            User.find(filter, selectFields).sort(sort).skip(skip).limit(limitNum),
+            User.countDocuments(filter)
+        ]);
+
+        return {
+            users,
+            pagination: {
+                total: totalCount,
+                page: Math.max(parseInt(page) || 1, 1),
+                limit: limitNum,
+                pages: Math.ceil(totalCount / limitNum)
+            }
+        };
     } catch (error) {
         logError('getUsers', error);
         throw new Error(sanitizeErrorMessage(error, "Failed to retrieve users"));
