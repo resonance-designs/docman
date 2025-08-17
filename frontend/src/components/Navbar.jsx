@@ -4,13 +4,13 @@
  * @component Navbar
  * @description Component for the main navigation bar with responsive menu and authentication handling.
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
-import { LogOut, FolderIcon, UsersIcon, FileTextIcon, UserIcon, MenuIcon, XIcon, Users2Icon, BarChart3Icon } from "lucide-react";
+import { LogOut, FolderIcon, UsersIcon, FileTextIcon, UserIcon, MenuIcon, XIcon, Users2Icon, BarChart3Icon, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import LogoPic from "../assets/imgs/logo.png";
 import { getLinkClass } from "../lib/utils";
@@ -86,6 +86,10 @@ const Navbar = () => {
                                     <FolderIcon className="size-5" />
                                     <span>Categories</span>
                                 </Link>
+                                <Link to="/books" className={getLinkClass(location.pathname, "/books")}>
+                                    <BookOpen className="size-5" />
+                                    <span>Books</span>
+                                </Link>
                                 <Link to="/users" className={getLinkClass(location.pathname, "/users")}>
                                     <UsersIcon className="size-5" />
                                     <span>Users</span>
@@ -140,6 +144,14 @@ const Navbar = () => {
                             >
                                 <FolderIcon className="size-5" />
                                 <span>Categories</span>
+                            </Link>
+                            <Link
+                                to="/books"
+                                className={getLinkClass(location.pathname, "/books", "btn w-full justify-start")}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                                <BookOpen className="size-5" />
+                                <span>Books</span>
                             </Link>
                             <Link
                                 to="/users"

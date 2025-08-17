@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import Project from "../models/Project.js";
@@ -10,6 +10,57 @@ import {
     validateName, 
     sanitizeString 
 } from "../lib/validation.js";
+
+/**
+ * Get all projects (for admin/editor users)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of projects or error message
+ */
+export async function getAllProjects(req, res) {
+    try {
+        const { search, status, priority, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+
+        // Build filter object
+        const filter = {};
+
+        // Search filter
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Status filter
+        if (status) {
+            filter.status = status;
+        }
+
+        // Priority filter
+        if (priority) {
+            filter.priority = priority;
+        }
+
+        // Build sort object
+        const sort = {};
+        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        const projects = await Project.find(filter)
+            .populate('team', 'name')
+            .populate('collaborators', 'name email')
+            .populate('documents', 'title')
+            .sort(sort);
+
+        res.status(200).json({ 
+            projects,
+            total: projects.length
+        });
+    } catch (error) {
+        console.error("Error fetching all projects:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
 
 /**
  * Get projects for a specific team

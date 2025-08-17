@@ -4,7 +4,7 @@
  * @hook useUserRole
  * @description Custom hook for managing user authentication and role state
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import { useState, useEffect, useCallback } from "react";

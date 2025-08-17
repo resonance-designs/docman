@@ -4,7 +4,7 @@
  * @component PaginatedCatTable
  * @description Component for displaying categories in a paginated table.
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 
@@ -156,7 +156,7 @@ const PaginatedCatTable = ({ categories, setCategories, itemsPerPage = 10, pagin
                             </th>
                             <th className="p-4">
                                 <p className="block text-sm antialiased leading-none">
-                                    Description
+                                    Type
                                 </p>
                             </th>
                             <th className="p-4">
@@ -265,6 +265,7 @@ PaginatedCatTable.propTypes = {
             _id: PropTypes.string.isRequired,
             name: PropTypes.string.isRequired,
             description: PropTypes.string,
+            type: PropTypes.string,
             createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
         })
     ).isRequired,

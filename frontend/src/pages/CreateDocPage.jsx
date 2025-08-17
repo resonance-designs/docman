@@ -4,7 +4,7 @@
  * @page CreateDocPage
  * @description Document creation page with form for uploading files, setting metadata, assigning stakeholders and owners
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import { useNavigate, Link } from "react-router";

@@ -57,13 +57,29 @@ A list of features I plan on implementing into the application.
 11. ~~Add informational and usage comments throughout the frontend code~~
 12. ~~Add informational and usage comments throughout the backend code~~
 13. ~~Make certain comments dynamic somehow~~
-14. Cleanup and compartmentalize the code as much as possible
-15. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-16. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
-17. Create a fork with local storage for data and bundle into an Electron app for desktop use
-18. Create another fork with docker and kubernetes for cloud use
-19. Create another fork with a mobile app for iOS and Android
-20. Create another fork for the purpose of refactoring into a Recipes MERN app
+14. ~~Add the functionality to add "Books" to the site that contain multiple chapters/documents~~
+15. Modify the CreateBooksPage so that the only things collected are title, description, category, documents, owners, lastUpdatedBy, and the timestamps.
+16. Add a PaginatedBookTable component that uses the same design patterns and styling as used in the PaginatedDocTable component and use it in the ViewBooksPage.
+17. In Teams and Projects, add the functionality to add Books and Documents
+    1.  Add a tab to the tab menu of the Teams details page and the Projects details page called "Books".
+        1.  In this tab, there should be a header that says "Team Books" and then present a table of all the books that are currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and ungroup them from the current team. There should be a button to ungroup all the selected books from the current team under the table.
+        2.  Below that there should be another header that says "Add Books" and then present a table of all the books that are not currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and group them to the current team. There should be a button to group all the selected books to the current team under the table.
+    2.  Add a tab to the tab menu of the Teams details page and the Projects details page called "Documents".
+        1.  In this tab, there should be a header that says "Team Documents" and then present a table of all the documents that are currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and ungroup them from the current team. There should be a button to ungroup all the selected documents from the current team under the table.
+        2.  Below that there should be another header that says "Add Documents" and then present a table of all the documents that are not currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and group them to the current team. There should be a button to group all the selected documents to the current team under the table.
+18. The Members tab in the tab menu of the Teams details page does not currently function. Create a view for it to display all users in the Team.
+19. The Projects details page does not have a Collaborators tab in the tab menu. Create one and create a view for it to display all collaborators of the Project.
+20. Cleanup and compartmentalize the code as much as possible
+21. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+22. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
+23. Create a fork with local storage for data and bundle into an Electron app for desktop use
+24. Create another fork with docker and kubernetes for cloud use
+25. Create another fork with a mobile app for iOS and Android
+26. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 

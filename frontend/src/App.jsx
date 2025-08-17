@@ -1,6 +1,9 @@
 /*
+ * @name App
+ * @file /docman/frontend/src/App.jsx
+ * @description Main application component that handles routing and authentication state
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import { Route, Routes } from "react-router";
@@ -16,7 +19,12 @@ import SystemInfoPage from "./pages/SystemInfoPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import CreateDocPage from "./pages/CreateDocPage";
 import CreateCatPage from './pages/CreateCatPage';
+import EditCatPage from './pages/EditCatPage';
 import EditDocPage from "./pages/EditDocPage";
+import ViewBooksPage from "./pages/ViewBooksPage";
+import CreateBookPage from "./pages/CreateBookPage";
+import ViewBookPage from "./pages/ViewBookPage";
+import EditBookPage from "./pages/EditBookPage";
 import CustomChartsPage from "./pages/CustomChartsPage";
 import TeamsPage from "./pages/TeamsPage";
 import TeamDetailPage from "./pages/TeamDetailPage";
@@ -102,6 +110,14 @@ const App = () => {
                         }
                     />
                     <Route
+                        path="/categories/:id/edit"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <EditCatPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="/doc/:id"
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
@@ -130,6 +146,38 @@ const App = () => {
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
                                 <ViewCatsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/books"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewBooksPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/books/create"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <CreateBookPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/books/:id"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ViewBookPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/books/:id/edit"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <EditBookPage />
                             </ProtectedRoute>
                         }
                     />

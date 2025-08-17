@@ -4,7 +4,7 @@
  * @routes teamsRoutes
  * @description Team management routes for team operations, member management, and collaboration
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import express from "express";
@@ -34,8 +34,8 @@ const router = express.Router();
 // Get user's teams (editors and admins can create teams)
 router.get("/my-teams", verifyAccessToken, requireRole("editor", "admin"), getUserTeams);
 
-// Get all teams (admin only)
-router.get("/", verifyAccessToken, requireRole("admin"), getAllTeams);
+// Get all teams (editors and admins can see all teams)
+router.get("/", verifyAccessToken, requireRole("editor", "admin"), getAllTeams);
 
 // Get specific team
 router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), getTeamById);

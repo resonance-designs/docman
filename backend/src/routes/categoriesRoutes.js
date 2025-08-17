@@ -4,13 +4,13 @@
  * @routes categoriesRoutes
  * @description Category management routes for organizing and managing document categories
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
-import { getAllCategories, createCategory, deleteCategory } from "../controllers/categoriesController.js";
+import { getAllCategories, createCategory, updateCategory, deleteCategory } from "../controllers/categoriesController.js";
 
 /**
  * Express router for document category management endpoints
@@ -25,6 +25,9 @@ router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), get
 
 // POST /api/categories - Create a new document category (only admins can create categories)
 router.post("/", verifyAccessToken, requireRole("admin"), createCategory);
+
+// PUT /api/categories/:id - Update a document category (only admins can update categories)
+router.put("/:id", verifyAccessToken, requireRole("admin"), updateCategory);
 
 // DELETE /api/categories/:id - Delete a document category (only admins can delete categories)
 router.delete("/:id", verifyAccessToken, requireRole("admin"), deleteCategory);

@@ -4,7 +4,7 @@
  * @module database-indexes
  * @description Database index definitions for optimal query performance
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

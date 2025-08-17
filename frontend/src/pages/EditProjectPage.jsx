@@ -4,7 +4,7 @@
  * @page EditProjectPage
  * @description Project editing page for updating project details, status, and team members
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

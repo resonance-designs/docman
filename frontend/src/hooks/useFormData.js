@@ -4,7 +4,7 @@
  * @hook useFormData
  * @description Custom hook for loading common form data (users, categories, external contact types)
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -47,7 +47,7 @@ export function useFormData({
                     requests.push(api.get("/users"));
                 }
                 if (loadCategories) {
-                    requests.push(api.get("/categories"));
+                    requests.push(api.get("/categories?type=Document"));
                 }
                 if (loadExternalContactTypes) {
                     requests.push(api.get("/external-contacts/types"));
@@ -58,21 +58,27 @@ export function useFormData({
                 let responseIndex = 0;
                 
                 if (loadUsers) {
-                    const usersData = responses[responseIndex]?.data || [];
+                    const responseData = responses[responseIndex]?.data || {};
+                    // Handle paginated response structure: { users: [...], pagination: {...} }
+                    const usersData = responseData.users || responseData || [];
                     console.log('Users data loaded:', usersData);
                     setUsers(Array.isArray(usersData) ? usersData : []);
                     responseIndex++;
                 }
                 if (loadCategories) {
-                    const categoriesData = responses[responseIndex]?.data || [];
+                    const responseData = responses[responseIndex]?.data || {};
+                    // Handle paginated response structure: { categories: [...], pagination: {...} }
+                    const categoriesData = responseData.categories || responseData || [];
                     console.log('Categories data loaded:', categoriesData);
                     setCategories(Array.isArray(categoriesData) ? categoriesData : []);
                     responseIndex++;
                 }
                 if (loadExternalContactTypes) {
-                    const contactTypesData = responses[responseIndex]?.data || [];
+                    const responseData = responses[responseIndex]?.data || [];
+                    // Handle direct array response
+                    const contactTypesData = Array.isArray(responseData) ? responseData : [];
                     console.log('External contact types data loaded:', contactTypesData);
-                    setExternalContactTypes(Array.isArray(contactTypesData) ? contactTypesData : []);
+                    setExternalContactTypes(contactTypesData);
                 }
 
             } catch (err) {
