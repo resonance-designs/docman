@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import CustomChart from "../models/CustomChart.js";
@@ -254,24 +254,66 @@ async function getDocumentData(chart) {
         }
     }
     
+    console.log('📊 Chart config:', {
+        groupByField: chart.groupByField,
+        dataSource: chart.dataSource,
+        matchConditions
+    });
+    
     let aggregationPipeline = [
         { $match: matchConditions }
     ];
     
     // Group by field if specified
     if (chart.groupByField) {
-        aggregationPipeline.push({
-            $group: {
-                _id: `$${chart.groupByField}`,
-                count: { $sum: 1 }
-            }
-        });
+        // Special handling for author field to get user names
+        if (chart.groupByField === 'author' || chart.groupByField === 'createdBy' || chart.groupByField === 'lastUpdatedBy' || chart.groupByField === 'reviewCompletedBy') {
+            aggregationPipeline.push(
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: chart.groupByField,
+                        foreignField: '_id',
+                        as: 'authorInfo'
+                    }
+                },
+                {
+                    $unwind: {
+                        path: '$authorInfo',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            $cond: {
+                                if: { $ne: ['$authorInfo', null] },
+                                then: { $concat: ['$authorInfo.firstname', ' ', '$authorInfo.lastname'] },
+                                else: 'Unknown'
+                            }
+                        },
+                        count: { $sum: 1 }
+                    }
+                }
+            );
+        } else {
+            aggregationPipeline.push({
+                $group: {
+                    _id: `$${chart.groupByField}`,
+                    count: { $sum: 1 }
+                }
+            });
+        }
         
         // Sort by count descending
         aggregationPipeline.push({ $sort: { count: -1 } });
     }
     
-    return await Doc.aggregate(aggregationPipeline);
+    console.log('📊 Aggregation pipeline:', JSON.stringify(aggregationPipeline, null, 2));
+    const result = await Doc.aggregate(aggregationPipeline);
+    console.log('📊 Aggregation result:', result);
+    
+    return result;
 }
 
 /**

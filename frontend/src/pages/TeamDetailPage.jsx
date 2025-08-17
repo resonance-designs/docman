@@ -1,6 +1,10 @@
 /*
+ * @name TeamDetailPage
+ * @file /docman/frontend/src/pages/TeamDetailPage.jsx
+ * @page TeamDetailPage
+ * @description Team detail page displaying team members, projects, and collaboration tools
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -18,6 +22,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 import ProjectCard from "../components/projects/ProjectCard";
 import InviteMemberModal from "../components/teams/InviteMemberModal";
 
@@ -131,7 +136,11 @@ const TeamDetailPage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-4">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading team...
+                        <LoadingSpinner 
+                            message="Loading team..." 
+                            size="lg" 
+                            color="purple" 
+                        />
                     </div>
                 </div>
             </div>
@@ -266,7 +275,11 @@ const TeamDetailPage = () => {
                         <div className="p-6">
                             {projectsLoading ? (
                                 <div className="text-center text-resdes-teal py-10">
-                                    Loading projects...
+                                    <LoadingSpinner 
+                                        message="Loading projects..." 
+                                        size="md" 
+                                        color="green" 
+                                    />
                                 </div>
                             ) : projects.length === 0 ? (
                                 <div className="text-center py-8">

@@ -1,6 +1,21 @@
 /*
+ * @name useAutoLogout
+ * @file /docman/frontend/src/hooks/useAutoLogout.js
+ * @hook useAutoLogout
+ * @description Custom hook for automatic user logout on inactivity with configurable timeout
+ *
+ * This custom React hook provides functionality to automatically log out the user
+ * when they have been inactive for a specified amount of time. It also shows a warning
+ * message 5 minutes before the actual logout occurs.
+ *
+ * The hook takes three parameters:
+ *   - isAuthenticated: A boolean indicating whether the user is currently logged in or not.
+ *   - onLogout: A callback function that should be called when the user needs to be logged out.
+ *   - timeoutMinutes: An optional parameter specifying the number of minutes until auto-logout.
+ *                     Defaults to 15 minutes.
+ *
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 // hooks/useAutoLogout.js

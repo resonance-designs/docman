@@ -1,6 +1,10 @@
 /*
+ * @name EditProjectPage
+ * @file /docman/frontend/src/pages/EditProjectPage.jsx
+ * @page EditProjectPage
+ * @description Project editing page for updating project details, status, and team members
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -9,6 +13,8 @@ import { FolderIcon, ArrowLeftIcon, CalendarIcon, TagIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
+import InlineLoader from "../components/InlineLoader";
 
 const EditProjectPage = () => {
     const { id } = useParams();
@@ -218,7 +224,11 @@ const EditProjectPage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-4">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading project...
+                        <LoadingSpinner 
+                            message="Loading project..." 
+                            size="lg" 
+                            color="green" 
+                        />
                     </div>
                 </div>
             </div>
@@ -276,7 +286,7 @@ const EditProjectPage = () => {
                                         Team *
                                     </label>
                                     {teamsLoading ? (
-                                        <div className="text-sm text-gray-500">Loading teams...</div>
+                                        <InlineLoader message="Loading teams..." size="xs" color="teal" />
                                     ) : (
                                         <select
                                             id="teamId"

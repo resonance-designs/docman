@@ -1,6 +1,10 @@
 /*
+ * @name Validation utility functions
+ * @file /docman/frontend/src/lib/validation.js
+ * @module validation
+ * @description Form validation utilities with comprehensive validation rules and error handling
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 /**

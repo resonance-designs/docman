@@ -4,7 +4,7 @@
  * @component TeamCard
  * @description Team card component displaying team info, member count, project count, and management actions
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState } from "react";
@@ -54,24 +54,24 @@ const TeamCard = ({ team, onTeamDeleted }) => {
     const projectCount = team.projectCount || 0;
 
     return (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+        <div className="bg-base-100 rounded-lg shadow-md border-2 border-resdes-orange hover:shadow-lg transition-shadow">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b-2 border-resdes-orange">
                 <div className="flex items-start justify-between">
                     <div className="flex-1">
-                        <Link 
+                        <Link
                             to={`/teams/${team._id}`}
-                            className="text-xl font-semibold text-gray-900 hover:text-resdes-blue"
+                            className="text-xl font-semibold text-base hover:text-resdes-blue"
                         >
                             {team.name}
                         </Link>
                         {team.description && (
-                            <p className="text-gray-600 mt-1 text-sm line-clamp-2">
+                            <p className="text-base mt-1 text-sm line-clamp-2">
                                 {team.description}
                             </p>
                         )}
                     </div>
-                    
+
                     {/* Menu */}
                     <div className="relative">
                         <button
@@ -81,7 +81,7 @@ const TeamCard = ({ team, onTeamDeleted }) => {
                         >
                             <MoreVerticalIcon size={16} className="text-gray-500" />
                         </button>
-                        
+
                         {showMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                                 <div className="py-1">
@@ -120,7 +120,8 @@ const TeamCard = ({ team, onTeamDeleted }) => {
 
             {/* Stats */}
             <div className="p-6">
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <h3 className="font-semibold text-base mb-2">Members</h3>
+                <div className="flex items-center justify-between text-sm text-base">
                     <div className="flex items-center">
                         <UsersIcon size={16} className="mr-1" />
                         <span>{memberCount} member{memberCount !== 1 ? 's' : ''}</span>
@@ -133,18 +134,16 @@ const TeamCard = ({ team, onTeamDeleted }) => {
 
                 {/* Owner */}
                 {team.owner && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                        <p className="text-xs text-gray-500 mb-1">Owner</p>
-                        <p className="text-sm font-medium text-gray-900">
-                            {team.owner.firstname} {team.owner.lastname}
-                        </p>
+                    <div className="mt-4 pt-4 border-t border-base-300">
+                        <p className="text-sm font-semibold text-base mb-1">Owner</p>
+                        <a href={`mailto:${team.owner.email}`} className="text-xs underline text-resdes-teal">{team.owner.firstname} {team.owner.lastname}</a>
                     </div>
                 )}
 
                 {/* Recent Members */}
                 {team.members && team.members.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                        <p className="text-xs text-gray-500 mb-2">Recent Members</p>
+                    <div className="mt-4 pt-4 border-t border-base-300">
+                        <p className="text-sm font-semibold text-base mb-2">Recent Members</p>
                         <div className="flex -space-x-2">
                             {team.members.slice(0, 4).map((member, index) => (
                                 <div

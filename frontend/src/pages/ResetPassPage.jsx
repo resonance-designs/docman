@@ -1,6 +1,10 @@
 /*
+ * @name ResetPassPage
+ * @file /docman/frontend/src/pages/ResetPassPage.jsx
+ * @page ResetPassPage
+ * @description Password reset page for updating user passwords with secure token validation
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 // ResetPasswordForm.jsx

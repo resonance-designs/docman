@@ -1,12 +1,11 @@
 /*
+ * @name safeUtils
+ * @file /docman/backend/src/lib/safeUtils.js
+ * @module safeUtils
+ * @description Safe utility functions to prevent common React errors. These functions ensure data is always in the expected format
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
- */
-
-/**
- * Safe utility functions to prevent common React errors
- * These functions ensure data is always in the expected format
  */
 
 /**

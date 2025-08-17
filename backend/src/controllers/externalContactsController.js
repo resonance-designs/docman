@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import ExternalContact from "../models/ExternalContact.js";
@@ -145,6 +145,61 @@ export async function updateExternalContact(req, res) {
         res.status(200).json(contact);
     } catch (error) {
         console.error("Error updating external contact:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
+/**
+ * Update an external contact type
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with updated contact type data or error message
+ */
+export async function updateExternalContactType(req, res) {
+    try {
+        const { id } = req.params;
+        const { name, description } = req.body;
+        
+        if (!name) {
+            return res.status(400).json({ message: "Name is required for external contact type" });
+        }
+        
+        const contactType = await ExternalContactType.findByIdAndUpdate(
+            id,
+            { name, description },
+            { new: true }
+        );
+        
+        if (!contactType) {
+            return res.status(404).json({ message: "External contact type not found" });
+        }
+        
+        res.status(200).json(contactType);
+    } catch (error) {
+        console.error("Error updating external contact type:", error);
+        res.status(500).send("Internal Server Error");
+    }
+}
+
+/**
+ * Delete an external contact type
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
+export async function deleteExternalContactType(req, res) {
+    try {
+        const { id } = req.params;
+        
+        const contactType = await ExternalContactType.findByIdAndDelete(id);
+        
+        if (!contactType) {
+            return res.status(404).json({ message: "External contact type not found" });
+        }
+        
+        res.status(200).json({ message: "External contact type deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting external contact type:", error);
         res.status(500).send("Internal Server Error");
     }
 }

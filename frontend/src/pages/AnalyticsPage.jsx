@@ -4,7 +4,7 @@
  * @page AnalyticsPage
  * @description Analytics dashboard with charts and metrics for document management insights and reporting
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -25,6 +25,7 @@ import { DownloadIcon, BarChart3Icon, TrendingUpIcon, PieChartIcon } from "lucid
 import * as XLSX from 'xlsx';
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Register Chart.js components
 ChartJS.register(
@@ -118,7 +119,11 @@ const AnalyticsPage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-8">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading analytics...
+                        <LoadingSpinner 
+                            message="Loading analytics..." 
+                            size="lg" 
+                            color="orange" 
+                        />
                     </div>
                 </div>
             </div>

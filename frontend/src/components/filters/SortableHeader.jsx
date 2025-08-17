@@ -1,6 +1,10 @@
 /*
+ * @name Sortable Header
+ * @file /docman/frontend/src/components/filters/SortableHeader.jsx
+ * @component SortableHeader
+ * @description Sortable table header component with visual indicators for column sorting
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { ChevronUpIcon, ChevronDownIcon, ChevronsUpDownIcon } from "lucide-react";

@@ -1,6 +1,10 @@
 /*
+ * @name Error Boundary Component
+ * @file /docman/frontend/src/components/ErrorBoundary.jsx
+ * @component ErrorBoundary
+ * @description Component for catching and displaying React errors
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import React from "react";

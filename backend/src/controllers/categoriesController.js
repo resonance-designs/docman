@@ -1,20 +1,39 @@
 /*
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import Category from "../models/Category.js";
 
 /**
- * Get all categories
+ * Get all categories with pagination
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
- * @returns {Object} JSON response with array of categories or error message
+ * @returns {Object} JSON response with categories and pagination metadata
  */
 export async function getAllCategories(req, res) {
     try {
-        const categories = await Category.find({}, "_id name description createdAt").sort({ name: 1 });
-        res.status(200).json(categories);
+        const { limit = 50, page = 1 } = req.query;
+        
+        // Parse pagination
+        const limitNum = Math.min(parseInt(limit) || 50, 100); // Max 100 categories per page
+        const skip = (Math.max(parseInt(page) || 1, 1) - 1) * limitNum;
+
+        // Execute query with pagination
+        const [categories, totalCount] = await Promise.all([
+            Category.find({}, "_id name description createdAt").sort({ name: 1 }).skip(skip).limit(limitNum),
+            Category.countDocuments()
+        ]);
+
+        res.status(200).json({
+            categories,
+            pagination: {
+                total: totalCount,
+                page: Math.max(parseInt(page) || 1, 1),
+                limit: limitNum,
+                pages: Math.ceil(totalCount / limitNum)
+            }
+        });
     } catch (error) {
         console.error("Error fetching categories:", error);
         res.status(500).json({ message: "Internal Server Error" });

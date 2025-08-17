@@ -4,7 +4,7 @@
  * @component PaginatedDocTable
  * @description Paginated table component for displaying documents with sorting, filtering, and bulk actions
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 
@@ -19,23 +19,41 @@ import PropTypes from "prop-types";
  * @param {Object} props - Component properties
  * @param {Array} props.docs - Array of document objects to display
  * @param {Function} props.setDocs - Function to update the documents list
- * @param {number} [props.itemsPerPage=25] - Number of items to display per page
+ * @param {number} [props.itemsPerPage=10] - Number of items to display per page
  * @param {Object} [props.sortConfig] - Current sort configuration
  * @param {Function} [props.onSort] - Function to handle sorting
+ * @param {Object} [props.pagination] - Backend pagination metadata
+ * @param {Function} [props.onPageChange] - Function to handle page changes
  * @returns {JSX.Element} The paginated document table component
  */
-const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSort }) => {
+const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 10, sortConfig, onSort, pagination, onPageChange, onPageSizeChange }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
 
     // Ensure docs is always an array
     const safeDocsArray = useMemo(() => Array.isArray(docs) ? docs : [], [docs]);
 
-    // Calculate pagination values
-    const totalPages = Math.ceil(safeDocsArray.length / pageSize);
-    const startIndex = (currentPage - 1) * pageSize;
+    // Use backend pagination if available, otherwise fallback to client-side
+    const totalPages = pagination ? pagination.pages : Math.ceil(safeDocsArray.length / pageSize);
+    const displayCurrentPage = pagination ? pagination.page : currentPage;
+
+    // Calculate display values
+    const startIndex = (displayCurrentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const currentDocs = useMemo(() => safeDocsArray.slice(startIndex, endIndex), [safeDocsArray, startIndex, endIndex]);
+    const displayStart = startIndex + 1;
+    const displayEnd = pagination ? Math.min(endIndex, pagination.total) : Math.min(endIndex, safeDocsArray.length);
+    const displayTotal = pagination ? pagination.total : safeDocsArray.length;
+
+    // Calculate current docs for display
+    const currentDocs = useMemo(() => {
+        if (pagination) {
+            // Backend pagination - use all docs (they're already paginated)
+            return safeDocsArray;
+        } else {
+            // Client-side pagination
+            return safeDocsArray.slice(startIndex, endIndex);
+        }
+    }, [safeDocsArray, startIndex, endIndex, pagination]);
 
     /**
      * Handle page changes
@@ -43,19 +61,23 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
      */
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
+            if (onPageChange) {
+                onPageChange(page);
+            } else {
+                setCurrentPage(page);
+            }
         }
     };
 
     /**
      * Navigate to the previous page
      */
-    const goToPrevious = () => goToPage(currentPage - 1);
+    const goToPrevious = () => goToPage(displayCurrentPage - 1);
 
     /**
      * Navigate to the next page
      */
-    const goToNext = () => goToPage(currentPage + 1);
+    const goToNext = () => goToPage(displayCurrentPage + 1);
 
     /**
      * Handle page size change
@@ -63,7 +85,15 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
      */
     const handlePageSizeChange = (newPageSize) => {
         setPageSize(newPageSize);
-        setCurrentPage(1); // Reset to first page when changing page size
+        if (onPageSizeChange) {
+            // Use dedicated page size change handler if provided
+            onPageSizeChange(newPageSize);
+        } else if (onPageChange) {
+            // Fallback: trigger page change to reset to page 1
+            onPageChange(1);
+        } else {
+            setCurrentPage(1); // Reset to first page when changing page size
+        }
     };
 
     /**
@@ -73,7 +103,7 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
     const getPageNumbers = () => {
         const pages = [];
         const maxVisiblePages = 5;
-        
+
         if (totalPages <= maxVisiblePages) {
             // Show all pages if total is small
             for (let i = 1; i <= totalPages; i++) {
@@ -81,35 +111,35 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
             }
         } else {
             // Show smart pagination with ellipsis
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-            
+            const startPage = Math.max(1, displayCurrentPage - 2);
+            const endPage = Math.min(totalPages, displayCurrentPage + 2);
+
             if (startPage > 1) {
                 pages.push(1);
                 if (startPage > 2) pages.push('...');
             }
-            
+
             for (let i = startPage; i <= endPage; i++) {
                 pages.push(i);
             }
-            
+
             if (endPage < totalPages) {
                 if (endPage < totalPages - 1) pages.push('...');
                 pages.push(totalPages);
             }
         }
-        
+
         return pages;
     };
 
     /**
-     * Reset to page 1 when docs change
+     * Reset to page 1 when docs change (client-side only)
      */
     useEffect(() => {
-        if (currentPage > totalPages && totalPages > 0) {
+        if (!pagination && displayCurrentPage > totalPages && totalPages > 0) {
             setCurrentPage(1);
         }
-    }, [safeDocsArray.length, totalPages, currentPage]);
+    }, [safeDocsArray.length, totalPages, displayCurrentPage, pagination]);
 
     if (safeDocsArray.length === 0) {
         return (
@@ -203,19 +233,19 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {displayTotal > 0 && (
                 <div className="flex items-center justify-between p-4 border-t border-resdes-orange bg-resdes-orange text-slate-950 font-mono font-bold rounded-b-xl">
                     {/* Results info and page size selector */}
                     <div className="flex items-center gap-4">
                         <div className="text-sm">
-                            Showing {startIndex + 1} to {Math.min(endIndex, safeDocsArray.length)} of {safeDocsArray.length} documents
+                            Showing {displayStart} to {displayEnd} of {displayTotal} documents
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Show:</span>
                             <select
                                 value={pageSize}
                                 onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                                className="select select-sm select-bordered bg-white text-black"
+                                className="select select-sm select-bordered bg-white text-slate-950"
                             >
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
@@ -226,13 +256,14 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
                         </div>
                     </div>
 
-                    {/* Pagination buttons */}
+                    {/* Pagination buttons - only show if more than 1 page */}
+                    {totalPages > 1 && (
                     <div className="flex items-center gap-2">
                         {/* Previous button */}
                         <button
                             onClick={goToPrevious}
-                            disabled={currentPage === 1}
-                            className="btn btn-sm bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={displayCurrentPage === 1}
+                            className="btn btn-sm bg-white text-slate-950 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Previous page"
                         >
                             <ChevronLeftIcon size={16} />
@@ -241,14 +272,14 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
                         {/* Page numbers */}
                         <div className="flex items-center gap-1">
                             {getPageNumbers().map((page, index) => {
-                                const isCurrentPage = page === currentPage;
+                                const isCurrentPage = page === displayCurrentPage;
                                 const isEllipsis = page === '...';
 
-                                let buttonClass = 'bg-white text-black hover:bg-gray-100';
+                                let buttonClass = 'bg-white text-slate-950 hover:bg-gray-100';
                                 if (isCurrentPage) {
-                                    buttonClass = 'bg-resdes-teal text-white';
+                                    buttonClass = 'bg-resdes-teal text-slate-950';
                                 } else if (isEllipsis) {
-                                    buttonClass = 'bg-white text-black cursor-default';
+                                    buttonClass = 'bg-white text-slate-950 cursor-default';
                                 }
 
                                 return (
@@ -267,13 +298,14 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 25, sortConfig, onSor
                         {/* Next button */}
                         <button
                             onClick={goToNext}
-                            disabled={currentPage === totalPages}
-                            className="btn btn-sm bg-white text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={displayCurrentPage === totalPages}
+                            className="btn btn-sm bg-white text-slate-950 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Next page"
                         >
                             <ChevronRightIcon size={16} />
                         </button>
                     </div>
+                    )}
                 </div>
             )}
         </div>
@@ -305,7 +337,15 @@ PaginatedDocTable.propTypes = {
         key: PropTypes.string.isRequired,
         direction: PropTypes.oneOf(["asc", "desc"]).isRequired
     }),
-    onSort: PropTypes.func
+    onSort: PropTypes.func,
+    pagination: PropTypes.shape({
+        total: PropTypes.number.isRequired,
+        page: PropTypes.number.isRequired,
+        limit: PropTypes.number.isRequired,
+        pages: PropTypes.number.isRequired
+    }),
+    onPageChange: PropTypes.func,
+    onPageSizeChange: PropTypes.func
 };
 
 export default PaginatedDocTable;

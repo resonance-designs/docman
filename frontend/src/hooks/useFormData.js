@@ -4,7 +4,7 @@
  * @hook useFormData
  * @description Custom hook for loading common form data (users, categories, external contact types)
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -58,15 +58,21 @@ export function useFormData({
                 let responseIndex = 0;
                 
                 if (loadUsers) {
-                    setUsers(responses[responseIndex]?.data || []);
+                    const usersData = responses[responseIndex]?.data || [];
+                    console.log('Users data loaded:', usersData);
+                    setUsers(Array.isArray(usersData) ? usersData : []);
                     responseIndex++;
                 }
                 if (loadCategories) {
-                    setCategories(responses[responseIndex]?.data || []);
+                    const categoriesData = responses[responseIndex]?.data || [];
+                    console.log('Categories data loaded:', categoriesData);
+                    setCategories(Array.isArray(categoriesData) ? categoriesData : []);
                     responseIndex++;
                 }
                 if (loadExternalContactTypes) {
-                    setExternalContactTypes(responses[responseIndex]?.data || []);
+                    const contactTypesData = responses[responseIndex]?.data || [];
+                    console.log('External contact types data loaded:', contactTypesData);
+                    setExternalContactTypes(Array.isArray(contactTypesData) ? contactTypesData : []);
                 }
 
             } catch (err) {

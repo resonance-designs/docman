@@ -4,7 +4,7 @@
  * @module utils
  * @description Backend utility functions for object validation and common server-side operations
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 /**

@@ -4,7 +4,7 @@
  * @routes externalContactsRoutes
  * @description External contact management routes for stakeholder organization
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import express from "express";
@@ -13,6 +13,8 @@ import { requireRole } from "../middleware/requireRole.js";
 import {
     getAllExternalContactTypes,
     createExternalContactType,
+    updateExternalContactType,
+    deleteExternalContactType,
     getAllExternalContacts,
     createExternalContact,
     getExternalContactsByDocument,
@@ -33,6 +35,12 @@ router.get("/types", verifyAccessToken, requireRole("viewer", "editor", "admin")
 
 // POST /api/external-contacts/types - Create a new external contact type (only admins can create types)
 router.post("/types", verifyAccessToken, requireRole("admin"), createExternalContactType);
+
+// PUT /api/external-contacts/types/:id - Update an external contact type (only admins can update types)
+router.put("/types/:id", verifyAccessToken, requireRole("admin"), updateExternalContactType);
+
+// DELETE /api/external-contacts/types/:id - Delete an external contact type (only admins can delete types)
+router.delete("/types/:id", verifyAccessToken, requireRole("admin"), deleteExternalContactType);
 
 // GET /api/external-contacts - Get all external contacts (only admins can view all contacts)
 router.get("/", verifyAccessToken, requireRole("admin"), getAllExternalContacts);

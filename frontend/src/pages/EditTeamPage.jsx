@@ -1,6 +1,10 @@
 /*
+ * @name EditTeamPage
+ * @file /docman/frontend/src/pages/EditTeamPage.jsx
+ * @page EditTeamPage
+ * @description Team editing page for updating team information and managing member roles
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -9,6 +13,7 @@ import { UsersIcon, ArrowLeftIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const EditTeamPage = () => {
     const { id } = useParams();
@@ -157,7 +162,11 @@ const EditTeamPage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-4">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading team...
+                        <LoadingSpinner 
+                            message="Loading team..." 
+                            size="lg" 
+                            color="purple" 
+                        />
                     </div>
                 </div>
             </div>

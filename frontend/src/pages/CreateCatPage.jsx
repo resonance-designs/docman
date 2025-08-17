@@ -1,6 +1,10 @@
 /*
+ * @name AnalyticsPage
+ * @file /docman/frontend/src/pages/CreateCatPage.jsx
+ * @page CreateCatPage
+ * @description Category creation page with form for adding new document categories
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState } from "react";

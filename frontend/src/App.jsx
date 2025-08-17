@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { Route, Routes } from "react-router";
@@ -37,6 +37,7 @@ import ManageExternalContactTypesPage from "./pages/ManageExternalContactTypesPa
 import { ThemeProvider } from "./context/ThemeContext";
 import { useUserRole } from "./hooks";
 import ErrorBoundary from "./components/ErrorBoundary";
+import InlineLoader from "./components/InlineLoader";
 
 /**
  * Main application component that handles routing and authentication state
@@ -54,7 +55,7 @@ const App = () => {
             <ThemeProvider>
                 <div className="min-h-screen bg-base-100 flex items-center justify-center">
                     <div className="loading loading-spinner loading-lg"></div>
-                    <span className="ml-2">Loading...</span>
+                    <InlineLoader message="Loading..." size="sm" color="teal" />
                 </div>
             </ThemeProvider>
         );

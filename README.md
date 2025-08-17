@@ -2,6 +2,8 @@
 
 ###### By Resonance Designs
 
+###### Latest Version: v2.0.2
+
 A modern, full-stack document management system built with React, Node.js, and MongoDB. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
 ## ✨ Features

@@ -1,6 +1,10 @@
 /*
+ * @name CustomChartPage
+ * @file /docman/frontend/src/pages/CustomChartPage.jsx
+ * @page CustomChartPage
+ * @description Custom analytics page for creating and viewing personalized data visualizations
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -30,6 +34,7 @@ import {
 } from "lucide-react";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Register Chart.js components
 ChartJS.register(
@@ -282,9 +287,11 @@ const CustomChartsPage = () => {
         return (
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-8">
-                    <div className="text-center text-resdes-teal py-10">
-                        Loading custom charts...
-                    </div>
+                    <LoadingSpinner 
+                        message="Loading custom charts..." 
+                        size="lg" 
+                        color="orange" 
+                    />
                 </div>
             </div>
         );
@@ -594,8 +601,8 @@ const CustomChartsPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                // Empty State
+                            ) : charts.length === 0 ? (
+                                // Empty State - No charts exist
                                 <div className="card bg-base-100">
                                     <div className="card-body text-center">
                                         <BarChart3Icon className="size-16 text-resdes-orange mx-auto mb-4" />
@@ -610,6 +617,109 @@ const CustomChartsPage = () => {
                                             <PlusIcon size={16} />
                                             Create Your First Chart
                                         </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                // Overview Charts - Show when charts exist but none selected
+                                <div className="space-y-6">
+                                    <div className="card bg-base-100">
+                                        <div className="card-body">
+                                            <h2 className="text-xl font-bold text-base-content mb-4">Charts Overview</h2>
+                                            <p className="text-base-content/70 mb-6">
+                                                Here's an overview of your custom charts. Select a chart from the left to view it.
+                                            </p>
+                                            
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {/* Chart Types Distribution */}
+                                                <div className="card bg-base-200">
+                                                    <div className="card-body">
+                                                        <h3 className="font-bold text-base-content mb-4">Chart Types Distribution</h3>
+                                                        <div className="h-64">
+                                                            <Pie 
+                                                                data={{
+                                                                    labels: [...new Set(charts.map(chart => chart.chartType))],
+                                                                    datasets: [{
+                                                                        data: [...new Set(charts.map(chart => chart.chartType))].map(type => 
+                                                                            charts.filter(chart => chart.chartType === type).length
+                                                                        ),
+                                                                        backgroundColor: colorPalettes[0],
+                                                                        borderColor: colorPalettes[0].map(color => color + '80'),
+                                                                        borderWidth: 1
+                                                                    }]
+                                                                }}
+                                                                options={{
+                                                                    responsive: true,
+                                                                    maintainAspectRatio: false,
+                                                                    plugins: {
+                                                                        legend: {
+                                                                            position: 'bottom',
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Charts by Author */}
+                                                <div className="card bg-base-200">
+                                                    <div className="card-body">
+                                                        <h3 className="font-bold text-base-content mb-4">Charts by Author</h3>
+                                                        <div className="h-64">
+                                                            <Bar 
+                                                                data={{
+                                                                    labels: [...new Set(charts.map(chart => chart.createdBy?.name || 'Unknown'))],
+                                                                    datasets: [{
+                                                                        label: 'Number of Charts',
+                                                                        data: [...new Set(charts.map(chart => chart.createdBy?.name || 'Unknown'))].map(author => 
+                                                                            charts.filter(chart => (chart.createdBy?.name || 'Unknown') === author).length
+                                                                        ),
+                                                                        backgroundColor: colorPalettes[1],
+                                                                        borderColor: colorPalettes[1].map(color => color + '80'),
+                                                                        borderWidth: 1
+                                                                    }]
+                                                                }}
+                                                                options={{
+                                                                    responsive: true,
+                                                                    maintainAspectRatio: false,
+                                                                    indexAxis: 'y',
+                                                                    plugins: {
+                                                                        legend: {
+                                                                            display: false
+                                                                        }
+                                                                    },
+                                                                    scales: {
+                                                                        x: {
+                                                                            beginAtZero: true
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Stats */}
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                                                <div className="stat bg-base-200 rounded-lg">
+                                                    <div className="stat-title">Total Charts</div>
+                                                    <div className="stat-value text-resdes-orange">{charts.length}</div>
+                                                </div>
+                                                <div className="stat bg-base-200 rounded-lg">
+                                                    <div className="stat-title">Public Charts</div>
+                                                    <div className="stat-value text-resdes-green">{charts.filter(chart => chart.isPublic).length}</div>
+                                                </div>
+                                                <div className="stat bg-base-200 rounded-lg">
+                                                    <div className="stat-title">Chart Types</div>
+                                                    <div className="stat-value text-resdes-teal">{[...new Set(charts.map(chart => chart.chartType))].length}</div>
+                                                </div>
+                                                <div className="stat bg-base-200 rounded-lg">
+                                                    <div className="stat-title">Data Sources</div>
+                                                    <div className="stat-value text-resdes-yellow">{[...new Set(charts.map(chart => chart.dataSource))].length}</div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}

@@ -1,6 +1,10 @@
 /*
+ * @name Navigation Admin Component
+ * @file /docman/frontend/src/components/NavAdmin.jsx
+ * @component NavAdmin
+ * @description Component for displaying navigation links for the admin panel.
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { Link } from "react-router";
@@ -14,7 +18,7 @@ const NavAdmin = ({ role }) => {
     }
 
     return (
-        <div className="bg-gradient-to-r from-resdes-orange to-orange-400 rounded-lg p-4 mb-6 shadow-lg max-w-screen-xl">
+        <div className="bg-gradient-to-r from-resdes-orange to-orange-400 rounded-lg p-4 mb-6 shadow-lg w-fit">
             <div className="flex items-center gap-2 mb-3">
                 <Shield className="size-5 text-slate-950" />
                 <h3 className="text-lg font-bold text-slate-950 font-mono">Admin Quick Actions</h3>
@@ -53,7 +57,7 @@ const NavAdmin = ({ role }) => {
                     className="btn btn-sm bg-slate-950 text-resdes-orange hover:bg-slate-800 transition-colors duration-300"
                 >
                     <UserPlus className="size-4" />
-                    <span>Manage External Contacts</span>
+                    <span>External Contacts</span>
                 </Link>
 
             </div>

@@ -1,6 +1,10 @@
 /*
+ * @name Dropdown Filter
+ * @file /docman/frontend/src/components/filters/DropdownFilter.jsx
+ * @component DropdownFilter
+ * @description Dropdown filter component with search functionality for selecting filter options
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { ChevronDownIcon, XIcon } from "lucide-react";

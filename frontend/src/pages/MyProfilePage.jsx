@@ -4,7 +4,7 @@
  * @page MyProfilePage
  * @description User profile management page for updating personal information and preferences
  * @author Richard Bakos
- * @version 2.0.0
+ * @version 2.0.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { ensureObject, ensureString } from "../lib/safeUtils";
 import {
     validateName,
@@ -655,7 +656,11 @@ const MyProfilePage = () => {
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-8">
                     <div className="text-center text-resdes-teal py-10">
-                        Loading profile...
+                        <LoadingSpinner 
+                            message="Loading profile..." 
+                            size="lg" 
+                            color="blue" 
+                        />
                     </div>
                 </div>
             </div>
@@ -699,96 +704,107 @@ const MyProfilePage = () => {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Background Image Section - Only for self-editing */}
                             {!isEditingOther && (
-                                <div className="flex flex-col items-center gap-4 p-6 bg-base-300 rounded-lg">
-                                    <h3 className="text-lg font-semibold text-base-content">Background Image</h3>
+                                <div
+                                    className="bg-base-300 rounded-lg relative min-h-[300px] flex items-center justify-center"
+                                    style={backgroundImagePreview ? {
+                                        backgroundImage: `url(${backgroundImagePreview})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center',
+                                        backgroundRepeat: 'no-repeat'
+                                    } : {}}
+                                >
+                                    {/* Overlay for better text readability when background image is present */}
+                                    {backgroundImagePreview && (
+                                        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg"></div>
+                                    )}
 
-                                    {/* Current/Preview Background */}
-                                    <div className="relative w-full max-w-md">
-                                        {backgroundImagePreview ? (
-                                            <>
-                                                <div
-                                                    className="w-full h-32 rounded-lg bg-cover bg-center border-4 border-resdes-orange"
-                                                    style={{ backgroundImage: `url(${backgroundImagePreview})` }}
-                                                />
-                                                {/* Hidden img element to detect load errors */}
-                                                <img
-                                                    src={backgroundImagePreview}
-                                                    alt="Background test"
-                                                    className="hidden"
-                                                    onError={(e) => {
-                                                        console.error("Failed to load background image:", e.target.src);
-                                                        toast.error("Failed to load background image. Please try uploading again.");
-                                                    }}
-                                                />
-                                            </>
-                                        ) : (
-                                            <div className="w-full h-32 rounded-lg bg-gray-200 flex items-center justify-center border-4 border-resdes-orange">
-                                                <span className="text-gray-400 text-sm">No background image</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* Content Container with black background and opacity */}
+                                    <div className="flex flex-col items-center gap-4 p-6 bg-black bg-opacity-30 rounded-lg relative z-10 max-w-md w-full mx-4">
+                                        <h3 className="text-lg font-semibold text-white">Background Image</h3>
 
-                                    {/* Upload Controls */}
-                                    <div className="flex flex-col sm:flex-row gap-3 items-center">
-                                        <div className="relative">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleBackgroundImageChange}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                disabled={uploadingBackground}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="btn btn-sm bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
-                                                disabled={uploadingBackground}
-                                            >
-                                                <CameraIcon size={16} />
-                                                Choose Background
-                                            </button>
+                                        {/* Current/Preview Background */}
+                                        <div className="relative w-full">
+                                            {backgroundImagePreview ? (
+                                                <>
+                                                    <img
+                                                        src={backgroundImagePreview}
+                                                        alt="Background test"
+                                                        className="hidden"
+                                                        onError={(e) => {
+                                                            console.error("Failed to load background image:", e.target.src);
+                                                            toast.error("Failed to load background image. Please try uploading again.");
+                                                        }}
+                                                    />
+                                                </>
+                                            ) : (
+                                                <div className="w-full h-32 rounded-lg bg-gray-200 flex items-center justify-center border-4 border-resdes-orange">
+                                                    <span className="text-gray-400 text-sm">No background image</span>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {backgroundImage && (
-                                            <button
-                                                type="button"
-                                                onClick={handleBackgroundImageUpload}
-                                                disabled={uploadingBackground}
-                                                className="btn btn-sm bg-green-600 text-white hover:bg-green-700"
-                                            >
-                                                {uploadingBackground ? (
-                                                    <span className="loading loading-spinner loading-sm"></span>
-                                                ) : (
-                                                    <>
-                                                        <SaveIcon size={16} />
-                                                        Upload
-                                                    </>
-                                                )}
-                                            </button>
-                                        )}
+                                        {/* Upload Controls */}
+                                        <div className="flex flex-col sm:flex-row gap-3 items-center">
+                                            <div className="relative">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleBackgroundImageChange}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    disabled={uploadingBackground}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
+                                                    disabled={uploadingBackground}
+                                                >
+                                                    <CameraIcon size={16} />
+                                                    Choose Background
+                                                </button>
+                                            </div>
 
-                                        {backgroundImagePreview && !backgroundImage && (
-                                            <button
-                                                type="button"
-                                                onClick={handleBackgroundImageDelete}
-                                                disabled={uploadingBackground}
-                                                className="btn btn-sm bg-red-600 text-white hover:bg-red-700"
-                                            >
-                                                {uploadingBackground ? (
-                                                    <span className="loading loading-spinner loading-sm"></span>
-                                                ) : (
-                                                    <>
-                                                        <TrashIcon size={16} />
-                                                        Delete
-                                                    </>
-                                                )}
-                                            </button>
-                                        )}
+                                            {backgroundImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleBackgroundImageUpload}
+                                                    disabled={uploadingBackground}
+                                                    className="btn btn-sm bg-green-600 text-slate-950 hover:bg-green-700"
+                                                >
+                                                    {uploadingBackground ? (
+                                                        <span className="loading loading-spinner loading-sm"></span>
+                                                    ) : (
+                                                        <>
+                                                            <SaveIcon size={16} />
+                                                            Upload
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+
+                                            {backgroundImagePreview && !backgroundImage && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleBackgroundImageDelete}
+                                                    disabled={uploadingBackground}
+                                                    className="btn btn-sm bg-red-600 text-white hover:bg-red-700"
+                                                >
+                                                    {uploadingBackground ? (
+                                                        <span className="loading loading-spinner loading-sm"></span>
+                                                    ) : (
+                                                        <>
+                                                            <TrashIcon size={16} />
+                                                            Delete
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <p className="text-sm text-center text-gray-200">
+                                            Upload a background image (JPEG, PNG, GIF, WebP).<br/>
+                                            <strong>Recommended:</strong> 1200x300px (4:1 ratio), Max size: 5MB
+                                        </p>
                                     </div>
-
-                                    <p className="text-sm text-gray-500 text-center">
-                                        Upload a background image (JPEG, PNG, GIF, WebP).<br/>
-                                        <strong>Recommended:</strong> 1200x300px (4:1 ratio), Max size: 5MB
-                                    </p>
                                 </div>
                             )}
 
@@ -833,7 +849,7 @@ const MyProfilePage = () => {
                                                     />
                                                     <button
                                                         type="button"
-                                                        className="btn btn-sm bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                                        className="btn btn-sm bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
                                                         disabled={uploadingPicture}
                                                     >
                                                         <CameraIcon size={16} />
