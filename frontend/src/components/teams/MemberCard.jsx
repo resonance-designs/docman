@@ -4,16 +4,18 @@
  * @component MemberCard
  * @description Card component for displaying team member information
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { MoreVerticalIcon, UserIcon, CrownIcon, ShieldIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router";
+import { useConfirmationContext } from "../../context/ConfirmationContext";
 
 const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOwner }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
+    const { confirm } = useConfirmationContext();
     const user = member.user;
     const isCurrentUser = currentUser && user._id === currentUser.id;
     const isOwner = teamOwner && user._id === teamOwner._id;
@@ -116,8 +118,15 @@ const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOw
                                 <div className="py-1">
                                     <button
                                         onClick={() => {
-                                            onRemoveMember(user._id);
-                                            setShowMenu(false);
+                                            confirm({
+                                                title: "Remove Team Member",
+                                                message: `Are you sure you want to remove ${user.firstname} ${user.lastname} from this team?`,
+                                                actionName: "Remove",
+                                                onConfirm: () => {
+                                                    onRemoveMember(user._id);
+                                                    setShowMenu(false);
+                                                }
+                                            });
                                         }}
                                         className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
                                     >

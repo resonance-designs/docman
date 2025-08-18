@@ -4,16 +4,18 @@
  * @component CollaboratorCard
  * @description Card component for displaying project collaborators
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { MoreVerticalIcon, UserIcon, MailIcon, PhoneIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from "react-router";
 import toast from 'react-hot-toast';
+import { useConfirmationContext } from '../../context/ConfirmationContext';
 
 const CollaboratorCard = ({ collaborator, canManage, onRemove }) => {
     const [showMenu, setShowMenu] = useState(false);
+    const { confirm } = useConfirmationContext();
 
     const handleRemove = () => {
         if (collaborator.source === 'team') {
@@ -22,10 +24,15 @@ const CollaboratorCard = ({ collaborator, canManage, onRemove }) => {
             return;
         }
 
-        if (window.confirm(`Are you sure you want to remove ${collaborator.firstname} ${collaborator.lastname} from this project?`)) {
-            onRemove(collaborator._id);
-        }
-        setShowMenu(false);
+        confirm({
+            title: "Remove Collaborator",
+            message: `Are you sure you want to remove ${collaborator.firstname} ${collaborator.lastname} from this project?`,
+            actionName: "Remove",
+            onConfirm: () => {
+                onRemove(collaborator._id);
+                setShowMenu(false);
+            }
+        });
     };
 
     return (

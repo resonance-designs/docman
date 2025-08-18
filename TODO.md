@@ -20,12 +20,12 @@ A list of features I plan on implementing into the application.
    3. Should include a hidden field that tracks the date the review was completed -- NEED TO TEST
    4. Should include a hidden field that tracks who marked the review as complete -- NEED TO TEST
    5. In fact, there should be a field in all forms to track who last updated anything
-3. Scheduling
-   1. Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review.
-      1. They should get notice 1 week prior to it opening for review with a calendar reminder file attached
-      2. Setup a weekly alert until the review is marked as complete.
-   2. Can set review deadlines
-   3. If review determines updates are needed, can assign to authors and contributors.
+3. Scheduling -- NEED TO TEST
+   1. Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review. -- NEED TO TEST
+      1. They should get notice 1 week prior to it opening for review with a calendar reminder file attached -- NEED TO TEST
+      2. Setup a weekly alert until the review is marked as complete. -- NEED TO TEST
+   2. Can set review deadlines -- NEED TO TEST
+   3. If review determines updates are needed, can assign to authors and contributors. -- NEED TO TEST
 4. ~~Versioning System~~
    1. ~~Users should be able to upload new versions of the document~~
    2. ~~Users should be able to view previous versions of the document~~
@@ -108,7 +108,7 @@ A list of features I plan on implementing into the application.
     17. ~~Have a button to restore all the files from the archive directory back to the uploads directory.~~
     18. ~~Have buttons to generate dummy data~~
 22. ~~Make it so the token only expires after 5 days of inactivity.~~
-23. Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc
+23. ~~Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc~~
 24. A script to rewrite test scripts when updates are done to make sure the tests still work correctly.
 25. Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" actually do something.
 26. Cleanup and compartmentalize the code as much as possible

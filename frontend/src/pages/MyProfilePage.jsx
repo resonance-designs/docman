@@ -4,7 +4,7 @@
  * @page MyProfilePage
  * @description User profile management page for updating personal information and preferences
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ensureObject, ensureString } from "../lib/safeUtils";
 import {
@@ -407,33 +408,40 @@ const MyProfilePage = () => {
     /**
      * Delete profile picture from the server
      */
+    const { confirm } = useConfirmationContext();
+    
     const handleProfilePictureDelete = async () => {
-        if (!window.confirm("Are you sure you want to delete your profile picture?")) return;
+        confirm({
+            title: "Delete Profile Picture",
+            message: "Are you sure you want to delete your profile picture?",
+            actionName: "Delete",
+            onConfirm: async () => {
+                setUploadingPicture(true);
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = { Authorization: `Bearer ${token}` };
 
-        setUploadingPicture(true);
-        try {
-            const token = localStorage.getItem("token");
-            const headers = { Authorization: `Bearer ${token}` };
+                    const currentUserId = getUserId(currentUser);
+                    if (!currentUserId && !isEditingOther) {
+                        toast.error("User information not available. Please refresh the page.");
+                        setUploadingPicture(false);
+                        return;
+                    }
 
-            const currentUserId = getUserId(currentUser);
-            if (!currentUserId && !isEditingOther) {
-                toast.error("User information not available. Please refresh the page.");
-                setUploadingPicture(false);
-                return;
+                    const targetUserId = isEditingOther ? userId : currentUserId;
+                    await api.delete(`/users/${targetUserId}/profile-picture`, { headers });
+
+                    toast.success("Profile picture deleted successfully");
+                    setProfilePicturePreview(null);
+                    setProfilePicture(null);
+                } catch (error) {
+                    console.error("Error deleting profile picture:", error);
+                    toast.error(error.response?.data?.message || "Failed to delete profile picture");
+                } finally {
+                    setUploadingPicture(false);
+                }
             }
-
-            const targetUserId = isEditingOther ? userId : currentUserId;
-            await api.delete(`/users/${targetUserId}/profile-picture`, { headers });
-
-            toast.success("Profile picture deleted successfully");
-            setProfilePicturePreview(null);
-            setProfilePicture(null);
-        } catch (error) {
-            console.error("Error deleting profile picture:", error);
-            toast.error(error.response?.data?.message || "Failed to delete profile picture");
-        } finally {
-            setUploadingPicture(false);
-        }
+        });
     };
 
     /**
@@ -532,32 +540,37 @@ const MyProfilePage = () => {
      * Delete background image from the server
      */
     const handleBackgroundImageDelete = async () => {
-        if (!window.confirm("Are you sure you want to delete your background image?")) return;
+        confirm({
+            title: "Delete Background Image",
+            message: "Are you sure you want to delete your background image?",
+            actionName: "Delete",
+            onConfirm: async () => {
+                setUploadingBackground(true);
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = { Authorization: `Bearer ${token}` };
 
-        setUploadingBackground(true);
-        try {
-            const token = localStorage.getItem("token");
-            const headers = { Authorization: `Bearer ${token}` };
+                    const currentUserId = getUserId(currentUser);
+                    if (!currentUserId && !isEditingOther) {
+                        toast.error("User information not available. Please refresh the page.");
+                        setUploadingBackground(false);
+                        return;
+                    }
 
-            const currentUserId = getUserId(currentUser);
-            if (!currentUserId && !isEditingOther) {
-                toast.error("User information not available. Please refresh the page.");
-                setUploadingBackground(false);
-                return;
+                    const targetUserId = isEditingOther ? userId : currentUserId;
+                    await api.delete(`/users/${targetUserId}/background-image`, { headers });
+
+                    toast.success("Background image deleted successfully");
+                    setBackgroundImagePreview(null);
+                    setBackgroundImage(null);
+                } catch (error) {
+                    console.error("Error deleting background image:", error);
+                    toast.error(error.response?.data?.message || "Failed to delete background image");
+                } finally {
+                    setUploadingBackground(false);
+                }
             }
-
-            const targetUserId = isEditingOther ? userId : currentUserId;
-            await api.delete(`/users/${targetUserId}/background-image`, { headers });
-
-            toast.success("Background image deleted successfully");
-            setBackgroundImagePreview(null);
-            setBackgroundImage(null);
-        } catch (error) {
-            console.error("Error deleting background image:", error);
-            toast.error(error.response?.data?.message || "Failed to delete background image");
-        } finally {
-            setUploadingBackground(false);
-        }
+        });
     };
 
     /**

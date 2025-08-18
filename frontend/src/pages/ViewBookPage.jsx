@@ -4,7 +4,7 @@
  * @page ViewBookPage
  * @description Individual book view page showing book details and contained documents
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ import { ArrowLeftIcon, BookOpen, Edit, Trash2, FileText, Users, Briefcase, Cale
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { useUserRole } from "../hooks";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 import InlineLoader from "../components/InlineLoader";
 
 const ViewBookPage = () => {
@@ -40,19 +41,24 @@ const ViewBookPage = () => {
         }
     };
 
+    const { confirm } = useConfirmationContext();
+    
     const handleDeleteBook = async () => {
-        if (!window.confirm("Are you sure you want to delete this book? This action cannot be undone.")) {
-            return;
-        }
-
-        try {
-            await api.delete(`/books/${id}`);
-            toast.success("Book deleted successfully");
-            navigate("/books");
-        } catch (error) {
-            console.error("Error deleting book:", error);
-            toast.error("Failed to delete book");
-        }
+        confirm({
+            title: "Delete Book",
+            message: `Are you sure you want to delete "${book?.title}"? This action cannot be undone.`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/books/${id}`);
+                    toast.success("Book deleted successfully");
+                    navigate("/books");
+                } catch (error) {
+                    console.error("Error deleting book:", error);
+                    toast.error("Failed to delete book");
+                }
+            }
+        });
     };
 
     const canEditBook = userRole === 'admin' || userRole === 'editor' || book?.isOwner;

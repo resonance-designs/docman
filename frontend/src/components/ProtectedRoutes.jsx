@@ -4,7 +4,7 @@
  * @component ProtectedRoutes
  * @description Route protection component for handling authentication and authorization
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { Navigate } from "react-router";

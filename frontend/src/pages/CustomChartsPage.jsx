@@ -4,7 +4,7 @@
  * @page CustomChartPage
  * @description Custom analytics page for creating and viewing personalized data visualizations
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -35,6 +35,7 @@ import {
 import api from "../lib/axios";
 import toast from "react-hot-toast";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 
 // Register Chart.js components
 ChartJS.register(
@@ -167,21 +168,30 @@ const CustomChartsPage = () => {
         await fetchChartData(chart._id);
     };
 
-    const handleDelete = async (chartId) => {
-        if (!window.confirm("Are you sure you want to delete this chart?")) return;
+    const { confirm } = useConfirmationContext();
 
-        try {
-            await api.delete(`/custom-charts/${chartId}`);
-            toast.success("Chart deleted successfully");
-            fetchCustomCharts();
-            if (selectedChart && selectedChart._id === chartId) {
-                setSelectedChart(null);
-                setChartData(null);
+    const handleDelete = async (chartId) => {
+        const chartToDelete = customCharts.find(chart => chart._id === chartId);
+        
+        confirm({
+            title: "Delete Chart",
+            message: `Are you sure you want to delete "${chartToDelete?.name || 'this chart'}"?`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/custom-charts/${chartId}`);
+                    toast.success("Chart deleted successfully");
+                    fetchCustomCharts();
+                    if (selectedChart && selectedChart._id === chartId) {
+                        setSelectedChart(null);
+                        setChartData(null);
+                    }
+                } catch (error) {
+                    console.error("Error deleting chart:", error);
+                    toast.error("Failed to delete chart");
+                }
             }
-        } catch (error) {
-            console.error("Error deleting chart:", error);
-            toast.error("Failed to delete chart");
-        }
+        });
     };
 
     const handleSave = async (e) => {

@@ -4,7 +4,7 @@
  * @component BookTable
  * @description Component for displaying a book in a table row with actions.
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 
@@ -14,6 +14,7 @@ import { formatDate } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
 import { useUserRole } from "../hooks";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 
 /**
  * Component for displaying a book in a table row with actions
@@ -24,6 +25,7 @@ import { useUserRole } from "../hooks";
  */
 const BookTable = ({ book, setBooks }) => {
     const { userRole } = useUserRole();
+    const { confirm } = useConfirmationContext();
 
     /**
      * Handle book deletion
@@ -32,15 +34,22 @@ const BookTable = ({ book, setBooks }) => {
      */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
-        if (!window.confirm("Are you sure you want to delete this book?")) return;
-        try {
-            await api.delete(`/books/${id}`);
-            setBooks((prev) => prev.filter((book) => book._id !== id)); // get rid of the deleted one
-            toast.success("Book deleted successfully");
-        } catch (error) {
-            console.log("Error in handleDelete", error);
-            toast.error("Failed to delete book");
-        }
+        
+        confirm({
+            title: "Delete Book",
+            message: `Are you sure you want to delete "${book.title}"?`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/books/${id}`);
+                    setBooks((prev) => prev.filter((book) => book._id !== id)); // get rid of the deleted one
+                    toast.success("Book deleted successfully");
+                } catch (error) {
+                    console.log("Error in handleDelete", error);
+                    toast.error("Failed to delete book");
+                }
+            }
+        });
     };
 
     /**

@@ -4,7 +4,7 @@
  * @page CreateProjectPage
  * @description Project creation page with form for setting up new projects and team assignments
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

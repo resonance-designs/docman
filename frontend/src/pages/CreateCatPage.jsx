@@ -4,7 +4,7 @@
  * @page CreateCatPage
  * @description Category creation page with form for adding new document categories
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from "react";

@@ -4,7 +4,7 @@
  * @component ProjectCard
  * @description Project card component displaying project summary, status, priority, and quick actions
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from "react";
@@ -22,6 +22,7 @@ import {
 import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { useConfirmationContext } from "../../context/ConfirmationContext";
 
 /**
  * Project card component for displaying project information with actions
@@ -33,31 +34,35 @@ import toast from "react-hot-toast";
 const ProjectCard = ({ project, onProjectDeleted }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { confirm } = useConfirmationContext();
 
     /**
      * Handle project deletion with confirmation
      */
     const handleDeleteProject = async () => {
-        if (!window.confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)) {
-            return;
-        }
+        confirm({
+            title: "Delete Project",
+            message: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        setLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            await api.delete(`/projects/${project._id}`, { headers });
-            if (onProjectDeleted) {
-                onProjectDeleted(project._id);
+                    await api.delete(`/projects/${project._id}`, { headers });
+                    if (onProjectDeleted) {
+                        onProjectDeleted(project._id);
+                    }
+                } catch (error) {
+                    console.error("Error deleting project:", error);
+                    toast.error("Failed to delete project");
+                } finally {
+                    setLoading(false);
+                    setShowMenu(false);
+                }
             }
-        } catch (error) {
-            console.error("Error deleting project:", error);
-            toast.error("Failed to delete project");
-        } finally {
-            setLoading(false);
-            setShowMenu(false);
-        }
+        });
     };
 
     /**

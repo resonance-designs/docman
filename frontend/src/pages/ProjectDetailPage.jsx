@@ -4,7 +4,7 @@
  * @page ProjectDetailPage
  * @description Project detail page showing project information, documents, and team collaboration
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -29,6 +29,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import DocCard from "../components/DocCard";
 import { ensureArray, ensureObject } from "../lib/safeUtils";
@@ -236,36 +237,41 @@ const ProjectDetailPage = () => {
         }
     };
 
+    const { confirm } = useConfirmationContext();
+    
     const handleRemoveBooksFromProject = async () => {
         if (selectedProjectBooks.length === 0) {
             toast.error("Please select books to remove");
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to remove ${selectedProjectBooks.length} book(s) from this project?`)) {
-            return;
-        }
+        confirm({
+            title: "Remove Books from Project",
+            message: `Are you sure you want to remove ${selectedProjectBooks.length} book(s) from this project?`,
+            actionName: "Remove",
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                    await api.delete(`/projects/${id}/books`, {
+                        headers,
+                        data: { bookIds: selectedProjectBooks }
+                    });
 
-            await api.delete(`/projects/${id}/books`, {
-                headers,
-                data: { bookIds: selectedProjectBooks }
-            });
+                    // Move selected books from project to available
+                    const removedBooks = projectBooks.filter(book => selectedProjectBooks.includes(book._id));
+                    setProjectBooks(prev => prev.filter(book => !selectedProjectBooks.includes(book._id)));
+                    setAvailableBooks(prev => [...prev, ...removedBooks]);
+                    setSelectedProjectBooks([]);
 
-            // Move selected books from project to available
-            const removedBooks = projectBooks.filter(book => selectedProjectBooks.includes(book._id));
-            setProjectBooks(prev => prev.filter(book => !selectedProjectBooks.includes(book._id)));
-            setAvailableBooks(prev => [...prev, ...removedBooks]);
-            setSelectedProjectBooks([]);
-
-            toast.success(`${selectedProjectBooks.length} book(s) removed from project successfully`);
-        } catch (error) {
-            console.error("Error removing books from project:", error);
-            toast.error("Failed to remove books from project");
-        }
+                    toast.success(`${selectedProjectBooks.length} book(s) removed from project successfully`);
+                } catch (error) {
+                    console.error("Error removing books from project:", error);
+                    toast.error("Failed to remove books from project");
+                }
+            }
+        });
     };
 
     const handleAddBooksToProject = async () => {
@@ -334,30 +340,33 @@ const ProjectDetailPage = () => {
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to remove ${selectedProjectDocuments.length} document(s) from this project?`)) {
-            return;
-        }
+        confirm({
+            title: "Remove Documents from Project",
+            message: `Are you sure you want to remove ${selectedProjectDocuments.length} document(s) from this project?`,
+            actionName: "Remove",
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                    await api.delete(`/projects/${id}/documents`, {
+                        headers,
+                        data: { documentIds: selectedProjectDocuments }
+                    });
 
-            await api.delete(`/projects/${id}/documents`, {
-                headers,
-                data: { documentIds: selectedProjectDocuments }
-            });
+                    // Move selected documents from project to available
+                    const removedDocuments = projectDocuments.filter(doc => selectedProjectDocuments.includes(doc._id));
+                    setProjectDocuments(prev => prev.filter(doc => !selectedProjectDocuments.includes(doc._id)));
+                    setAvailableDocuments(prev => [...prev, ...removedDocuments]);
+                    setSelectedProjectDocuments([]);
 
-            // Move selected documents from project to available
-            const removedDocuments = projectDocuments.filter(doc => selectedProjectDocuments.includes(doc._id));
-            setProjectDocuments(prev => prev.filter(doc => !selectedProjectDocuments.includes(doc._id)));
-            setAvailableDocuments(prev => [...prev, ...removedDocuments]);
-            setSelectedProjectDocuments([]);
-
-            toast.success(`${selectedProjectDocuments.length} document(s) removed from project successfully`);
-        } catch (error) {
-            console.error("Error removing documents from project:", error);
-            toast.error("Failed to remove documents from project");
-        }
+                    toast.success(`${selectedProjectDocuments.length} document(s) removed from project successfully`);
+                } catch (error) {
+                    console.error("Error removing documents from project:", error);
+                    toast.error("Failed to remove documents from project");
+                }
+            }
+        });
     };
 
     const handleAddDocumentsToProject = async () => {
