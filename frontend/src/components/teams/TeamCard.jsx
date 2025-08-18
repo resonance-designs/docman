@@ -4,7 +4,7 @@
  * @component TeamCard
  * @description Team card component displaying team info, member count, project count, and management actions
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState } from "react";

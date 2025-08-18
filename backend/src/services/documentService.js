@@ -4,7 +4,7 @@
  * @service documentService
  * @description Business logic service for document operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import mongoose from "mongoose";
@@ -281,7 +281,7 @@ export async function getDocuments(queryParams, user) {
                     localField: 'author',
                     foreignField: '_id',
                     as: 'author',
-                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1 } }]
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
             {
@@ -299,7 +299,7 @@ export async function getDocuments(queryParams, user) {
                     localField: 'stakeholders',
                     foreignField: '_id',
                     as: 'stakeholders',
-                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1 } }]
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
             {
@@ -308,7 +308,7 @@ export async function getDocuments(queryParams, user) {
                     localField: 'owners',
                     foreignField: '_id',
                     as: 'owners',
-                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1 } }]
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
             {
@@ -317,7 +317,7 @@ export async function getDocuments(queryParams, user) {
                     localField: 'reviewCompletedBy',
                     foreignField: '_id',
                     as: 'reviewCompletedBy',
-                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1 } }]
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
             {
@@ -326,7 +326,7 @@ export async function getDocuments(queryParams, user) {
                     localField: 'lastUpdatedBy',
                     foreignField: '_id',
                     as: 'lastUpdatedBy',
-                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1 } }]
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
 
@@ -381,12 +381,12 @@ export async function getDocuments(queryParams, user) {
 export async function getDocumentById(documentId, user) {
     try {
         const doc = await Doc.findById(documentId)
-            .populate('author', 'firstname lastname email')
+            .populate('author', 'firstname lastname email username')
             .populate('category', 'name')
-            .populate('stakeholders', 'firstname lastname email')
-            .populate('owners', 'firstname lastname email')
-            .populate('reviewCompletedBy', 'firstname lastname email')
-            .populate('lastUpdatedBy', 'firstname lastname email')
+            .populate('stakeholders', 'firstname lastname email username')
+            .populate('owners', 'firstname lastname email username')
+            .populate('reviewCompletedBy', 'firstname lastname email username')
+            .populate('lastUpdatedBy', 'firstname lastname email username')
             .populate('externalContacts.type');
 
         if (!doc) {

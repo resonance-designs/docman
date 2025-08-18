@@ -1,11 +1,13 @@
 /*
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import Project from "../models/Project.js";
 import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";
+import Book from "../models/Book.js";
+import User from "../models/User.js";
 import { 
     validateName, 
     sanitizeString 
@@ -47,7 +49,7 @@ export async function getAllProjects(req, res) {
         sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
         const projects = await Project.find(filter)
-            .populate('team', 'name')
+            .populate('teams', 'name')
             .populate('collaborators', 'name email')
             .populate('documents', 'title')
             .sort(sort);
@@ -172,7 +174,7 @@ export async function getUserProjects(req, res) {
         const sortObj = { [sortField]: sortDirection };
 
         const projects = await Project.find(filter)
-            .populate('team', 'name')
+            .populate('teams', 'name')
             .populate('owner', 'firstname lastname email')
             .populate('collaborators.user', 'firstname lastname email')
             .populate('documents', 'title reviewDate')
@@ -348,7 +350,7 @@ export async function updateProject(req, res) {
     try {
         const projectId = req.params.id;
         const userId = req.user._id.toString();
-        const { name, description, status, priority, startDate, endDate, tags, settings } = req.body;
+        const { name, description, teamIds, status, priority, startDate, endDate, tags, settings } = req.body;
 
         const project = await Project.findById(projectId);
         if (!project) {
@@ -370,6 +372,12 @@ export async function updateProject(req, res) {
             }
         }
 
+        if (teamIds !== undefined) {
+            if (!Array.isArray(teamIds) || teamIds.length === 0) {
+                validationErrors.push("At least one team ID is required");
+            }
+        }
+
         if (validationErrors.length > 0) {
             return res.status(400).json({
                 message: "Validation failed",
@@ -377,10 +385,48 @@ export async function updateProject(req, res) {
             });
         }
 
+        // Handle team updates if provided
+        if (teamIds !== undefined) {
+            // Check if teams exist and user has access to at least one
+            const teams = await Team.find({ _id: { $in: teamIds } });
+            if (teams.length !== teamIds.length) {
+                return res.status(404).json({ message: "One or more teams not found" });
+            }
+
+            let hasAccess = false;
+            for (const team of teams) {
+                if (team.isMember(userId) || req.user.role === 'admin') {
+                    hasAccess = true;
+                    break;
+                }
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({ message: "Access denied - must be member of at least one team" });
+            }
+
+            // Remove project from old teams
+            const oldTeams = await Team.find({ projects: projectId });
+            for (const oldTeam of oldTeams) {
+                oldTeam.removeProject(projectId);
+                await oldTeam.save();
+            }
+
+            // Add project to new teams
+            for (const teamId of teamIds) {
+                const team = await Team.findById(teamId);
+                if (team) {
+                    team.addProject(projectId);
+                    await team.save();
+                }
+            }
+        }
+
         // Update fields
         const updateData = {};
         if (name) updateData.name = sanitizeString(name);
         if (description !== undefined) updateData.description = description ? sanitizeString(description) : "";
+        if (teamIds !== undefined) updateData.teams = teamIds;
         if (status && ['active', 'completed', 'archived', 'on-hold'].includes(status)) {
             updateData.status = status;
         }
@@ -399,7 +445,7 @@ export async function updateProject(req, res) {
             updateData,
             { new: true }
         )
-        .populate('team', 'name')
+        .populate('teams', 'name')
         .populate('owner', 'firstname lastname email')
         .populate('collaborators.user', 'firstname lastname email');
 
@@ -645,6 +691,577 @@ export async function removeDocument(req, res) {
         res.status(200).json({ message: "Document removed from project successfully" });
     } catch (error) {
         console.error("Error removing document from project:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Get books assigned to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of books or error message
+ */
+export async function getProjectBooks(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        const project = await Project.findById(projectId)
+            .populate({
+                path: 'books',
+                populate: [
+                    { path: 'category', select: 'name' },
+                    { path: 'owners', select: 'firstname lastname email' }
+                ]
+            });
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check if user has access to this project
+        const hasAccess = project.owner.toString() === currentUserId ||
+                         project.isCollaborator(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        res.status(200).json(project.books || []);
+    } catch (error) {
+        console.error("Error fetching project books:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Get books not assigned to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of books or error message
+ */
+export async function getAvailableProjectBooks(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check if user has access to this project
+        const hasAccess = project.owner.toString() === currentUserId ||
+                         project.isCollaborator(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Get all books not assigned to this project
+        const availableBooks = await Book.find({
+            _id: { $nin: project.books || [] }
+        })
+        .populate('category', 'name')
+        .populate('owners', 'firstname lastname email')
+        .sort({ createdAt: -1 });
+
+        res.status(200).json(availableBooks);
+    } catch (error) {
+        console.error("Error fetching available books:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Add books to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
+export async function addBooksToProject(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+        const { bookIds } = req.body;
+
+        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+            return res.status(400).json({ message: "Book IDs array is required" });
+        }
+
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check permissions (owner, manager, or admin)
+        const canManage = project.owner.toString() === currentUserId ||
+                         project.isManager(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!canManage) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Verify all books exist
+        const books = await Book.find({ _id: { $in: bookIds } });
+        if (books.length !== bookIds.length) {
+            return res.status(400).json({ message: "One or more books not found" });
+        }
+
+        // Add books to project
+        let addedCount = 0;
+        for (const bookId of bookIds) {
+            if (!project.books) {
+                project.books = [];
+            }
+            if (!project.books.includes(bookId)) {
+                project.books.push(bookId);
+                addedCount++;
+            }
+        }
+
+        await project.save();
+
+        res.status(200).json({ 
+            message: `${addedCount} book(s) added to project successfully`,
+            addedCount
+        });
+    } catch (error) {
+        console.error("Error adding books to project:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Remove books from a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
+export async function removeBooksFromProject(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+        const { bookIds } = req.body;
+
+        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+            return res.status(400).json({ message: "Book IDs array is required" });
+        }
+
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check permissions (owner, manager, or admin)
+        const canManage = project.owner.toString() === currentUserId ||
+                         project.isManager(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!canManage) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Remove books from project
+        let removedCount = 0;
+        if (project.books) {
+            for (const bookId of bookIds) {
+                const index = project.books.indexOf(bookId);
+                if (index > -1) {
+                    project.books.splice(index, 1);
+                    removedCount++;
+                }
+            }
+        }
+
+        await project.save();
+
+        res.status(200).json({ 
+            message: `${removedCount} book(s) removed from project successfully`,
+            removedCount
+        });
+    } catch (error) {
+        console.error("Error removing books from project:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Get documents assigned to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of documents or error message
+ */
+export async function getProjectDocuments(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        const project = await Project.findById(projectId)
+            .populate({
+                path: 'documents',
+                populate: [
+                    { path: 'author', select: 'firstname lastname email' },
+                    { path: 'category', select: 'name' }
+                ]
+            });
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check if user has access to this project
+        const hasAccess = project.owner.toString() === currentUserId ||
+                         project.isCollaborator(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        res.status(200).json(project.documents || []);
+    } catch (error) {
+        console.error("Error fetching project documents:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Get documents not assigned to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of documents or error message
+ */
+export async function getAvailableProjectDocuments(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check if user has access to this project
+        const hasAccess = project.owner.toString() === currentUserId ||
+                         project.isCollaborator(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Get all documents not assigned to this project
+        const availableDocuments = await Doc.find({
+            _id: { $nin: project.documents || [] }
+        })
+        .populate('author', 'firstname lastname email')
+        .populate('category', 'name')
+        .sort({ createdAt: -1 });
+
+        res.status(200).json(availableDocuments);
+    } catch (error) {
+        console.error("Error fetching available documents:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Add documents to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
+export async function addDocumentsToProject(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+        const { documentIds } = req.body;
+
+        if (!Array.isArray(documentIds) || documentIds.length === 0) {
+            return res.status(400).json({ message: "Document IDs array is required" });
+        }
+
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check permissions (owner, manager, or admin)
+        const canManage = project.owner.toString() === currentUserId ||
+                         project.isManager(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!canManage) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Verify all documents exist
+        const documents = await Doc.find({ _id: { $in: documentIds } });
+        if (documents.length !== documentIds.length) {
+            return res.status(400).json({ message: "One or more documents not found" });
+        }
+
+        // Add documents to project
+        let addedCount = 0;
+        for (const documentId of documentIds) {
+            if (!project.documents) {
+                project.documents = [];
+            }
+            if (!project.documents.includes(documentId)) {
+                project.documents.push(documentId);
+                addedCount++;
+            }
+        }
+
+        await project.save();
+
+        // Also add project to documents
+        for (const documentId of documentIds) {
+            const document = await Doc.findById(documentId);
+            if (document) {
+                if (!document.projects) {
+                    document.projects = [];
+                }
+                if (!document.projects.includes(projectId)) {
+                    document.projects.push(projectId);
+                    await document.save();
+                }
+            }
+        }
+
+        res.status(200).json({ 
+            message: `${addedCount} document(s) added to project successfully`,
+            addedCount
+        });
+    } catch (error) {
+        console.error("Error adding documents to project:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Remove documents from a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with success message or error message
+ */
+export async function removeDocumentsFromProject(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+        const { documentIds } = req.body;
+
+        if (!Array.isArray(documentIds) || documentIds.length === 0) {
+            return res.status(400).json({ message: "Document IDs array is required" });
+        }
+
+        const project = await Project.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check permissions (owner, manager, or admin)
+        const canManage = project.owner.toString() === currentUserId ||
+                         project.isManager(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!canManage) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Remove documents from project
+        let removedCount = 0;
+        if (project.documents) {
+            for (const documentId of documentIds) {
+                const index = project.documents.indexOf(documentId);
+                if (index > -1) {
+                    project.documents.splice(index, 1);
+                    removedCount++;
+                }
+            }
+        }
+
+        await project.save();
+
+        // Also remove project from documents
+        for (const documentId of documentIds) {
+            const document = await Doc.findById(documentId);
+            if (document && document.projects) {
+                const index = document.projects.indexOf(projectId);
+                if (index > -1) {
+                    document.projects.splice(index, 1);
+                    await document.save();
+                }
+            }
+        }
+
+        res.status(200).json({ 
+            message: `${removedCount} document(s) removed from project successfully`,
+            removedCount
+        });
+    } catch (error) {
+        console.error("Error removing documents from project:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Get collaborators for a project (includes direct collaborators and team members)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of collaborators or error message
+ */
+export async function getProjectCollaborators(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        const project = await Project.findById(projectId)
+            .populate('collaborators.user', 'firstname lastname email username phone')
+            .populate({
+                path: 'teams',
+                populate: {
+                    path: 'members.user',
+                    select: 'firstname lastname email username phone'
+                }
+            });
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check if user has access to this project
+        const hasAccess = project.owner.toString() === currentUserId ||
+                         project.isCollaborator(currentUserId) ||
+                         req.user.role === 'admin';
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Extract direct collaborators
+        const directCollaborators = project.collaborators.map(collab => ({
+            ...collab.user.toObject(),
+            role: collab.role,
+            joinedAt: collab.joinedAt,
+            source: 'direct',
+            isDirect: true
+        }));
+
+        // Extract team members
+        const teamMembers = [];
+        if (project.teams && project.teams.length > 0) {
+            project.teams.forEach(team => {
+                if (team.members && team.members.length > 0) {
+                    team.members.forEach(member => {
+                        // Avoid duplicates with direct collaborators
+                        const isAlreadyDirectCollaborator = directCollaborators.some(
+                            collab => collab._id.toString() === member.user._id.toString()
+                        );
+                        
+                        if (!isAlreadyDirectCollaborator) {
+                            teamMembers.push({
+                                ...member.user.toObject(),
+                                role: member.role || 'team-member',
+                                joinedAt: member.joinedAt,
+                                source: 'team',
+                                teamName: team.name,
+                                teamId: team._id,
+                                isDirect: false
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // Remove duplicates from team members (in case user is in multiple teams)
+        const uniqueTeamMembers = teamMembers.filter((member, index, self) =>
+            index === self.findIndex(m => m._id.toString() === member._id.toString())
+        );
+
+        // Combine all collaborators
+        const allCollaborators = [...directCollaborators, ...uniqueTeamMembers];
+
+        res.status(200).json(allCollaborators);
+    } catch (error) {
+        console.error("Error fetching project collaborators:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+/**
+ * Get available users to add as collaborators to a project
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with array of available users or error message
+ */
+export async function getAvailableCollaborators(req, res) {
+    try {
+        const projectId = req.params.id;
+        const currentUserId = req.user._id.toString();
+
+        const project = await Project.findById(projectId)
+            .populate('collaborators.user', '_id')
+            .populate({
+                path: 'teams',
+                populate: {
+                    path: 'members.user',
+                    select: '_id'
+                }
+            });
+
+        if (!project) {
+            return res.status(404).json({ message: "Project not found" });
+        }
+
+        // Check if user has permission to manage collaborators
+        const canManage = project.owner.toString() === currentUserId ||
+                         project.collaborators.some(collab => 
+                             collab.user._id.toString() === currentUserId && 
+                             ['manager', 'admin'].includes(collab.role)
+                         ) ||
+                         req.user.role === 'admin';
+
+        if (!canManage) {
+            return res.status(403).json({ message: "Access denied" });
+        }
+
+        // Get all existing collaborator IDs (direct + team members)
+        const existingCollaboratorIds = new Set();
+        
+        // Add direct collaborators
+        project.collaborators.forEach(collab => {
+            existingCollaboratorIds.add(collab.user._id.toString());
+        });
+
+        // Add team members
+        if (project.teams && project.teams.length > 0) {
+            project.teams.forEach(team => {
+                if (team.members && team.members.length > 0) {
+                    team.members.forEach(member => {
+                        existingCollaboratorIds.add(member.user._id.toString());
+                    });
+                }
+            });
+        }
+
+        // Add project owner
+        existingCollaboratorIds.add(project.owner.toString());
+
+        // Get all users except existing collaborators
+        const availableUsers = await User.find({
+            _id: { $nin: Array.from(existingCollaboratorIds) },
+            role: { $ne: 'admin' } // Optionally exclude admins
+        }).select('firstname lastname email username');
+
+        res.status(200).json(availableUsers);
+    } catch (error) {
+        console.error("Error fetching available collaborators:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 }

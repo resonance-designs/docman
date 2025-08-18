@@ -4,7 +4,7 @@
  * @model Team
  * @description Team model schema for collaborative team management with members, invitations, and project associations
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 // backend/src/models/Team.js
@@ -31,6 +31,7 @@ import mongoose from "mongoose";
  * @property {Object} settings - Team configuration settings
  * @property {boolean} settings.isPrivate - Whether team is private (default: false)
  * @property {boolean} settings.allowMemberInvites - Whether members can invite others (default: false)
+ * @property {ObjectId} lastUpdatedBy - Reference to User who last updated the team (optional)
  * @property {Date} createdAt - Timestamp when team was created (auto-generated)
  * @property {Date} updatedAt - Timestamp when team was last updated (auto-generated)
  * @property {number} memberCount - Virtual field for number of members
@@ -125,6 +126,11 @@ const teamSchema = new mongoose.Schema(
                 type: Boolean,
                 default: false
             }
+        },
+        lastUpdatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: false
         }
     },
     { 

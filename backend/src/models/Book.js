@@ -4,7 +4,7 @@
  * @model Book
  * @description Book model schema for organizing documents into collections within teams and projects
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

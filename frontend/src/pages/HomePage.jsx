@@ -4,7 +4,7 @@
  * @page HomePage
  * @description Main dashboard page displaying document overview, recent documents, and quick access to key features
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

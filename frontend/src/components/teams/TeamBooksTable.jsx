@@ -4,7 +4,7 @@
  * @component TeamBooksTable
  * @description Specialized table component for managing books in teams with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 
@@ -28,16 +28,16 @@ import PropTypes from "prop-types";
  * @param {string} [props.actionType='group'] - Type of action: 'group' or 'ungroup'
  * @returns {JSX.Element} The team books table component
  */
-const TeamBooksTable = ({ 
-    books, 
-    selectedBooks = [], 
-    onBookSelect, 
-    onSelectAll, 
-    itemsPerPage = 10, 
-    sortConfig, 
-    onSort, 
-    pagination, 
-    onPageChange, 
+const TeamBooksTable = ({
+    books,
+    selectedBooks = [],
+    onBookSelect,
+    onSelectAll,
+    itemsPerPage = 10,
+    sortConfig,
+    onSort,
+    pagination,
+    onPageChange,
     onPageSizeChange,
     actionType = 'group'
 }) => {
@@ -210,7 +210,7 @@ const TeamBooksTable = ({
                                         if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
                                     }}
                                     onChange={handleSelectAll}
-                                    className="checkbox checkbox-sm"
+                                    className="checkbox checkbox-sm bg-slate-200"
                                 />
                             </th>
                             {sortConfig && onSort ? (
@@ -273,7 +273,7 @@ const TeamBooksTable = ({
                                             Owners
                                         </p>
                                     </th>
-                                    <th className="p-4">
+                                    <th className="p-4 float-right">
                                         <p className="block text-sm antialiased leading-none">
                                             Created On
                                         </p>
@@ -284,27 +284,27 @@ const TeamBooksTable = ({
                     </thead>
                     <tbody className="border border-resdes-orange">
                         {currentBooks.map((book) => (
-                            <tr key={book._id} className="border-b border-resdes-orange hover:bg-gray-50">
+                            <tr key={book._id} className="border-b bg-base-300 border-resdes-orange hover:bg-base-100 hover:cursor-pointer">
                                 <td className="p-4">
                                     <input
                                         type="checkbox"
                                         checked={selectedBooks.includes(book._id)}
                                         onChange={() => handleBookSelect(book._id)}
-                                        className="checkbox checkbox-sm"
+                                        className="checkbox checkbox-sm bg-slate-200"
                                     />
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased font-semibold leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased font-semibold leading-normal text-slate-200">
                                         {book.title}
                                     </p>
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased leading-normal text-slate-200">
                                         {book.category?.name || 'Uncategorized'}
                                     </p>
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased leading-normal text-slate-200">
                                         {book.documentCount || book.documents?.length || 0}
                                     </p>
                                 </td>
@@ -312,24 +312,24 @@ const TeamBooksTable = ({
                                     <div className="flex flex-col">
                                         {book.owners && book.owners.length > 0 ? (
                                             book.owners.slice(0, 2).map((owner, index) => (
-                                                <p key={owner._id || index} className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                                <p key={owner._id || index} className="block text-sm antialiased leading-normal text-slate-200">
                                                     {owner.firstname} {owner.lastname}
                                                 </p>
                                             ))
                                         ) : (
-                                            <p className="block text-sm antialiased leading-normal text-blue-gray-700 opacity-70">
+                                            <p className="block text-sm antialiased leading-normal text-slate-200 opacity-70">
                                                 No owners
                                             </p>
                                         )}
                                         {book.owners && book.owners.length > 2 && (
-                                            <p className="block text-sm antialiased leading-normal text-blue-gray-700 opacity-70">
+                                            <p className="block text-sm antialiased leading-normal text-slate-200 opacity-70">
                                                 +{book.owners.length - 2} more
                                             </p>
                                         )}
                                     </div>
                                 </td>
-                                <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                <td className="p-4 float-right">
+                                    <p className="block text-sm antialiased leading-normal text-slate-400">
                                         {formatDate(book.createdAt)}
                                     </p>
                                 </td>

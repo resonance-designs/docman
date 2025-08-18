@@ -4,7 +4,7 @@
  * @component DocumentSelection
  * @description Reusable component for selecting documents using TeamDetailPage pattern with table-based selection
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

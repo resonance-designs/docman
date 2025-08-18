@@ -4,7 +4,7 @@
  * @page EditCatPage
  * @description Category editing page with form for updating existing categories
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -49,7 +49,7 @@ const EditCatPage = () => {
             const response = await api.get(`/categories`);
             const categories = response.data.categories || [];
             const foundCategory = categories.find(cat => cat._id === id);
-            
+
             if (!foundCategory) {
                 toast.error("Category not found");
                 navigate("/categories");
@@ -139,8 +139,8 @@ const EditCatPage = () => {
                         <ArrowLeftIcon />
                         Back to Categories
                     </Link>
-                    
-                    <div className="card bg-base-100 shadow-lg max-w-2xl">
+
+                    <div className="card bg-base-100 shadow-lg max-w-screen-xl">
                         <div className="card-body">
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 {/* Category Name */}

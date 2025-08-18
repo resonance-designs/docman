@@ -1,0 +1,538 @@
+/*
+ * @name Project Documents Table Component
+ * @file /docman/frontend/src/components/projects/ProjectDocumentsTable.jsx
+ * @component ProjectDocumentsTable
+ * @description Specialized table component for managing documents in projects with checkbox selection and bulk actions
+ * @author Richard Bakos
+ * @version 2.1.6
+ * @license UNLICENSED
+ */
+
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router";
+import { ChevronLeftIcon, ChevronRightIcon, FolderIcon } from "lucide-react";
+import SortableHeader from "../filters/SortableHeader";
+import PropTypes from "prop-types";
+
+/**
+ * Component for displaying documents in a project management table with checkbox selection
+ * @param {Object} props - Component properties
+ * @param {Array} props.projectDocuments - Array of project document objects to display
+ * @param {Array} props.availableDocuments - Array of available document objects to display
+ * @param {Array} props.selectedProjectDocuments - Array of selected project document IDs
+ * @param {Array} props.selectedAvailableDocuments - Array of selected available document IDs
+ * @param {Function} props.onProjectDocumentSelect - Function to handle project document selection
+ * @param {Function} props.onAvailableDocumentSelect - Function to handle available document selection
+ * @param {Function} props.onProjectDocumentsSelectAll - Function to handle select all project documents
+ * @param {Function} props.onAvailableDocumentsSelectAll - Function to handle select all available documents
+ * @param {Function} props.onRemoveDocumentsFromProject - Function to remove documents from project
+ * @param {Function} props.onAddDocumentsToProject - Function to add documents to project
+ * @param {boolean} props.loading - Loading state
+ * @param {number} [props.itemsPerPage=10] - Number of items to display per page
+ * @returns {JSX.Element} The project documents table component
+ */
+const ProjectDocumentsTable = ({
+    projectDocuments = [],
+    availableDocuments = [],
+    selectedProjectDocuments = [],
+    selectedAvailableDocuments = [],
+    onProjectDocumentSelect,
+    onAvailableDocumentSelect,
+    onProjectDocumentsSelectAll,
+    onAvailableDocumentsSelectAll,
+    onRemoveDocumentsFromProject,
+    onAddDocumentsToProject,
+    loading = false,
+    itemsPerPage = 10
+}) => {
+    const [currentProjectPage, setCurrentProjectPage] = useState(1);
+    const [currentAvailablePage, setCurrentAvailablePage] = useState(1);
+    const [projectPageSize, setProjectPageSize] = useState(itemsPerPage);
+    const [availablePageSize, setAvailablePageSize] = useState(itemsPerPage);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Ensure arrays are always arrays
+    const safeProjectDocuments = useMemo(() => Array.isArray(projectDocuments) ? projectDocuments : [], [projectDocuments]);
+    const safeAvailableDocuments = useMemo(() => Array.isArray(availableDocuments) ? availableDocuments : [], [availableDocuments]);
+
+    // Filter documents based on search term
+    const filteredProjectDocuments = useMemo(() => {
+        return safeProjectDocuments.filter(doc =>
+            doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (doc.author?.firstname + ' ' + doc.author?.lastname)?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [safeProjectDocuments, searchTerm]);
+
+    const filteredAvailableDocuments = useMemo(() => {
+        return safeAvailableDocuments.filter(doc =>
+            doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (doc.author?.firstname + ' ' + doc.author?.lastname)?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [safeAvailableDocuments, searchTerm]);
+
+    // Calculate pagination for project documents
+    const projectTotalPages = Math.ceil(filteredProjectDocuments.length / projectPageSize);
+    const projectStartIndex = (currentProjectPage - 1) * projectPageSize;
+    const projectEndIndex = projectStartIndex + projectPageSize;
+    const currentProjectDocuments = filteredProjectDocuments.slice(projectStartIndex, projectEndIndex);
+
+    // Calculate pagination for available documents
+    const availableTotalPages = Math.ceil(filteredAvailableDocuments.length / availablePageSize);
+    const availableStartIndex = (currentAvailablePage - 1) * availablePageSize;
+    const availableEndIndex = availableStartIndex + availablePageSize;
+    const currentAvailableDocuments = filteredAvailableDocuments.slice(availableStartIndex, availableEndIndex);
+
+    // Check selection states
+    const allProjectSelected = currentProjectDocuments.length > 0 && currentProjectDocuments.every(doc => selectedProjectDocuments.includes(doc._id));
+    const someProjectSelected = currentProjectDocuments.some(doc => selectedProjectDocuments.includes(doc._id));
+    const allAvailableSelected = currentAvailableDocuments.length > 0 && currentAvailableDocuments.every(doc => selectedAvailableDocuments.includes(doc._id));
+    const someAvailableSelected = currentAvailableDocuments.some(doc => selectedAvailableDocuments.includes(doc._id));
+
+    /**
+     * Format date for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date
+     */
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString();
+    };
+
+    /**
+     * Handle project documents select all
+     */
+    const handleProjectSelectAll = () => {
+        if (onProjectDocumentsSelectAll) {
+            onProjectDocumentsSelectAll(currentProjectDocuments.map(doc => doc._id), !allProjectSelected);
+        }
+    };
+
+    /**
+     * Handle available documents select all
+     */
+    const handleAvailableSelectAll = () => {
+        if (onAvailableDocumentsSelectAll) {
+            onAvailableDocumentsSelectAll(currentAvailableDocuments.map(doc => doc._id), !allAvailableSelected);
+        }
+    };
+
+    /**
+     * Generate page numbers for pagination controls
+     */
+    const getPageNumbers = (currentPage, totalPages) => {
+        const pages = [];
+        const maxVisiblePages = 5;
+
+        if (totalPages <= maxVisiblePages) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                pages.push(1);
+                if (startPage > 2) pages.push('...');
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) pages.push('...');
+                pages.push(totalPages);
+            }
+        }
+
+        return pages;
+    };
+
+    if (loading) {
+        return (
+            <div className="text-center py-8 text-gray-500">
+                Loading documents...
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-8">
+            {/* Search */}
+            <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                    <input
+                        type="text"
+                        placeholder="Search documents..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-resdes-blue"
+                    />
+                </div>
+            </div>
+
+            {/* Project Documents Table */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Project Documents</h3>
+                    {selectedProjectDocuments.length > 0 && (
+                        <button
+                            onClick={onRemoveDocumentsFromProject}
+                            className="btn bg-red-500 text-white hover:bg-red-600"
+                        >
+                            Remove Selected ({selectedProjectDocuments.length})
+                        </button>
+                    )}
+                </div>
+
+                {filteredProjectDocuments.length === 0 ? (
+                    <div className="text-center py-8 bg-base-300 rounded-lg">
+                        <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <h4 className="text-lg font-medium mb-2">No documents assigned</h4>
+                        <p className="text-gray-500 mb-4">
+                            Either no documents have been assigned to this project, or no documents exist yet.
+                        </p>
+                        <Link
+                            to={`/doc/create`}
+                            className="btn bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
+                        >
+                            Create Document
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="relative flex flex-col w-full text-gray-700 shadow-md rounded-xl bg-clip-border">
+                        {/* Table */}
+                        <div className="overflow-x-auto rounded-t-xl border-resdes-orange">
+                            <table className="w-full text-left table-auto min-w-max border-b border-resdes-orange">
+                                <thead className="bg-resdes-orange text-slate-950 font-mono font-bold rounded-t-xl">
+                                    <tr>
+                                        <th className="p-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={allProjectSelected}
+                                                ref={input => {
+                                                    if (input) input.indeterminate = someProjectSelected && !allProjectSelected;
+                                                }}
+                                                onChange={handleProjectSelectAll}
+                                                className="checkbox checkbox-sm bg-slate-200"
+                                            />
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Title</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Author</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Category</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Added On</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none float-right">Review Date</p>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="border border-resdes-orange">
+                                    {currentProjectDocuments.map((doc) => (
+                                        <tr key={doc._id} className="border-b bg-base-300 border-resdes-orange hover:bg-base-100 hover:cursor-pointer">
+                                            <td className="p-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedProjectDocuments.includes(doc._id)}
+                                                    onChange={() => onProjectDocumentSelect(doc._id)}
+                                                    className="checkbox checkbox-sm bg-slate-200"
+                                                />
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased font-semibold leading-normal  text-slate-200">
+                                                    {doc.title}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-100">
+                                                    {doc.author?.firstname} {doc.author?.lastname}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-200">
+                                                    {typeof doc.category === 'object' ? doc.category?.name : doc.category || 'Uncategorized'}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-200">
+                                                    {formatDate(doc.createdAt)}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-400 float-right">
+                                                    {doc.reviewDate ? formatDate(doc.reviewDate) : 'Not set'}
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {filteredProjectDocuments.length > 0 && (
+                            <div className="flex items-center justify-between p-4 border-t border-resdes-orange bg-resdes-orange text-slate-950 font-mono font-bold rounded-b-xl">
+                                <div className="flex items-center gap-4">
+                                    <div className="text-sm">
+                                        Showing {projectStartIndex + 1} to {Math.min(projectEndIndex, filteredProjectDocuments.length)} of {filteredProjectDocuments.length} documents
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm">Show:</span>
+                                        <select
+                                            value={projectPageSize}
+                                            onChange={(e) => {
+                                                setProjectPageSize(Number(e.target.value));
+                                                setCurrentProjectPage(1);
+                                            }}
+                                            className="px-2 py-1 text-sm border rounded bg-white text-gray-700"
+                                        >
+                                            <option value={5}>5</option>
+                                            <option value={10}>10</option>
+                                            <option value={25}>25</option>
+                                            <option value={50}>50</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {projectTotalPages > 1 && (
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentProjectPage(Math.max(1, currentProjectPage - 1))}
+                                            disabled={currentProjectPage === 1}
+                                            className="p-1 rounded hover:bg-white hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronLeftIcon size={16} />
+                                        </button>
+
+                                        {getPageNumbers(currentProjectPage, projectTotalPages).map((page, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => typeof page === 'number' && setCurrentProjectPage(page)}
+                                                disabled={page === '...'}
+                                                className={`px-3 py-1 text-sm rounded ${
+                                                    page === currentProjectPage
+                                                        ? 'bg-white text-resdes-orange font-bold'
+                                                        : page === '...'
+                                                        ? 'cursor-default'
+                                                        : 'hover:bg-white hover:bg-opacity-20'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+
+                                        <button
+                                            onClick={() => setCurrentProjectPage(Math.min(projectTotalPages, currentProjectPage + 1))}
+                                            disabled={currentProjectPage === projectTotalPages}
+                                            className="p-1 rounded hover:bg-white hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronRightIcon size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Available Documents Table */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Add Documents</h3>
+                    {selectedAvailableDocuments.length > 0 && (
+                        <button
+                            onClick={onAddDocumentsToProject}
+                            className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
+                        >
+                            Add Selected ({selectedAvailableDocuments.length})
+                        </button>
+                    )}
+                </div>
+
+                {filteredAvailableDocuments.length === 0 ? (
+                    <div className="text-center py-8 bg-base-300 rounded-lg">
+                        <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <h4 className="text-lg font-medium mb-2">No available documents</h4>
+                        <p className="text-gray-500 mb-4">
+                            Either all documents are already assigned to this project, or no documents exist yet.
+                        </p>
+                        <Link
+                            to={`/doc/create`}
+                            className="btn bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
+                        >
+                            Create Document
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="relative flex flex-col w-full text-gray-700 shadow-md rounded-xl bg-clip-border">
+                        {/* Table */}
+                        <div className="overflow-x-auto rounded-t-xl border-resdes-orange">
+                            <table className="w-full text-left table-auto min-w-max border-b border-resdes-orange">
+                                <thead className="bg-resdes-orange text-slate-950 font-mono font-bold rounded-t-xl">
+                                    <tr>
+                                        <th className="p-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={allAvailableSelected}
+                                                ref={input => {
+                                                    if (input) input.indeterminate = someAvailableSelected && !allAvailableSelected;
+                                                }}
+                                                onChange={handleAvailableSelectAll}
+                                                className="checkbox checkbox-sm bg-slate-300"
+                                            />
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Title</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Author</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Category</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none">Created On</p>
+                                        </th>
+                                        <th className="p-4">
+                                            <p className="block text-sm antialiased leading-none float-right">Review Date</p>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="border border-resdes-orange">
+                                    {currentAvailableDocuments.map((doc) => (
+                                        <tr key={doc._id} className="border-b bg-base-300 border-resdes-orange hover:bg-base-100 hover:cursor-pointer">
+                                            <td className="p-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAvailableDocuments.includes(doc._id)}
+                                                    onChange={() => onAvailableDocumentSelect(doc._id)}
+                                                    className="checkbox checkbox-sm bg-slate-200"
+                                                />
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased font-semibold leading-normal text-slate-200">
+                                                    {doc.title}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-200">
+                                                    {doc.author?.firstname} {doc.author?.lastname}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-200">
+                                                    {typeof doc.category === 'object' ? doc.category?.name : doc.category || 'Uncategorized'}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-200">
+                                                    {formatDate(doc.createdAt)}
+                                                </p>
+                                            </td>
+                                            <td className="p-4">
+                                                <p className="block text-sm antialiased leading-normal text-slate-400 float-right">
+                                                    {doc.reviewDate ? formatDate(doc.reviewDate) : 'Not set'}
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination Controls */}
+                        {filteredAvailableDocuments.length > 0 && (
+                            <div className="flex items-center justify-between p-4 border-t border-resdes-orange bg-resdes-orange text-slate-950 font-mono font-bold rounded-b-xl">
+                                <div className="flex items-center gap-4">
+                                    <div className="text-sm">
+                                        Showing {availableStartIndex + 1} to {Math.min(availableEndIndex, filteredAvailableDocuments.length)} of {filteredAvailableDocuments.length} documents
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm">Show:</span>
+                                        <select
+                                            value={availablePageSize}
+                                            onChange={(e) => {
+                                                setAvailablePageSize(Number(e.target.value));
+                                                setCurrentAvailablePage(1);
+                                            }}
+                                            className="px-2 py-1 text-sm border rounded bg-white text-gray-700"
+                                        >
+                                            <option value={5}>5</option>
+                                            <option value={10}>10</option>
+                                            <option value={25}>25</option>
+                                            <option value={50}>50</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {availableTotalPages > 1 && (
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentAvailablePage(Math.max(1, currentAvailablePage - 1))}
+                                            disabled={currentAvailablePage === 1}
+                                            className="p-1 rounded hover:bg-white hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronLeftIcon size={16} />
+                                        </button>
+
+                                        {getPageNumbers(currentAvailablePage, availableTotalPages).map((page, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => typeof page === 'number' && setCurrentAvailablePage(page)}
+                                                disabled={page === '...'}
+                                                className={`px-3 py-1 text-sm rounded ${
+                                                    page === currentAvailablePage
+                                                        ? 'bg-white text-resdes-orange font-bold'
+                                                        : page === '...'
+                                                        ? 'cursor-default'
+                                                        : 'hover:bg-white hover:bg-opacity-20'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+
+                                        <button
+                                            onClick={() => setCurrentAvailablePage(Math.min(availableTotalPages, currentAvailablePage + 1))}
+                                            disabled={currentAvailablePage === availableTotalPages}
+                                            className="p-1 rounded hover:bg-white hover:bg-opacity-20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <ChevronRightIcon size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+ProjectDocumentsTable.propTypes = {
+    projectDocuments: PropTypes.array,
+    availableDocuments: PropTypes.array,
+    selectedProjectDocuments: PropTypes.array,
+    selectedAvailableDocuments: PropTypes.array,
+    onProjectDocumentSelect: PropTypes.func,
+    onAvailableDocumentSelect: PropTypes.func,
+    onProjectDocumentsSelectAll: PropTypes.func,
+    onAvailableDocumentsSelectAll: PropTypes.func,
+    onRemoveDocumentsFromProject: PropTypes.func,
+    onAddDocumentsToProject: PropTypes.func,
+    loading: PropTypes.bool,
+    itemsPerPage: PropTypes.number
+};
+
+export default ProjectDocumentsTable;
