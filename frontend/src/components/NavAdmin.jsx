@@ -4,7 +4,7 @@
  * @component NavAdmin
  * @description Component for displaying navigation links for the admin panel.
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { Link } from "react-router";

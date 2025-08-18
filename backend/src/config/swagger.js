@@ -4,7 +4,7 @@
  * @module swagger
  * @description OpenAPI/Swagger configuration for comprehensive API documentation
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import swaggerJsdoc from 'swagger-jsdoc';

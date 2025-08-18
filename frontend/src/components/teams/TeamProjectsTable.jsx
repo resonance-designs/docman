@@ -4,7 +4,7 @@
  * @component TeamProjectsTable
  * @description Specialized table component for managing projects in teams with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 
@@ -28,16 +28,16 @@ import PropTypes from "prop-types";
  * @param {string} [props.actionType='group'] - Type of action: 'group' or 'ungroup'
  * @returns {JSX.Element} The team projects table component
  */
-const TeamProjectsTable = ({ 
-    projects, 
-    selectedProjects = [], 
-    onProjectSelect, 
-    onSelectAll, 
-    itemsPerPage = 10, 
-    sortConfig, 
-    onSort, 
-    pagination, 
-    onPageChange, 
+const TeamProjectsTable = ({
+    projects,
+    selectedProjects = [],
+    onProjectSelect,
+    onSelectAll,
+    itemsPerPage = 10,
+    sortConfig,
+    onSort,
+    pagination,
+    onPageChange,
     onPageSizeChange,
     actionType = 'group'
 }) => {
@@ -250,7 +250,7 @@ const TeamProjectsTable = ({
                                         if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
                                     }}
                                     onChange={handleSelectAll}
-                                    className="checkbox checkbox-sm"
+                                    className="checkbox checkbox-sm bg-slate-200"
                                 />
                             </th>
                             {sortConfig && onSort ? (
@@ -325,7 +325,7 @@ const TeamProjectsTable = ({
                                             Teams
                                         </p>
                                     </th>
-                                    <th className="p-4">
+                                    <th className="p-4 float-right">
                                         <p className="block text-sm antialiased leading-none">
                                             Created On
                                         </p>
@@ -336,27 +336,20 @@ const TeamProjectsTable = ({
                     </thead>
                     <tbody className="border border-resdes-orange">
                         {currentProjects.map((project) => (
-                            <tr key={project._id} className="border-b border-resdes-orange hover:bg-gray-50">
+                            <tr key={project._id} className="border-b bg-base-300 border-resdes-orange hover:bg-base-100">
                                 <td className="p-4">
                                     <input
                                         type="checkbox"
                                         checked={selectedProjects.includes(project._id)}
                                         onChange={() => handleProjectSelect(project._id)}
-                                        className="checkbox checkbox-sm"
+                                        className="checkbox checkbox-sm bg-slate-200"
                                     />
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="block text-sm antialiased font-semibold leading-normal text-blue-gray-900">
+                                        <p className="block text-sm antialiased font-semibold text-slate-200">
                                             {project.name}
                                         </p>
-                                        {project.description && (
-                                            <p className="block text-xs antialiased leading-normal text-gray-600 mt-1">
-                                                {project.description.length > 50 
-                                                    ? `${project.description.substring(0, 50)}...` 
-                                                    : project.description}
-                                            </p>
-                                        )}
                                     </div>
                                 </td>
                                 <td className="p-4">
@@ -370,7 +363,7 @@ const TeamProjectsTable = ({
                                     </span>
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased leading-normal text-slate-200">
                                         {project.owner ? `${project.owner.firstname} ${project.owner.lastname}` : 'Unknown'}
                                     </p>
                                 </td>
@@ -378,24 +371,24 @@ const TeamProjectsTable = ({
                                     <div className="flex flex-col">
                                         {project.teams && project.teams.length > 0 ? (
                                             project.teams.slice(0, 2).map((team, index) => (
-                                                <p key={team._id || index} className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                                <p key={team._id || index} className="block text-sm antialiased leading-normal text-slate-200">
                                                     {team.name}
                                                 </p>
                                             ))
                                         ) : (
-                                            <p className="block text-sm antialiased leading-normal text-gray-500">
+                                            <p className="block text-sm antialiased leading-normal text-slate-200">
                                                 No teams
                                             </p>
                                         )}
                                         {project.teams && project.teams.length > 2 && (
-                                            <p className="block text-xs antialiased leading-normal text-gray-500">
+                                            <p className="block text-xs antialiased leading-normal text-slate-200">
                                                 +{project.teams.length - 2} more
                                             </p>
                                         )}
                                     </div>
                                 </td>
-                                <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                <td className="p-4 float-right">
+                                    <p className="block text-sm antialiased leading-normal text-slate-400">
                                         {formatDate(project.createdAt)}
                                     </p>
                                 </td>
@@ -431,7 +424,7 @@ const TeamProjectsTable = ({
                         >
                             <ChevronLeftIcon className="w-4 h-4" />
                         </button>
-                        
+
                         {getPageNumbers().map((page, index) => (
                             <button
                                 key={index}
@@ -448,7 +441,7 @@ const TeamProjectsTable = ({
                                 {page}
                             </button>
                         ))}
-                        
+
                         <button
                             onClick={goToNext}
                             disabled={displayCurrentPage === totalPages}

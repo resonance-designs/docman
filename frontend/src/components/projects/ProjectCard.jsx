@@ -4,7 +4,7 @@
  * @component ProjectCard
  * @description Project card component displaying project summary, status, priority, and quick actions
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState } from "react";

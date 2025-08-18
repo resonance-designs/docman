@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import Team from "../models/Team.js";
@@ -97,7 +97,8 @@ export async function getTeamById(req, res) {
         const team = await Team.findById(teamId)
             .populate('owner', 'firstname lastname email')
             .populate('members.user', 'firstname lastname email')
-            .populate('invitations.invitedBy', 'firstname lastname email');
+            .populate('invitations.invitedBy', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         if (!team) {
             return res.status(404).json({ message: "Team not found" });
@@ -225,6 +226,7 @@ export async function updateTeam(req, res) {
         if (name) updateData.name = sanitizeString(name);
         if (description !== undefined) updateData.description = description ? sanitizeString(description) : "";
         if (settings) updateData.settings = { ...team.settings, ...settings };
+        updateData.lastUpdatedBy = userId;
 
         const updatedTeam = await Team.findByIdAndUpdate(
             teamId,
@@ -232,7 +234,8 @@ export async function updateTeam(req, res) {
             { new: true }
         )
         .populate('owner', 'firstname lastname email')
-        .populate('members.user', 'firstname lastname email');
+        .populate('members.user', 'firstname lastname email')
+        .populate('lastUpdatedBy', 'firstname lastname email');
 
         res.status(200).json({
             message: "Team updated successfully",
@@ -334,6 +337,7 @@ export async function inviteToTeam(req, res) {
             token: invitationToken
         });
 
+        team.lastUpdatedBy = userId;
         await team.save();
 
         // Send notification to the user
@@ -404,6 +408,7 @@ export async function addMemberToTeam(req, res) {
             joinedAt: new Date()
         });
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         // Send notification to the added user
@@ -462,6 +467,7 @@ export async function acceptInvitation(req, res) {
         // Update invitation status
         invitation.status = 'accepted';
 
+        team.lastUpdatedBy = userId;
         await team.save();
 
         res.status(200).json({ message: "Invitation accepted successfully" });
@@ -507,6 +513,7 @@ export async function removeMember(req, res) {
             member.user.toString() !== memberUserId
         );
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ message: "Member removed successfully" });
@@ -555,6 +562,7 @@ export async function updateMemberRole(req, res) {
         }
 
         member.role = role;
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ message: "Member role updated successfully" });
@@ -688,6 +696,7 @@ export async function addBooksToTeam(req, res) {
             }
         }
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ 
@@ -738,6 +747,7 @@ export async function removeBooksFromTeam(req, res) {
             }
         }
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ 
@@ -874,6 +884,7 @@ export async function addDocumentsToTeam(req, res) {
             }
         }
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ 
@@ -924,6 +935,7 @@ export async function removeDocumentsFromTeam(req, res) {
             }
         }
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ 
@@ -1070,6 +1082,7 @@ export async function addProjectsToTeam(req, res) {
             }
         }
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ 
@@ -1126,6 +1139,7 @@ export async function removeProjectsFromTeam(req, res) {
             }
         }
 
+        team.lastUpdatedBy = currentUserId;
         await team.save();
 
         res.status(200).json({ 

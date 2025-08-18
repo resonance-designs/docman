@@ -4,7 +4,7 @@
  * @page ViewDocPage
  * @description Document detail page displaying document information, version history, file downloads, and review management
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { Link, useNavigate, useParams } from "react-router";
@@ -109,16 +109,16 @@ const ViewDocPage = () => {
     return (
         <div className="min-h-screen">
             <div className="container mx-auto px-4 py-8">
-                <div className="max-w-screen-lg mx-auto">
+                <div className="max-w-screen-xl mx-auto">
                     {/* Header with navigation */}
                     <div className="flex justify-between items-center mb-6">
-                        <Link to="/" className="btn btn-ghost">
+                        <Link to="/documents" className="btn btn-ghost">
                             <ArrowLeftIcon />
                             Back To Documents
                         </Link>
 
                         {canEdit && (
-                            <Link to={`/edit/${id}`} className="btn bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80">
+                            <Link to={`/edit/${id}`} className="btn bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80">
                                 <PenSquareIcon size={16} />
                                 Edit Document
                             </Link>
@@ -132,18 +132,27 @@ const ViewDocPage = () => {
                             <h1 className="card-title text-3xl mb-4 text-base-content">{doc.title}</h1>
 
                             {/* Metadata Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                 {/* Author */}
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
                                     <UserIcon className="text-resdes-orange" size={20} />
                                     <div>
                                         <p className="text-sm text-gray-600">Author</p>
                                         <p className="font-medium">{getFullName(doc.author)}</p>
+                                        {doc.author?.username && (
+                                            <Link 
+                                                to={`/profile/${doc.author?._id}`} 
+                                                className="text-sm text-resdes-teal hover:text-resdes-teal/80 hover:underline"
+                                            >
+                                                @{doc.author.username}
+                                            </Link>
+                                        )}
+                                        <p>{doc.author?.userRole}</p>
                                     </div>
                                 </div>
 
                                 {/* Category */}
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
                                     <TagIcon className="text-resdes-orange" size={20} />
                                     <div>
                                         <p className="text-sm text-gray-600">Category</p>
@@ -152,7 +161,7 @@ const ViewDocPage = () => {
                                 </div>
 
                                 {/* Review Date */}
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
                                     <CalendarIcon className={needsReview ? "text-red-600" : "text-resdes-orange"} size={20} />
                                     <div>
                                         <p className="text-sm text-gray-600">Review Date</p>
@@ -170,75 +179,87 @@ const ViewDocPage = () => {
                                         </button>
                                     </div>
                                 </div>
-
-                                {/* Created Date */}
-                                <div className="flex items-center gap-3">
-                                    <CalendarIcon className="text-resdes-orange" size={20} />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Created</p>
-                                        <p className="font-medium">{formatDate(new Date(doc.createdAt))}</p>
-                                    </div>
-                                </div>
                             </div>
 
                             {/* Description */}
                             <div className="mb-6">
                                 <h3 className="text-lg font-semibold mb-2">Description</h3>
-                                <p className="text-base-content/80 leading-relaxed">{doc.description}</p>
+                                <div className="p-4 bg-base-300 rounded-lg">
+                                    <p className="text-base-content/80 leading-relaxed">{doc.description}</p>
+                                </div>
                             </div>
 
                             {/* Stakeholders */}
-                            {doc.stakeholders && doc.stakeholders.length > 0 && (
-                                <div className="mb-6">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <UsersIcon className="text-resdes-orange" size={20} />
-                                        <h3 className="text-lg font-semibold">Stakeholders</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                {doc.stakeholders && doc.stakeholders.length > 0 && (
+                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <UsersIcon className="text-resdes-orange" size={20} />
+                                            <h3 className="text-lg font-semibold">Stakeholders</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {doc.stakeholders.map((stakeholder) => (
+                                                <div key={stakeholder._id} className="badge badge-primary">
+                                                    {getFullName(stakeholder)}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {doc.stakeholders.map((stakeholder) => (
-                                            <div key={stakeholder._id} className="badge badge-primary">
-                                                {getFullName(stakeholder)}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Owners */}
-                            {doc.owners && doc.owners.length > 0 && (
-                                <div className="mb-6">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <CrownIcon className="text-resdes-orange" size={20} />
-                                        <h3 className="text-lg font-semibold">Owners</h3>
+                                {/* Owners */}
+                                {doc.owners && doc.owners.length > 0 && (
+                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <CrownIcon className="text-resdes-orange" size={20} />
+                                            <h3 className="text-lg font-semibold">Owners</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {doc.owners.map((owner) => (
+                                                <div key={owner._id} className="badge badge-secondary">
+                                                    {getFullName(owner)}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {doc.owners.map((owner) => (
-                                            <div key={owner._id} className="badge badge-secondary">
-                                                {getFullName(owner)}
-                                            </div>
-                                        ))}
+                                )}
+                            </div>
+                            {/* External Contacts */}
+                            {doc.externalContacts && doc.externalContacts.length > 0 && (
+                                <div className="grid grid-cols-4 gap-4">
+                                    <div className="col-span-2 p-4 bg-base-300 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <UsersIcon className="text-resdes-orange" size={20} />
+                                            <h3 className="text-lg font-semibold">External Contacts</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {doc.externalContacts.map((contact, index) => (
+                                                <div key={index} className="badge pb-3 bg-resdes-orange p-2 text-slate-950">
+                                                    {contact.name} ({contact.email})
+                                                    {contact.phoneNumber && ` - ${contact.phoneNumber}`}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {/* Created Date */}
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <CalendarIcon className="text-resdes-orange" size={20} />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Created</p>
+                                            <p className="font-medium">{formatDate(new Date(doc.createdAt))}</p>
+                                        </div>
+                                    </div>
+                                    {/* Created Date */}
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <CalendarIcon className="text-resdes-orange" size={20} />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Updated</p>
+                                            <p className="font-medium">{formatDate(new Date(doc.updatedAt))}</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
                         </div>
-                        
-                        {/* External Contacts */}
-                        {doc.externalContacts && doc.externalContacts.length > 0 && (
-                            <div className="mb-6">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <UsersIcon className="text-resdes-orange" size={20} />
-                                    <h3 className="text-lg font-semibold">External Contacts</h3>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {doc.externalContacts.map((contact, index) => (
-                                        <div key={index} className="badge badge-outline">
-                                            {contact.name} ({contact.email})
-                                            {contact.phoneNumber && ` - ${contact.phoneNumber}`}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
                     </div>
 
                     {/* Files Section */}
@@ -247,11 +268,11 @@ const ViewDocPage = () => {
                             <h3 className="card-title text-xl mb-4">Attached Files</h3>
 
                             {files.length === 0 ? (
-                                <p className="text-gray-500 text-center py-8">No files attached to this document</p>
+                                <p className="text-slate-200 text-center py-8">No files attached to this document</p>
                             ) : (
                                 <div className="space-y-3">
                                 {files.map((file) => (
-                                    <div key={file._id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                    <div key={file._id} className="flex bg-base-300 items-center justify-between p-4 border border-resdes-orange rounded-lg hover:bg-base-200">
                                         <div className="flex items-center gap-3">
                                             <FileIcon className="text-resdes-orange" size={24} />
                                             <div>
@@ -265,7 +286,7 @@ const ViewDocPage = () => {
                                             href={`/uploads/${file.filename}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="btn btn-sm bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                            className="btn btn-sm bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
                                         >
                                             <DownloadIcon size={16} />
                                             Download
@@ -276,7 +297,7 @@ const ViewDocPage = () => {
                             )}
                         </div>
                     </div>
-                    
+
                     {/* Version History Section */}
                     {versionHistory.length > 0 && (
                         <div className="card bg-base-100 shadow-lg mt-6">
@@ -291,7 +312,7 @@ const ViewDocPage = () => {
                                                 <th>Uploaded</th>
                                                 <th>By</th>
                                                 <th>Changes</th>
-                                                <th>Actions</th>
+                                                <th className="float-right">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -302,13 +323,13 @@ const ViewDocPage = () => {
                                                     <td>{formatDate(new Date(version.uploadedAt))}</td>
                                                     <td>{version.uploadedBy ? getFullName(version.uploadedBy) : "Unknown"}</td>
                                                     <td>{version.changelog || "No changes documented"}</td>
-                                                    <td>
+                                                    <td className="float-right">
                                                         <div className="flex gap-2">
                                                             <a
                                                                 href={`/uploads/${files.find(f => f.version === version.version)?.filename}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="btn btn-xs bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                                                className="btn btn-xs bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
                                                                 disabled={!files.find(f => f.version === version.version)}
                                                             >
                                                                 <DownloadIcon size={12} />

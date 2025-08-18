@@ -4,7 +4,7 @@
  * @component TeamDocumentsTable
  * @description Specialized table component for managing documents in teams with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 
@@ -28,16 +28,16 @@ import PropTypes from "prop-types";
  * @param {string} [props.actionType='group'] - Type of action: 'group' or 'ungroup'
  * @returns {JSX.Element} The team documents table component
  */
-const TeamDocumentsTable = ({ 
-    documents, 
-    selectedDocuments = [], 
-    onDocumentSelect, 
-    onSelectAll, 
-    itemsPerPage = 10, 
-    sortConfig, 
-    onSort, 
-    pagination, 
-    onPageChange, 
+const TeamDocumentsTable = ({
+    documents,
+    selectedDocuments = [],
+    onDocumentSelect,
+    onSelectAll,
+    itemsPerPage = 10,
+    sortConfig,
+    onSort,
+    pagination,
+    onPageChange,
     onPageSizeChange,
     actionType = 'group'
 }) => {
@@ -210,7 +210,7 @@ const TeamDocumentsTable = ({
                                         if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
                                     }}
                                     onChange={handleSelectAll}
-                                    className="checkbox checkbox-sm"
+                                    className="checkbox checkbox-sm bg-slate-200"
                                 />
                             </th>
                             {sortConfig && onSort ? (
@@ -261,7 +261,7 @@ const TeamDocumentsTable = ({
                                             Added On
                                         </p>
                                     </th>
-                                    <th className="p-4">
+                                    <th className="p-4 float-right">
                                         <p className="block text-sm antialiased leading-none">
                                             Review Date
                                         </p>
@@ -272,32 +272,32 @@ const TeamDocumentsTable = ({
                     </thead>
                     <tbody className="border border-resdes-orange">
                         {currentDocuments.map((doc) => (
-                            <tr key={doc._id} className="border-b border-resdes-orange hover:bg-gray-50">
+                            <tr key={doc._id} className="border-b bg-base-300 border-resdes-orange hover:bg-base-100 hover:cursor-pointer">
                                 <td className="p-4">
                                     <input
                                         type="checkbox"
                                         checked={selectedDocuments.includes(doc._id)}
                                         onChange={() => handleDocumentSelect(doc._id)}
-                                        className="checkbox checkbox-sm"
+                                        className="checkbox checkbox-sm bg-slate-200"
                                     />
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased font-semibold leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased font-semibold text-slate-200">
                                         {doc.title}
                                     </p>
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased leading-normal text-slate-200">
                                         {doc.author?.firstname} {doc.author?.lastname}
                                     </p>
                                 </td>
                                 <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                    <p className="block text-sm antialiased leading-normal text-slate-200">
                                         {formatDate(doc.createdAt)}
                                     </p>
                                 </td>
-                                <td className="p-4">
-                                    <p className="block text-sm antialiased leading-normal text-blue-gray-900">
+                                <td className="p-4 float-right">
+                                    <p className="block text-sm antialiased leading-normal text-slate-400">
                                         {doc.reviewDate ? formatDate(doc.reviewDate) : 'Not set'}
                                     </p>
                                 </td>

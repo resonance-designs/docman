@@ -4,7 +4,7 @@
  * @component Navbar
  * @description Component for the main navigation bar with responsive menu and authentication handling.
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 
@@ -82,13 +82,13 @@ const Navbar = () => {
                                     <FileTextIcon className="size-5" />
                                     <span>Documents</span>
                                 </Link>
-                                <Link to="/categories" className={getLinkClass(location.pathname, "/categories")}>
-                                    <FolderIcon className="size-5" />
-                                    <span>Categories</span>
-                                </Link>
                                 <Link to="/books" className={getLinkClass(location.pathname, "/books")}>
                                     <BookOpen className="size-5" />
                                     <span>Books</span>
+                                </Link>
+                                <Link to="/categories" className={getLinkClass(location.pathname, "/categories")}>
+                                    <FolderIcon className="size-5" />
+                                    <span>Categories</span>
                                 </Link>
                                 <Link to="/users" className={getLinkClass(location.pathname, "/users")}>
                                     <UsersIcon className="size-5" />

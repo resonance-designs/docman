@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 // backend/src/models/Project.js
@@ -49,6 +49,10 @@ const projectSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Document'
         }],
+        books: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Book'
+        }],
         collaborators: [{
             user: {
                 type: mongoose.Schema.Types.ObjectId,
@@ -95,6 +99,11 @@ const projectSchema = new mongoose.Schema(
 // Virtual for document count
 projectSchema.virtual('documentCount').get(function() {
     return this.documents ? this.documents.length : 0;
+});
+
+// Virtual for book count
+projectSchema.virtual('bookCount').get(function() {
+    return this.books ? this.books.length : 0;
 });
 
 // Virtual for collaborator count
@@ -175,6 +184,26 @@ projectSchema.methods.removeDocument = function(documentId) {
     this.documents = this.documents.filter(docId => 
         docId.toString() !== documentId.toString()
     );
+};
+
+// Instance method to add book to project
+projectSchema.methods.addBook = function(bookId) {
+    if (!this.books) {
+        this.books = [];
+    }
+    if (!this.books.includes(bookId)) {
+        this.books.push(bookId);
+        return true;
+    }
+    return false;
+};
+
+// Instance method to remove book from project
+projectSchema.methods.removeBook = function(bookId) {
+    if (!this.books) return false;
+    const initialLength = this.books.length;
+    this.books = this.books.filter(id => id.toString() !== bookId.toString());
+    return this.books.length < initialLength;
 };
 
 // Instance method to add team to project

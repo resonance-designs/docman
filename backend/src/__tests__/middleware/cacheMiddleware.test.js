@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/middleware/cacheMiddleware.test.js
  * @description Unit tests for caching middleware
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { jest } from '@jest/globals';

@@ -4,7 +4,7 @@
  * @page SystemInfoPage
  * @description System information dashboard displaying server status, database info, and application metrics
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

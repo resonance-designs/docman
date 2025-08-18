@@ -4,7 +4,7 @@
  * @component DocNotFound
  * @description Empty state component displayed when no documents are found with call-to-action
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { NotebookIcon } from "lucide-react";

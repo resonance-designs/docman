@@ -4,11 +4,12 @@
  * @component MemberCard
  * @description Card component for displaying team member information
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { MoreVerticalIcon, UserIcon, CrownIcon, ShieldIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
 
 const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOwner }) => {
     const [showMenu, setShowMenu] = useState(false);
@@ -71,7 +72,7 @@ const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOw
     };
 
     return (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+        <div className="bg-base-300 rounded-lg p-4 hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                     <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
@@ -82,8 +83,13 @@ const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOw
                         </span>
                     </div>
                     <div>
-                        <h3 className="text-sm font-medium text-gray-900">
-                            {user.firstname} {user.lastname}
+                        <h3 className="text-sm font-semibold">
+                            <Link
+                                to={`/user/${user._id}`}
+                                className="text-sm font-semibold text-resdes-blue hover:text-resdes-blue/75 cursor-pointer"
+                            >
+                                {user.firstname} {user.lastname}
+                            </Link>
                             {isCurrentUser && <span className="text-gray-500 ml-1">(You)</span>}
                         </h3>
                         <p className="text-sm text-gray-500">{user.email}</p>
@@ -104,7 +110,7 @@ const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOw
                         >
                             <MoreVerticalIcon className="h-4 w-4 text-gray-500" />
                         </button>
-                        
+
                         {showMenu && (
                             <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                                 <div className="py-1">
@@ -124,7 +130,7 @@ const MemberCard = ({ member, currentUser, canManageTeam, onRemoveMember, teamOw
                 )}
             </div>
 
-            <div className="mt-2 pt-2 border-t border-gray-100">
+            <div className="mt-2 pt-2 border-t border-base-100">
                 {user.username && (
                     <p className="text-xs text-gray-500 mb-1">
                         <span className="font-medium">Username:</span> {user.username}

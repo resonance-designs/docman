@@ -4,7 +4,7 @@
  * @hook useFileUpload
  * @description Custom hook for managing file upload state and progress
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";

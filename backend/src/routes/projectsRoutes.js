@@ -4,7 +4,7 @@
  * @routes projectsRoutes
  * @description Project management routes for project operations and team assignments
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import express from "express";
@@ -20,8 +20,17 @@ import {
     deleteProject,
     addCollaborator,
     removeCollaborator,
-    addDocument,
-    removeDocument
+    removeDocument,
+    getProjectBooks,
+    getAvailableProjectBooks,
+    addBooksToProject,
+    removeBooksFromProject,
+    getProjectDocuments,
+    getAvailableProjectDocuments,
+    addDocumentsToProject,
+    removeDocumentsFromProject,
+    getProjectCollaborators,
+    getAvailableCollaborators
 } from "../controllers/projectsController.js";
 
 /**
@@ -57,8 +66,23 @@ router.delete("/:id", verifyAccessToken, requireRole("editor", "admin"), deleteP
 router.post("/:id/collaborators", verifyAccessToken, requireRole("editor", "admin"), addCollaborator);
 router.delete("/:id/collaborators/:userId", verifyAccessToken, requireRole("viewer", "editor", "admin"), removeCollaborator);
 
-// Project document management
-router.post("/:id/documents", verifyAccessToken, requireRole("viewer", "editor", "admin"), addDocument);
+// Project collaborator management (enhanced)
+router.get("/:id/collaborators", verifyAccessToken, requireRole("viewer", "editor", "admin"), getProjectCollaborators);
+router.get("/:id/available-collaborators", verifyAccessToken, requireRole("editor", "admin"), getAvailableCollaborators);
+
+// Project book management
+router.get("/:id/books", verifyAccessToken, requireRole("viewer", "editor", "admin"), getProjectBooks);
+router.get("/:id/available-books", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAvailableProjectBooks);
+router.post("/:id/books", verifyAccessToken, requireRole("editor", "admin"), addBooksToProject);
+router.delete("/:id/books", verifyAccessToken, requireRole("editor", "admin"), removeBooksFromProject);
+
+// Project document management (enhanced)
+router.get("/:id/documents", verifyAccessToken, requireRole("viewer", "editor", "admin"), getProjectDocuments);
+router.get("/:id/available-documents", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAvailableProjectDocuments);
+router.post("/:id/documents", verifyAccessToken, requireRole("editor", "admin"), addDocumentsToProject);
+router.delete("/:id/documents", verifyAccessToken, requireRole("editor", "admin"), removeDocumentsFromProject);
+
+// Legacy single document management (keep for backward compatibility)
 router.delete("/:id/documents/:documentId", verifyAccessToken, requireRole("editor", "admin"), removeDocument);
 
 export default router;

@@ -4,15 +4,16 @@
  * @page EditProjectPage
  * @description Project editing page for updating project details, status, and team members
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
-import { FolderIcon, ArrowLeftIcon, CalendarIcon, TagIcon } from "lucide-react";
+import { useNavigate, useParams, Link } from "react-router";
+import { FolderIcon, ArrowLeftIcon, CalendarIcon, TagIcon, X } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import { ensureArray } from "../lib/safeUtils";
 import LoadingSpinner from "../components/LoadingSpinner";
 import InlineLoader from "../components/InlineLoader";
 
@@ -23,7 +24,7 @@ const EditProjectPage = () => {
     const [formData, setFormData] = useState({
         name: "",
         description: "",
-        teamId: "",
+        teamIds: [],
         status: "active",
         priority: "medium",
         startDate: "",
@@ -82,10 +83,20 @@ const EditProjectPage = () => {
                 const res = await api.get(`/projects/${id}`, { headers });
                 const project = res.data;
                 
+                // Handle both single team (legacy) and multiple teams (new format)
+                let teamIds = [];
+                if (project.teams && Array.isArray(project.teams)) {
+                    // New format with multiple teams
+                    teamIds = project.teams.map(team => typeof team === 'object' ? team._id : team);
+                } else if (project.team) {
+                    // Legacy format with single team
+                    teamIds = [typeof project.team === 'object' ? project.team._id : project.team];
+                }
+                
                 setFormData({
                     name: project.name || "",
                     description: project.description || "",
-                    teamId: project.team?._id || project.team || "",
+                    teamIds: teamIds,
                     status: project.status || "active",
                     priority: project.priority || "medium",
                     startDate: project.startDate ? new Date(project.startDate).toISOString().split('T')[0] : "",
@@ -133,8 +144,8 @@ const EditProjectPage = () => {
             newErrors.name = "Project name cannot exceed 100 characters";
         }
 
-        if (!formData.teamId) {
-            newErrors.teamId = "Please select a team";
+        if (!formData.teamIds || formData.teamIds.length === 0) {
+            newErrors.teamIds = "Please select at least one team";
         }
 
         if (formData.description && formData.description.length > 1000) {
@@ -168,7 +179,7 @@ const EditProjectPage = () => {
             const projectData = {
                 name: formData.name.trim(),
                 description: formData.description.trim() || undefined,
-                teamId: formData.teamId,
+                teamIds: formData.teamIds,
                 status: formData.status,
                 priority: formData.priority,
                 startDate: formData.startDate || undefined,
@@ -186,10 +197,13 @@ const EditProjectPage = () => {
             if (error.response?.data?.errors) {
                 const serverErrors = {};
                 error.response.data.errors.forEach(err => {
-                    if (err.includes("name")) {
-                        serverErrors.name = err;
-                    } else if (err.includes("team")) {
-                        serverErrors.teamId = err;
+                    // Convert error to string if it's not already a string
+                    const errorMessage = typeof err === 'string' ? err : err.message || String(err);
+
+                    if (errorMessage.toLowerCase().includes("name")) {
+                        serverErrors.name = errorMessage;
+                    } else if (errorMessage.toLowerCase().includes("team")) {
+                        serverErrors.teamIds = errorMessage;
                     }
                 });
                 setErrors(serverErrors);
@@ -199,6 +213,39 @@ const EditProjectPage = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    // Helper functions for team management
+    const getTeamById = (teamId) => teams.find(team => team._id === teamId);
+
+    const getAvailableTeams = () => {
+        const safeTeams = ensureArray(teams);
+        const safeSelectedTeamIds = ensureArray(formData.teamIds);
+        return safeTeams.filter(team => !safeSelectedTeamIds.includes(team._id));
+    };
+
+    const handleTeamAdd = (teamId) => {
+        if (teamId && !formData.teamIds.includes(teamId)) {
+            setFormData(prev => ({
+                ...prev,
+                teamIds: [...prev.teamIds, teamId]
+            }));
+            
+            // Clear team error when user adds a team
+            if (errors.teamIds) {
+                setErrors(prev => ({
+                    ...prev,
+                    teamIds: ""
+                }));
+            }
+        }
+    };
+
+    const handleTeamRemove = (teamId) => {
+        setFormData(prev => ({
+            ...prev,
+            teamIds: prev.teamIds.filter(id => id !== teamId)
+        }));
     };
 
     if (userRole !== "editor" && userRole !== "admin") {
@@ -238,29 +285,27 @@ const EditProjectPage = () => {
     return (
         <div className="min-h-screen">
             <div className="container mx-auto px-4 py-4">
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-screen-xl mx-auto">
                     {/* Header */}
-                    <div className="flex items-center space-x-4 mb-6">
-                        <button 
-                            onClick={() => navigate(-1)}
-                            className="p-2 rounded-full hover:bg-gray-100"
-                        >
-                            <ArrowLeftIcon size={20} className="text-gray-600" />
-                        </button>
-                        <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
                             <FolderIcon className="size-8 text-resdes-orange" />
                             Edit Project
                         </h1>
                     </div>
+                    <Link to="/projects" className="btn btn-ghost mb-4">
+                        <ArrowLeftIcon />
+                        Back To Projects
+                    </Link>
 
-                    {/* Form */}
-                    <div className="bg-white rounded-lg shadow-md border border-gray-200">
-                        <form onSubmit={handleSubmit} className="p-6">
+                    <div className="card bg-base-100 shadow-lg">
+                        <div className="card-body">
+                            <form onSubmit={handleSubmit}>
                             <div className="space-y-6">
                                 {/* Project Name */}
-                                <div>
-                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Project Name *
+                                <div className="form-control">
+                                    <label className="label" htmlFor="name">
+                                        <span className="label-text">Project Name *</span>
                                     </label>
                                     <input
                                         type="text"
@@ -268,53 +313,89 @@ const EditProjectPage = () => {
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue ${
-                                            errors.name ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className="input input-bordered"
                                         placeholder="Enter project name"
                                         disabled={loading}
                                         maxLength={100}
                                     />
                                     {errors.name && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                                        <p className="text-red-500 mt-1">{errors.name}</p>
                                     )}
                                 </div>
 
                                 {/* Team Selection */}
-                                <div>
-                                    <label htmlFor="teamId" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Team *
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text">Teams *</span>
                                     </label>
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        Select teams that will be assigned to this project
+                                    </p>
+                                    
                                     {teamsLoading ? (
                                         <InlineLoader message="Loading teams..." size="xs" color="teal" />
                                     ) : (
-                                        <select
-                                            id="teamId"
-                                            name="teamId"
-                                            value={formData.teamId}
-                                            onChange={handleChange}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue ${
-                                                errors.teamId ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                            disabled={loading}
-                                        >
-                                            <option value="">Select a team</option>
-                                            {teams.map(team => (
-                                                <option key={team._id} value={team._id}>
-                                                    {team.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <>
+                                            {/* Team Selection Dropdown */}
+                                            <select 
+                                                className="select select-bordered mb-3"
+                                                value=""
+                                                onChange={(e) => {
+                                                    if (e.target.value) {
+                                                        handleTeamAdd(e.target.value);
+                                                        e.target.value = ""; // Reset selection
+                                                    }
+                                                }}
+                                                disabled={loading}
+                                            >
+                                                <option value="">Add a team...</option>
+                                                {getAvailableTeams().map((team) => (
+                                                    <option key={team._id} value={team._id}>
+                                                        {team.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            {/* Selected Teams Chips */}
+                                            <div className="flex flex-wrap gap-2">
+                                                {ensureArray(formData.teamIds).map((teamId) => {
+                                                    const team = getTeamById(teamId);
+                                                    if (!team) return null;
+                                                    
+                                                    return (
+                                                        <div 
+                                                            key={teamId} 
+                                                            className="badge badge-primary gap-2 p-3"
+                                                        >
+                                                            <span>{team.name}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleTeamRemove(teamId)}
+                                                                className="btn btn-ghost btn-xs p-0 min-h-0 h-4 w-4"
+                                                                disabled={loading}
+                                                            >
+                                                                <X size={12} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            
+                                            {formData.teamIds.length === 0 && (
+                                                <p className="text-sm text-gray-500 italic">No teams selected</p>
+                                            )}
+                                        </>
                                     )}
-                                    {errors.teamId && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.teamId}</p>
+                                    
+                                    {errors.teamIds && (
+                                        <p className="text-red-500 mt-1">{errors.teamIds}</p>
                                     )}
                                 </div>
 
                                 {/* Description */}
-                                <div>
-                                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Description
+                                <div className="form-control">
+                                    <label className="label" htmlFor="description">
+                                        <span className="label-text">Description</span>
                                     </label>
                                     <textarea
                                         id="description"
@@ -322,33 +403,33 @@ const EditProjectPage = () => {
                                         value={formData.description}
                                         onChange={handleChange}
                                         rows={4}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue ${
-                                            errors.description ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className="textarea textarea-bordered"
                                         placeholder="Optional project description"
                                         disabled={loading}
                                         maxLength={1000}
                                     />
                                     {errors.description && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                                        <p className="text-red-500 mt-1">{errors.description}</p>
                                     )}
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        {formData.description.length}/1000 characters
-                                    </p>
+                                    <div className="label">
+                                        <span className="label-text-alt">
+                                            {formData.description.length}/1000 characters
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Status and Priority */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Status
+                                    <div className="form-control">
+                                        <label className="label" htmlFor="status">
+                                            <span className="label-text">Status</span>
                                         </label>
                                         <select
                                             id="status"
                                             name="status"
                                             value={formData.status}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue"
+                                            className="select select-bordered"
                                             disabled={loading}
                                         >
                                             <option value="active">Active</option>
@@ -358,16 +439,16 @@ const EditProjectPage = () => {
                                         </select>
                                     </div>
 
-                                    <div>
-                                        <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Priority
+                                    <div className="form-control">
+                                        <label className="label" htmlFor="priority">
+                                            <span className="label-text">Priority</span>
                                         </label>
                                         <select
                                             id="priority"
                                             name="priority"
                                             value={formData.priority}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue"
+                                            className="select select-bordered"
                                             disabled={loading}
                                         >
                                             <option value="low">Low</option>
@@ -380,10 +461,12 @@ const EditProjectPage = () => {
 
                                 {/* Dates */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
-                                            <CalendarIcon size={14} className="inline mr-1" />
-                                            Start Date
+                                    <div className="form-control">
+                                        <label className="label" htmlFor="startDate">
+                                            <span className="label-text">
+                                                <CalendarIcon size={14} className="inline mr-1" />
+                                                Start Date
+                                            </span>
                                         </label>
                                         <input
                                             type="date"
@@ -391,15 +474,17 @@ const EditProjectPage = () => {
                                             name="startDate"
                                             value={formData.startDate}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue"
+                                            className="input input-bordered"
                                             disabled={loading}
                                         />
                                     </div>
 
-                                    <div>
-                                        <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
-                                            <CalendarIcon size={14} className="inline mr-1" />
-                                            End Date
+                                    <div className="form-control">
+                                        <label className="label" htmlFor="endDate">
+                                            <span className="label-text">
+                                                <CalendarIcon size={14} className="inline mr-1" />
+                                                End Date
+                                            </span>
                                         </label>
                                         <input
                                             type="date"
@@ -407,22 +492,22 @@ const EditProjectPage = () => {
                                             name="endDate"
                                             value={formData.endDate}
                                             onChange={handleChange}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue ${
-                                                errors.endDate ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className="input input-bordered"
                                             disabled={loading}
                                         />
                                         {errors.endDate && (
-                                            <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
+                                            <p className="text-red-500 mt-1">{errors.endDate}</p>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Tags */}
-                                <div>
-                                    <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
-                                        <TagIcon size={14} className="inline mr-1" />
-                                        Tags
+                                <div className="form-control">
+                                    <label className="label" htmlFor="tags">
+                                        <span className="label-text">
+                                            <TagIcon size={14} className="inline mr-1" />
+                                            Tags
+                                        </span>
                                     </label>
                                     <input
                                         type="text"
@@ -430,35 +515,26 @@ const EditProjectPage = () => {
                                         name="tags"
                                         value={formData.tags}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue"
+                                        className="input input-bordered"
                                         placeholder="Enter tags separated by commas"
                                         disabled={loading}
                                     />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Separate multiple tags with commas (e.g., "frontend, urgent, client-work")
-                                    </p>
+                                    <div className="label">
+                                        <span className="label-text-alt">
+                                            Separate multiple tags with commas (e.g., "frontend, urgent, client-work")
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Actions */}
-                            <div className="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(-1)}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                                    disabled={loading}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 text-sm font-medium text-white bg-resdes-blue rounded-md hover:bg-resdes-blue hover:opacity-80 disabled:opacity-50"
-                                    disabled={loading}
-                                >
-                                    {loading ? "Saving..." : "Save Changes"}
-                                </button>
-                            </div>
-                        </form>
+                                {/* Submit Button */}
+                                <div className="form-control mt-4">
+                                    <button type="submit" className="uppercase font-mono btn bg-resdes-green text-slate-950 hover:bg-resdes-green hover:opacity-[.8] transition-opacity duration-300" disabled={loading || !formData.name.trim() || formData.teamIds.length === 0}>
+                                        {loading ? "Saving..." : "Save Changes"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

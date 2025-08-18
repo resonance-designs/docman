@@ -4,7 +4,7 @@
  * @component SearchInput
  * @description Reusable search input component with clear button and customizable placeholder for filtering data
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { SearchIcon, XIcon } from "lucide-react";

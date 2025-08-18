@@ -4,7 +4,7 @@
  * @page TeamDetailPage
  * @description Team detail page displaying team members, projects, and collaboration tools
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -187,7 +187,7 @@ const TeamDetailPage = () => {
     useEffect(() => {
         const fetchTeamProjects = async () => {
             if ((activeTab !== 'Projects' && activeTab !== 'Overview') || !id) return;
-            
+
             setProjectsLoading(true);
             try {
                 const token = localStorage.getItem("token");
@@ -592,73 +592,89 @@ const TeamDetailPage = () => {
                                 )}
                             </div>
                         </div>
-
-                        <div className="flex items-center space-x-2">
-                            {canInvite && (
-                                <button
-                                    onClick={() => setShowInviteModal(true)}
-                                    className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
-                                >
-                                    <UserPlusIcon size={16} />
-                                    Invite Members
-                                </button>
-                            )}
-                            {canManageTeam && (
-                                <Link
-                                    to={`/teams/${id}/settings`}
-                                    className="btn bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                >
-                                    <SettingsIcon size={16} />
-                                    Settings
-                                </Link>
-                            )}
-                        </div>
                     </div>
 
                     {/* Content Tabs */}
-                    <div className="bg-white rounded-lg shadow">
-                        <div className="border-b border-gray-200">
-                            <nav className="-mb-px flex space-x-8 px-6">
-                                <button
-                                    onClick={() => setActiveTab('Overview')}
-                                    className={`${
-                                        activeTab === 'Overview' ? 'border-b-2 border-resdes-blue text-resdes-blue' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
-                                    } py-4 px-1 text-sm font-medium`}
-                                >
-                                    Overview
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('Members')}
-                                    className={`${
-                                        activeTab === 'Members'? 'border-b-2 border-resdes-blue text-resdes-blue' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
-                                    } py-4 px-1 text-sm font-medium`}
-                                >
-                                    Members
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('Documents')}
-                                    className={`${
-                                        activeTab === 'Documents'? 'border-b-2 border-resdes-blue text-resdes-blue' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
-                                    } py-4 px-1 text-sm font-medium`}
-                                >
-                                    Documents
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('Books')}
-                                    className={`${
-                                        activeTab === 'Books'? 'border-b-2 border-resdes-blue text-resdes-blue' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
-                                    } py-4 px-1 text-sm font-medium`}
-                                >
-                                    Books
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('Projects')}
-                                    className={`${
-                                        activeTab === 'Projects' ? 'border-b-2 border-resdes-blue text-resdes-blue' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
-                                    } py-4 px-1 text-sm font-medium`}
-                                >
-                                    Projects
-                                </button>
+                    <div className="bg-base-100 rounded-lg shadow border border-resdes-orange">
+                        <div className="border-b border-resdes-orange">
+                            <nav className="-mb-px flex justify-between items-center px-6">
+                                <div className="flex space-x-8">
+                                    <button
+                                        onClick={() => setActiveTab('Overview')}
+                                        className={`${
+                                            activeTab === 'Overview' ? 'border-b-4 border-resdes-orange text-resdes-orange font-semibold' : 'border-b-4 border-transparent text-base font-semibold hover:opacity-65'
+                                        } py-4 px-1 text-sm font-medium`}
+                                    >
+                                        Overview
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('Members')}
+                                        className={`${
+                                            activeTab === 'Members'? 'border-b-4 border-resdes-orange text-resdes-orange font-semibold' : 'border-b-4 border-transparent text-base font-semibold hover:opacity-65'
+                                        } py-4 px-1 text-sm font-medium`}
+                                    >
+                                        Members
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('Projects')}
+                                        className={`${
+                                            activeTab === 'Projects' ? 'border-b-4 border-resdes-orange text-resdes-orange font-semibold' : 'border-b-4 border-transparent text-base font-semibold hover:opacity-65'
+                                        } py-4 px-1 text-sm font-medium`}
+                                    >
+                                        Projects
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('Documents')}
+                                        className={`${
+                                            activeTab === 'Documents'? 'border-b-4 border-resdes-orange text-resdes-orange font-semibold' : 'border-b-4 border-transparent text-base font-semibold hover:opacity-65'
+                                        } py-4 px-1 text-sm font-medium`}
+                                    >
+                                        Documents
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('Books')}
+                                        className={`${
+                                            activeTab === 'Books'? 'border-b-4 border-resdes-orange text-resdes-orange font-semibold' : 'border-b-4 border-transparent text-base font-semibold hover:opacity-65'
+                                        } py-4 px-1 text-sm font-medium`}
+                                    >
+                                        Books
+                                    </button>
+                                </div>
+                                {/* Quick Actions */}
+                                {canManageTeam && (
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={() => setShowAddMembersModal(true)}
+                                            className="flex text-sm items-center justify-center px-2 py-1 bg-resdes-blue text-slate-950 rounded-md hover:bg-resdes-blue hover:opacity-90 transition-colors"
+                                        >
+                                            <UsersIcon className="h-5 w-5 mr-2" />
+                                            Add Members
+                                        </button>
+                                        {canInvite && (
+                                            <button
+                                                onClick={() => setShowInviteModal(true)}
+                                                className="flex text-sm items-center justify-center px-2 py-1 bg-resdes-green text-slate-950 rounded-md hover:bg-resdes-green hover:opacity-80 transition-colors"
+                                            >
+                                                <UserPlusIcon className="h-5 w-5 mr-2" />
+                                                Invite by Email
+                                            </button>
+                                        )}
+                                        <Link
+                                            to={`/projects/create?team=${id}`}
+                                            className="flex text-sm items-center justify-center px-2 py-1 bg-resdes-teal text-slate-950 rounded-md hover:bg-resdes-teal hover:opacity-80 transition-colors"
+                                        >
+                                            <FolderIcon className="h-5 w-5 mr-2" />
+                                            Create Project
+                                        </Link>
+                                        <Link
+                                            to={`/teams/${id}/settings`}
+                                            className="flex text-sm items-center justify-center px-2 py-1 bg-gray-100 text-slate-950 rounded-md hover:bg-gray-200 transition-colors"
+                                        >
+                                            <SettingsIcon className="h-5 w-5 mr-2" />
+                                            Team Settings
+                                        </Link>
+                                    </div>
+                                )}
                             </nav>
                         </div>
 
@@ -677,58 +693,58 @@ const TeamDetailPage = () => {
                                     <div className="space-y-8">
                                         {/* Team Description */}
                                         {team.description && (
-                                            <div className="bg-gray-50 rounded-lg p-6">
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-3">About This Team</h3>
-                                                <p className="text-gray-700 leading-relaxed">{team.description}</p>
+                                            <div className="bg-base-300 rounded-lg p-6">
+                                                <h3 className="text-lg font-semibold mb-3">About This Team</h3>
+                                                <p className="text-base-content leading-relaxed">{team.description}</p>
                                             </div>
                                         )}
 
                                         {/* Stats Grid */}
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Statistics</h3>
+                                            <h3 className="text-lg font-semibold mb-4">Team Statistics</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                                <div className="bg-white rounded-lg shadow p-6 border-l-4 border-resdes-blue">
+                                                <div className="bg-base-300 rounded-lg shadow p-6 border-l-4 border-resdes-blue">
                                                     <div className="flex items-center">
                                                         <UsersIcon className="h-8 w-8 text-resdes-blue" />
                                                         <div className="ml-4">
                                                             <p className="text-sm font-medium text-gray-500">Members</p>
-                                                            <p className="text-2xl font-bold text-gray-900">
+                                                            <p className="text-2xl font-bold">
                                                                 {team.members?.length || 0}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-white rounded-lg shadow p-6 border-l-4 border-resdes-green">
+                                                <div className="bg-base-300 rounded-lg shadow p-6 border-l-4 border-resdes-green">
                                                     <div className="flex items-center">
                                                         <FolderIcon className="h-8 w-8 text-resdes-green" />
                                                         <div className="ml-4">
                                                             <p className="text-sm font-medium text-gray-500">Projects</p>
-                                                            <p className="text-2xl font-bold text-gray-900">
+                                                            <p className="text-2xl font-bold">
                                                                 {projects.length}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-white rounded-lg shadow p-6 border-l-4 border-resdes-orange">
+                                                <div className="bg-base-300 rounded-lg shadow p-6 border-l-4 border-resdes-orange">
                                                     <div className="flex items-center">
                                                         <BookOpenIcon className="h-8 w-8 text-resdes-orange" />
                                                         <div className="ml-4">
                                                             <p className="text-sm font-medium text-gray-500">Books</p>
-                                                            <p className="text-2xl font-bold text-gray-900">
+                                                            <p className="text-2xl font-bold">
                                                                 {teamBooks.length}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                                                <div className="bg-base-300 rounded-lg shadow p-6 border-l-4 border-purple-500">
                                                     <div className="flex items-center">
                                                         <FileTextIcon className="h-8 w-8 text-purple-500" />
                                                         <div className="ml-4">
                                                             <p className="text-sm font-medium text-gray-500">Documents</p>
-                                                            <p className="text-2xl font-bold text-gray-900">
+                                                            <p className="text-2xl font-bold">
                                                                 {teamDocuments.length}
                                                             </p>
                                                         </div>
@@ -737,118 +753,70 @@ const TeamDetailPage = () => {
                                             </div>
                                         </div>
 
-                                        {/* Team Owner Section */}
+                                        {/* Team Settings */}
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Owner</h3>
-                                            <div className="bg-white rounded-lg shadow p-6">
-                                                <div className="flex items-center">
-                                                    <div className="h-12 w-12 bg-resdes-orange rounded-full flex items-center justify-center">
+                                            <h3 className="text-lg font-semibold mb-4">Team Settings</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                    <div className="flex items-center bg-base-300 p-6 rounded-lg">
+                                                        <div className="h-12 w-12 bg-resdes-orange rounded-full flex items-center justify-center">
                                                         <span className="text-white font-bold text-lg">
                                                             {team.owner?.firstname?.[0]?.toUpperCase()}{team.owner?.lastname?.[0]?.toUpperCase()}
                                                         </span>
                                                     </div>
                                                     <div className="ml-4">
-                                                        <h4 className="text-lg font-semibold text-gray-900">
+                                                        <h4 className="text-sm font-medium text-gray-500">Owner</h4>
+                                                        <Link
+                                                            to={`/user/${team.owner._id || team.owner}`}
+                                                            className="text-lg font-semibold text-resdes-blue hover:text-resdes-blue/75 cursor-pointer"
+                                                        >
                                                             {team.owner?.firstname} {team.owner?.lastname}
-                                                        </h4>
-                                                        <p className="text-gray-600">{team.owner?.email}</p>
-                                                        {team.owner?.username && (
-                                                            <p className="text-sm text-gray-500">@{team.owner.username}</p>
-                                                        )}
+                                                        </Link>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                                    </div>
 
-                                        {/* Team Settings */}
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Settings</h3>
-                                            <div className="bg-white rounded-lg shadow p-6">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <div className="flex items-center justify-between">
+                                                    <div className="flex items-center justify-between bg-base-300 p-6 rounded-lg">
                                                         <div>
-                                                            <h4 className="text-sm font-medium text-gray-900">Privacy</h4>
-                                                            <p className="text-sm text-gray-500">
+                                                            <h4 className="text-sm font-medium text-gray-500">Privacy</h4>
+                                                            <p className="text-sm font-semibold">
                                                                 {team.settings?.isPrivate ? 'Private team' : 'Public team'}
                                                             </p>
                                                         </div>
                                                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                            team.settings?.isPrivate 
-                                                                ? 'bg-red-100 text-red-800' 
+                                                            team.settings?.isPrivate
+                                                                ? 'bg-red-100 text-red-800'
                                                                 : 'bg-green-100 text-green-800'
                                                         }`}>
                                                             {team.settings?.isPrivate ? 'Private' : 'Public'}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center justify-between">
+                                                    <div className="flex items-center justify-between bg-base-300 p-6 rounded-lg">
                                                         <div>
-                                                            <h4 className="text-sm font-medium text-gray-900">Member Invites</h4>
-                                                            <p className="text-sm text-gray-500">
+                                                            <h4 className="text-sm font-medium text-gray-500">Member Invites</h4>
+                                                            <p className="text-sm font-semibold">
                                                                 {team.settings?.allowMemberInvites ? 'Members can invite' : 'Only admins can invite'}
                                                             </p>
                                                         </div>
                                                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                            team.settings?.allowMemberInvites 
-                                                                ? 'bg-green-100 text-green-800' 
+                                                            team.settings?.allowMemberInvites
+                                                                ? 'bg-green-100 text-green-800'
                                                                 : 'bg-yellow-100 text-yellow-800'
                                                         }`}>
                                                             {team.settings?.allowMemberInvites ? 'Open' : 'Restricted'}
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
 
-                                        {/* Quick Actions */}
-                                        {canManageTeam && (
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-                                                <div className="bg-white rounded-lg shadow p-6">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                                        <button
-                                                            onClick={() => setShowAddMembersModal(true)}
-                                                            className="flex items-center justify-center px-4 py-3 bg-resdes-blue text-white rounded-lg hover:bg-resdes-blue hover:opacity-90 transition-colors"
-                                                        >
-                                                            <UsersIcon className="h-5 w-5 mr-2" />
-                                                            Add Members
-                                                        </button>
-                                                        {canInvite && (
-                                                            <button
-                                                                onClick={() => setShowInviteModal(true)}
-                                                                className="flex items-center justify-center px-4 py-3 bg-resdes-green text-slate-900 rounded-lg hover:bg-resdes-green hover:opacity-80 transition-colors"
-                                                            >
-                                                                <UserPlusIcon className="h-5 w-5 mr-2" />
-                                                                Invite by Email
-                                                            </button>
-                                                        )}
-                                                        <Link
-                                                            to={`/projects/create?team=${id}`}
-                                                            className="flex items-center justify-center px-4 py-3 bg-resdes-teal text-white rounded-lg hover:bg-resdes-teal hover:opacity-80 transition-colors"
-                                                        >
-                                                            <FolderIcon className="h-5 w-5 mr-2" />
-                                                            Create Project
-                                                        </Link>
-                                                        <Link
-                                                            to={`/teams/${id}/settings`}
-                                                            className="flex items-center justify-center px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                                                        >
-                                                            <SettingsIcon className="h-5 w-5 mr-2" />
-                                                            Team Settings
-                                                        </Link>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
+                                        </div>
 
                                         {/* Team Timeline */}
                                         <div>
-                                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Timeline</h3>
-                                            <div className="bg-white rounded-lg shadow p-6">
-                                                <div className="flex items-center space-x-4">
+                                            <h3 className="text-lg font-semibold mb-4">Team Timeline</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                <div className="flex items-center space-x-4 p-8 bg-base-300 rounded-lg shadow">
                                                     <CalendarIcon className="h-5 w-5 text-gray-400" />
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900">Created</p>
-                                                        <p className="text-sm text-gray-500">
+                                                        <p className="text-sm font-medium text-gray-500">Created</p>
+                                                        <p className="text-sm font-semibold">
                                                             {new Date(team.createdAt).toLocaleDateString('en-US', {
                                                                 year: 'numeric',
                                                                 month: 'long',
@@ -858,11 +826,11 @@ const TeamDetailPage = () => {
                                                     </div>
                                                 </div>
                                                 {team.updatedAt !== team.createdAt && (
-                                                    <div className="flex items-center space-x-4 mt-4 pt-4 border-t border-gray-100">
+                                                    <div className="flex items-center space-x-4 p-8 bg-base-300 rounded-lg shadow">
                                                         <TrendingUpIcon className="h-5 w-5 text-gray-400" />
                                                         <div>
-                                                            <p className="text-sm font-medium text-gray-900">Last Updated</p>
-                                                            <p className="text-sm text-gray-500">
+                                                            <p className="text-sm font-medium text-gray-500">Last Updated</p>
+                                                            <p className="text-sm font-semibold">
                                                                 {new Date(team.updatedAt).toLocaleDateString('en-US', {
                                                                     year: 'numeric',
                                                                     month: 'long',
@@ -872,14 +840,26 @@ const TeamDetailPage = () => {
                                                         </div>
                                                     </div>
                                                 )}
+                                                {team.lastUpdatedBy && (
+                                                    <div className="flex items-center space-x-4 p-8 bg-base-300 rounded-lg shadow">
+                                                        <UsersIcon className="h-5 w-5 text-gray-400" />
+                                                        <div>
+                                                            <p className="text-sm font-medium text-gray-500">Last Update By</p>
+                                                            <Link
+                                                                to={`/user/${team.lastUpdatedBy._id || team.lastUpdatedBy}`}
+                                                                className="text-sm font-semibold text-resdes-blue hover:text-resdes-blue/75 cursor-pointer"
+                                                            >
+                                                                {team.owner?.firstname} {team.owner?.lastname}
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         }
-
-
 
                         {/* Members Tab Content */}
                         {activeTab === 'Members' &&
@@ -903,29 +883,9 @@ const TeamDetailPage = () => {
                                 ) : (
                                     <div>
                                         <div className="flex items-center justify-between mb-6">
-                                            <h3 className="text-xl font-semibold text-gray-900">
+                                            <h3 className="text-xl font-semibold">
                                                 Team Members ({team.members.length})
                                             </h3>
-                                            {canManageTeam && (
-                                                <div className="flex space-x-3">
-                                                    <button
-                                                        onClick={() => setShowAddMembersModal(true)}
-                                                        className="btn bg-resdes-blue text-white hover:bg-resdes-blue hover:opacity-90"
-                                                    >
-                                                        <UsersIcon size={16} />
-                                                        Add Members
-                                                    </button>
-                                                    {canInvite && (
-                                                        <button
-                                                            onClick={() => setShowInviteModal(true)}
-                                                            className="btn bg-resdes-green text-slate-900 hover:bg-resdes-green hover:opacity-80"
-                                                        >
-                                                            <UserPlusIcon size={16} />
-                                                            Invite by Email
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
                                         </div>
 
                                         {/* Search Bar */}
@@ -958,8 +918,8 @@ const TeamDetailPage = () => {
                                                     );
                                                 })
                                                 .map((member) => (
-                                                    <MemberCard 
-                                                        key={member.user._id} 
+                                                    <MemberCard
+                                                        key={member.user._id}
                                                         member={member}
                                                         currentUser={currentUser}
                                                         canManageTeam={canManageTeam}
@@ -1010,7 +970,7 @@ const TeamDetailPage = () => {
                                         {/* Team Documents Section */}
                                         <div>
                                             <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-xl font-semibold text-gray-900">Team Documents</h3>
+                                                <h3 className="text-xl font-semibold">Team Documents</h3>
                                                 {selectedTeamDocuments.length > 0 && canManageTeam && (
                                                     <button
                                                         onClick={handleRemoveDocumentsFromTeam}
@@ -1020,14 +980,19 @@ const TeamDetailPage = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            
                                             {teamDocuments.length === 0 ? (
-                                                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                <div className="text-center py-8 bg-base-300 rounded-lg">
                                                     <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No documents assigned</h4>
+                                                    <h4 className="text-lg font-medium mb-2">No documents assigned</h4>
                                                     <p className="text-gray-500">
-                                                        This team doesn't have any documents assigned yet.
+                                                        Either this team doesn't have any documents assigned yet, or no documents have been created yet.
                                                     </p>
+                                                    <Link
+                                                        to={`/doc/create?team=${id}`}
+                                                        className="btn bg-resdes-teal text-slate-950 my-4 hover:bg-resdes-teal hover:opacity-80"
+                                                    >
+                                                        Create Document
+                                                    </Link>
                                                 </div>
                                             ) : (
                                                 <TeamDocumentsTable
@@ -1044,7 +1009,7 @@ const TeamDetailPage = () => {
                                         {canManageTeam && (
                                             <div>
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="text-xl font-semibold text-gray-900">Add Documents</h3>
+                                                    <h3 className="text-xl font-semibold">Add Documents</h3>
                                                     {selectedAvailableDocuments.length > 0 && (
                                                         <button
                                                             onClick={handleAddDocumentsToTeam}
@@ -1054,17 +1019,16 @@ const TeamDetailPage = () => {
                                                         </button>
                                                     )}
                                                 </div>
-                                                
                                                 {availableDocuments.length === 0 ? (
-                                                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                    <div className="text-center py-8 bg-base-300 rounded-lg">
                                                         <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                                        <h4 className="text-lg font-medium text-gray-900 mb-2">No available documents</h4>
+                                                        <h4 className="text-lg font-medium mb-2">No available documents</h4>
                                                         <p className="text-gray-500 mb-4">
                                                             All documents are already assigned to this team, or no documents exist yet.
                                                         </p>
                                                         <Link
                                                             to={`/doc/create`}
-                                                            className="btn bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                                            className="btn bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
                                                         >
                                                             Create Document
                                                         </Link>
@@ -1101,7 +1065,7 @@ const TeamDetailPage = () => {
                                         {/* Team Books Section */}
                                         <div>
                                             <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-xl font-semibold text-gray-900">Team Books</h3>
+                                                <h3 className="text-xl font-semibold">Team Books</h3>
                                                 {selectedTeamBooks.length > 0 && canManageTeam && (
                                                     <button
                                                         onClick={handleRemoveBooksFromTeam}
@@ -1111,11 +1075,10 @@ const TeamDetailPage = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            
                                             {teamBooks.length === 0 ? (
-                                                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                <div className="text-center py-8 bg-base-300 rounded-lg">
                                                     <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No books assigned</h4>
+                                                    <h4 className="text-lg font-medium">No books assigned</h4>
                                                     <p className="text-gray-500">
                                                         This team doesn't have any books assigned yet.
                                                     </p>
@@ -1135,7 +1098,7 @@ const TeamDetailPage = () => {
                                         {canManageTeam && (
                                             <div>
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="text-xl font-semibold text-gray-900">Add Books</h3>
+                                                    <h3 className="text-xl font-semibold">Add Books</h3>
                                                     {selectedAvailableBooks.length > 0 && (
                                                         <button
                                                             onClick={handleAddBooksToTeam}
@@ -1145,17 +1108,16 @@ const TeamDetailPage = () => {
                                                         </button>
                                                     )}
                                                 </div>
-                                                
                                                 {availableBooks.length === 0 ? (
-                                                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                    <div className="text-center py-8 bg-base-300 rounded-lg">
                                                         <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                                        <h4 className="text-lg font-medium text-gray-900 mb-2">No available books</h4>
+                                                        <h4 className="text-lg font-medium mb-2">No available books</h4>
                                                         <p className="text-gray-500 mb-4">
                                                             All books are already assigned to this team, or no books exist yet.
                                                         </p>
                                                         <Link
                                                             to={`/book/create`}
-                                                            className="btn bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                                            className="btn bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
                                                         >
                                                             Create Book
                                                         </Link>
@@ -1192,7 +1154,7 @@ const TeamDetailPage = () => {
                                         {/* Team Projects Section */}
                                         <div>
                                             <div className="flex items-center justify-between mb-4">
-                                                <h3 className="text-xl font-semibold text-gray-900">Team Projects</h3>
+                                                <h3 className="text-xl font-semibold">Team Projects</h3>
                                                 {selectedTeamProjects.length > 0 && canManageTeam && (
                                                     <button
                                                         onClick={handleRemoveProjectsFromTeam}
@@ -1202,14 +1164,19 @@ const TeamDetailPage = () => {
                                                     </button>
                                                 )}
                                             </div>
-                                            
                                             {teamProjects.length === 0 ? (
-                                                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                <div className="text-center py-8 bg-base-300 rounded-lg">
                                                     <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                                    <h4 className="text-lg font-medium text-gray-900 mb-2">No projects assigned</h4>
+                                                    <h4 className="text-lg font-medium mb-2">No projects assigned</h4>
                                                     <p className="text-gray-500">
-                                                        This team doesn't have any projects assigned yet.
+                                                        Either this team doesn't have any projects assigned yet, or no projects exist yet.
                                                     </p>
+                                                    <Link
+                                                        to={`/project/create`}
+                                                        className="btn bg-resdes-teal text-slate-950 mt-4 hover:bg-resdes-teal hover:opacity-80"
+                                                    >
+                                                        Create Project
+                                                    </Link>
                                                 </div>
                                             ) : (
                                                 <TeamProjectsTable
@@ -1226,7 +1193,7 @@ const TeamDetailPage = () => {
                                         {canManageTeam && (
                                             <div>
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="text-xl font-semibold text-gray-900">Add Projects</h3>
+                                                    <h3 className="text-xl font-semibold">Add Projects</h3>
                                                     {selectedAvailableProjects.length > 0 && (
                                                         <button
                                                             onClick={handleAddProjectsToTeam}
@@ -1236,17 +1203,16 @@ const TeamDetailPage = () => {
                                                         </button>
                                                     )}
                                                 </div>
-                                                
                                                 {availableProjects.length === 0 ? (
-                                                    <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                    <div className="text-center py-8 bg-base-300 rounded-lg">
                                                         <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                                        <h4 className="text-lg font-medium text-gray-900 mb-2">No available projects</h4>
+                                                        <h4 className="text-lg font-medium mb-2">No available projects</h4>
                                                         <p className="text-gray-500 mb-4">
                                                             All projects are already assigned to this team, or no projects exist yet.
                                                         </p>
                                                         <Link
                                                             to={`/projects/create`}
-                                                            className="btn bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                                            className="btn bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
                                                         >
                                                             Create Project
                                                         </Link>

@@ -4,7 +4,7 @@
  * @page ManageExternalContactTypesPage
  * @description External contact type management page for organizing contact categories
  * @author Richard Bakos
- * @version 2.1.4
+ * @version 2.1.6
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
