@@ -4,7 +4,7 @@
  * @page TeamDetailPage
  * @description Team detail page displaying team members, projects, and collaboration tools
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -27,6 +27,7 @@ import {
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ProjectCard from "../components/projects/ProjectCard";
 import InviteMemberModal from "../components/teams/InviteMemberModal";
@@ -211,6 +212,8 @@ const TeamDetailPage = () => {
         fetchTeamProjects();
     }, [id, activeTab]);
 
+    const { confirm } = useConfirmationContext();
+    
     const handleMemberInvited = () => {
         setShowInviteModal(false);
         toast.success("Invitation sent successfully!");
@@ -219,15 +222,19 @@ const TeamDetailPage = () => {
     };
 
     const handleRemoveMember = async (memberId) => {
-        if (!window.confirm("Are you sure you want to remove this member?")) {
-            return;
-        }
+        const memberToRemove = team?.members?.find(member => member.user._id === memberId);
+        const memberName = memberToRemove ? `${memberToRemove.user.firstname} ${memberToRemove.user.lastname}` : 'this member';
+        
+        confirm({
+            title: "Remove Team Member",
+            message: `Are you sure you want to remove ${memberName} from this team?`,
+            actionName: "Remove",
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            await api.delete(`/teams/${id}/members/${memberId}`, { headers });
+                    await api.delete(`/teams/${id}/members/${memberId}`, { headers });
 
             // Update team state
             setTeam(prev => ({
@@ -236,10 +243,12 @@ const TeamDetailPage = () => {
             }));
 
             toast.success("Member removed successfully");
-        } catch (error) {
-            console.error("Error removing member:", error);
-            toast.error("Failed to remove member");
-        }
+                } catch (error) {
+                    console.error("Error removing member:", error);
+                    toast.error("Failed to remove member");
+                }
+            }
+        });
     };
 
     const handleMemberAdded = async () => {
@@ -294,30 +303,33 @@ const TeamDetailPage = () => {
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to remove ${selectedTeamBooks.length} book(s) from this team?`)) {
-            return;
-        }
+        confirm({
+            title: "Remove Books from Team",
+            message: `Are you sure you want to remove ${selectedTeamBooks.length} book(s) from this team?`,
+            actionName: "Remove",
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                    await api.delete(`/teams/${id}/books`, {
+                        headers,
+                        data: { bookIds: selectedTeamBooks }
+                    });
 
-            await api.delete(`/teams/${id}/books`, {
-                headers,
-                data: { bookIds: selectedTeamBooks }
-            });
+                    // Move selected books from team to available
+                    const removedBooks = teamBooks.filter(book => selectedTeamBooks.includes(book._id));
+                    setTeamBooks(prev => prev.filter(book => !selectedTeamBooks.includes(book._id)));
+                    setAvailableBooks(prev => [...prev, ...removedBooks]);
+                    setSelectedTeamBooks([]);
 
-            // Move selected books from team to available
-            const removedBooks = teamBooks.filter(book => selectedTeamBooks.includes(book._id));
-            setTeamBooks(prev => prev.filter(book => !selectedTeamBooks.includes(book._id)));
-            setAvailableBooks(prev => [...prev, ...removedBooks]);
-            setSelectedTeamBooks([]);
-
-            toast.success(`${selectedTeamBooks.length} book(s) removed from team successfully`);
-        } catch (error) {
-            console.error("Error removing books from team:", error);
-            toast.error("Failed to remove books from team");
-        }
+                    toast.success(`${selectedTeamBooks.length} book(s) removed from team successfully`);
+                } catch (error) {
+                    console.error("Error removing books from team:", error);
+                    toast.error("Failed to remove books from team");
+                }
+            }
+        });
     };
 
     const handleAddBooksToTeam = async () => {
@@ -386,30 +398,33 @@ const TeamDetailPage = () => {
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to remove ${selectedTeamDocuments.length} document(s) from this team?`)) {
-            return;
-        }
+        confirm({
+            title: "Remove Documents from Team",
+            message: `Are you sure you want to remove ${selectedTeamDocuments.length} document(s) from this team?`,
+            actionName: "Remove",
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                    await api.delete(`/teams/${id}/documents`, {
+                        headers,
+                        data: { documentIds: selectedTeamDocuments }
+                    });
 
-            await api.delete(`/teams/${id}/documents`, {
-                headers,
-                data: { documentIds: selectedTeamDocuments }
-            });
+                    // Move selected documents from team to available
+                    const removedDocuments = teamDocuments.filter(doc => selectedTeamDocuments.includes(doc._id));
+                    setTeamDocuments(prev => prev.filter(doc => !selectedTeamDocuments.includes(doc._id)));
+                    setAvailableDocuments(prev => [...prev, ...removedDocuments]);
+                    setSelectedTeamDocuments([]);
 
-            // Move selected documents from team to available
-            const removedDocuments = teamDocuments.filter(doc => selectedTeamDocuments.includes(doc._id));
-            setTeamDocuments(prev => prev.filter(doc => !selectedTeamDocuments.includes(doc._id)));
-            setAvailableDocuments(prev => [...prev, ...removedDocuments]);
-            setSelectedTeamDocuments([]);
-
-            toast.success(`${selectedTeamDocuments.length} document(s) removed from team successfully`);
-        } catch (error) {
-            console.error("Error removing documents from team:", error);
-            toast.error("Failed to remove documents from team");
-        }
+                    toast.success(`${selectedTeamDocuments.length} document(s) removed from team successfully`);
+                } catch (error) {
+                    console.error("Error removing documents from team:", error);
+                    toast.error("Failed to remove documents from team");
+                }
+            }
+        });
     };
 
     const handleAddDocumentsToTeam = async () => {
@@ -478,30 +493,33 @@ const TeamDetailPage = () => {
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to remove ${selectedTeamProjects.length} project(s) from this team?`)) {
-            return;
-        }
+        confirm({
+            title: "Remove Projects from Team",
+            message: `Are you sure you want to remove ${selectedTeamProjects.length} project(s) from this team?`,
+            actionName: "Remove",
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                    await api.delete(`/teams/${id}/projects`, {
+                        headers,
+                        data: { projectIds: selectedTeamProjects }
+                    });
 
-            await api.delete(`/teams/${id}/projects`, {
-                headers,
-                data: { projectIds: selectedTeamProjects }
-            });
+                    // Move selected projects from team to available
+                    const removedProjects = teamProjects.filter(project => selectedTeamProjects.includes(project._id));
+                    setTeamProjects(prev => prev.filter(project => !selectedTeamProjects.includes(project._id)));
+                    setAvailableProjects(prev => [...prev, ...removedProjects]);
+                    setSelectedTeamProjects([]);
 
-            // Move selected projects from team to available
-            const removedProjects = teamProjects.filter(project => selectedTeamProjects.includes(project._id));
-            setTeamProjects(prev => prev.filter(project => !selectedTeamProjects.includes(project._id)));
-            setAvailableProjects(prev => [...prev, ...removedProjects]);
-            setSelectedTeamProjects([]);
-
-            toast.success(`${selectedTeamProjects.length} project(s) removed from team successfully`);
-        } catch (error) {
-            console.error("Error removing projects from team:", error);
-            toast.error("Failed to remove projects from team");
-        }
+                    toast.success(`${selectedTeamProjects.length} project(s) removed from team successfully`);
+                } catch (error) {
+                    console.error("Error removing projects from team:", error);
+                    toast.error("Failed to remove projects from team");
+                }
+            }
+        });
     };
 
     const handleAddProjectsToTeam = async () => {

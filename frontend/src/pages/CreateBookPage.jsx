@@ -4,7 +4,7 @@
  * @page CreateBookPage
  * @description Book creation page with form for adding new books using shared design patterns
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useNavigate, Link } from "react-router";

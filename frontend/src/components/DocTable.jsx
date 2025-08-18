@@ -4,7 +4,7 @@
  * @component DocTable
  * @description Component for displaying a document in a table row with actions.
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 
@@ -14,6 +14,7 @@ import { formatDate } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
 import { useUserRole } from "../hooks";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 
 /**
  * Component for displaying a document in a table row with actions
@@ -24,6 +25,7 @@ import { useUserRole } from "../hooks";
  */
 const DocTable = ({ doc, setDocs }) => {
     const { userRole } = useUserRole();
+    const { confirm } = useConfirmationContext();
 
     /**
      * Handle document deletion
@@ -32,15 +34,22 @@ const DocTable = ({ doc, setDocs }) => {
      */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
-        if (!window.confirm("Are you sure you want to delete this document?")) return;
-        try {
-            await api.delete(`/docs/${id}`);
-            setDocs((prev) => prev.filter((doc) => doc._id !== id)); // get rid of the deleted one
-            toast.success("Document deleted successfully");
-        } catch (error) {
-            console.log("Error in handleDelete", error);
-            toast.error("Failed to delete document");
-        }
+        
+        confirm({
+            title: "Delete Document",
+            message: `Are you sure you want to delete "${doc.title}"?`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/docs/${id}`);
+                    setDocs((prev) => prev.filter((doc) => doc._id !== id)); // get rid of the deleted one
+                    toast.success("Document deleted successfully");
+                } catch (error) {
+                    console.log("Error in handleDelete", error);
+                    toast.error("Failed to delete document");
+                }
+            }
+        });
     };
 
     /**

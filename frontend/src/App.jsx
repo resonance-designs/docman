@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/App.jsx
  * @description Main application component that handles routing and authentication state
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { Route, Routes } from "react-router";
@@ -43,6 +43,7 @@ import Footer from "./components/Footer";
 import ProtectedRoute from './components/ProtectedRoutes';
 import ManageExternalContactTypesPage from "./pages/ManageExternalContactTypesPage";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ConfirmationProvider } from "./context/ConfirmationContext";
 import { useUserRole } from "./hooks";
 import ErrorBoundary from "./components/ErrorBoundary";
 import InlineLoader from "./components/InlineLoader";
@@ -72,9 +73,10 @@ const App = () => {
     return (
         <ErrorBoundary>
             <ThemeProvider>
-                <div className="relative h-full w-full">
-                    <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 bg-gradient-bg" />
-                    <Navbar />
+                <ConfirmationProvider>
+                    <div className="relative h-full w-full">
+                        <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 bg-gradient-bg" />
+                        <Navbar />
                 {isAuthenticated && (
                     <div className="container mx-auto px-4 pt-4">
                         <div className="max-w-screen-xl mx-auto mt-8">
@@ -314,8 +316,9 @@ const App = () => {
                     />
                 </Routes>
                 <Footer />
-            </div>
-        </ThemeProvider>
+                </div>
+                </ConfirmationProvider>
+            </ThemeProvider>
         </ErrorBoundary>
     );
 }

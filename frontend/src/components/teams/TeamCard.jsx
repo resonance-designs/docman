@@ -4,7 +4,7 @@
  * @component TeamCard
  * @description Team card component displaying team info, member count, project count, and management actions
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from "react";
@@ -13,6 +13,7 @@ import { UsersIcon, FolderIcon, MoreVerticalIcon, EditIcon, TrashIcon, UserPlusI
 import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { useConfirmationContext } from "../../context/ConfirmationContext";
 
 /**
  * Team card component for displaying team information with actions
@@ -24,29 +25,33 @@ import toast from "react-hot-toast";
 const TeamCard = ({ team, onTeamDeleted }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [loading, setLoading] = useState(false);
+    const { confirm } = useConfirmationContext();
 
     /**
      * Handle team deletion with confirmation
      */
     const handleDeleteTeam = async () => {
-        if (!window.confirm(`Are you sure you want to delete "${team.name}"? This action cannot be undone.`)) {
-            return;
-        }
+        confirm({
+            title: "Delete Team",
+            message: `Are you sure you want to delete "${team.name}"? This action cannot be undone.`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const token = localStorage.getItem("token");
+                    const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        setLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            await api.delete(`/teams/${team._id}`, { headers });
-            onTeamDeleted(team._id);
-        } catch (error) {
-            console.error("Error deleting team:", error);
-            toast.error("Failed to delete team");
-        } finally {
-            setLoading(false);
-            setShowMenu(false);
-        }
+                    await api.delete(`/teams/${team._id}`, { headers });
+                    onTeamDeleted(team._id);
+                } catch (error) {
+                    console.error("Error deleting team:", error);
+                    toast.error("Failed to delete team");
+                } finally {
+                    setLoading(false);
+                    setShowMenu(false);
+                }
+            }
+        });
     };
 
     const isOwner = team.owner && team.owner._id;

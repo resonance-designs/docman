@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearExternalContacts.js
  * @description Script to clear all external contacts from the database
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

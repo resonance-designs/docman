@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/shared/DataTable.stories.jsx
  * @description Storybook stories for DataTable component
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from 'react';

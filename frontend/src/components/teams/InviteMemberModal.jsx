@@ -4,7 +4,7 @@
  * @component InviteMemberModal
  * @description Modal component for inviting new members to teams with role assignment
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from "react";

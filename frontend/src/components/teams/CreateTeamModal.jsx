@@ -4,7 +4,7 @@
  * @component CreateTeamModal
  * @description Modal component for creating new teams with form validation and member invitation
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from "react";

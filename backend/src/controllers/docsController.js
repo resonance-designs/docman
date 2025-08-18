@@ -4,7 +4,7 @@
  * @controller docsController
  * @description Document management controller for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import Doc from "../models/Doc.js";

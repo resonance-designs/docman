@@ -4,7 +4,7 @@
  * @component CatTable
  * @description Category table component for displaying and managing document categories
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 
@@ -15,6 +15,7 @@ import api from "../lib/axios";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 
 /**
  * Component for displaying a category in a table row with actions
@@ -25,6 +26,7 @@ import PropTypes from "prop-types";
  */
 const CatTable = ({ category, setCategories }) => {
     const [userRole, setUserRole] = useState(null);
+    const { confirm } = useConfirmationContext();
 
     /**
      * Get user role from token when component mounts
@@ -44,15 +46,22 @@ const CatTable = ({ category, setCategories }) => {
      */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
-        if (!window.confirm("Are you sure you want to delete this category?")) return;
-        try {
-            await api.delete(`/categories/${id}`);
-            setCategories((prev) => prev.filter((cat) => cat._id !== id)); // get rid of the deleted one
-            toast.success("Category deleted successfully");
-        } catch (error) {
-            console.log("Error in handleDelete", error);
-            toast.error("Failed to delete category");
-        }
+        
+        confirm({
+            title: "Delete Category",
+            message: `Are you sure you want to delete "${category.name}"?`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/categories/${id}`);
+                    setCategories((prev) => prev.filter((cat) => cat._id !== id)); // get rid of the deleted one
+                    toast.success("Category deleted successfully");
+                } catch (error) {
+                    console.log("Error in handleDelete", error);
+                    toast.error("Failed to delete category");
+                }
+            }
+        });
     };
 
     // Check if user is admin

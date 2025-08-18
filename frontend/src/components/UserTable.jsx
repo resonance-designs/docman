@@ -4,7 +4,7 @@
  * @component UserTable
  * @description Component for displaying a user in a table row with actions.
  * @author Richard Bakos
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 
@@ -14,6 +14,7 @@ import api from "../lib/axios";
 import toast from "react-hot-toast";
 
 import { useUserRole } from "../hooks";
+import { useConfirmationContext } from "../context/ConfirmationContext";
 import { Link } from "react-router";
 import PropTypes from "prop-types";
 
@@ -26,6 +27,7 @@ import PropTypes from "prop-types";
  */
 const UserTable = ({ user, setUsers }) => {
     const { userId: currentUserId, isAdmin } = useUserRole();
+    const { confirm } = useConfirmationContext();
 
     /**
      * Handle user deletion
@@ -41,15 +43,21 @@ const UserTable = ({ user, setUsers }) => {
             return;
         }
 
-        if (!window.confirm("Are you sure you want to delete this user?")) return;
-        try {
-            await api.delete(`/users/${id}`);
-            setUsers((prev) => prev.filter((u) => u._id !== id)); // get rid of the deleted one
-            toast.success("User deleted successfully");
-        } catch (error) {
-            console.log("Error in handleDelete", error);
-            toast.error("Failed to delete user");
-        }
+        confirm({
+            title: "Delete User",
+            message: `Are you sure you want to delete ${user.firstname} ${user.lastname}?`,
+            actionName: "Delete",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/users/${id}`);
+                    setUsers((prev) => prev.filter((u) => u._id !== id)); // get rid of the deleted one
+                    toast.success("User deleted successfully");
+                } catch (error) {
+                    console.log("Error in handleDelete", error);
+                    toast.error("Failed to delete user");
+                }
+            }
+        });
     };
 
     /**

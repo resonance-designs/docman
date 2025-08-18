@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/system/DangerZone.jsx
  * @component DangerZone
  * @description Danger zone section for system administration with collection clearing and restoration
- * @version 2.1.7
+ * @version 2.1.9
  * @license UNLICENSED
  */
 import { useState } from "react";
