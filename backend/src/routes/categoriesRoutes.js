@@ -4,7 +4,7 @@
  * @routes categoriesRoutes
  * @description Category management routes for organizing and managing document categories
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import express from "express";

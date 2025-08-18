@@ -4,7 +4,7 @@
  * @component TeamDocumentsTable
  * @description Specialized table component for managing documents in teams with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 

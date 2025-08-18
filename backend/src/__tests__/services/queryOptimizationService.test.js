@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/services/queryOptimizationService.test.js
  * @description Unit tests for query optimization service
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import { jest } from '@jest/globals';

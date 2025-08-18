@@ -4,7 +4,7 @@
  * @component AddCollaboratorModal
  * @description Modal component for adding collaborators to a project
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 

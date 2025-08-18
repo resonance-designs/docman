@@ -4,7 +4,7 @@
  * @controller booksController
  * @description Book management controller for organizing documents into collections
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import Book from "../models/Book.js";

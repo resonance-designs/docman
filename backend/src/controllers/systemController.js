@@ -1,13 +1,24 @@
 /*
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import os from 'os';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 import User from '../models/User.js';
 import Doc from '../models/Doc.js';
 import Category from '../models/Category.js';
+import Book from '../models/Book.js';
+import CustomChart from '../models/CustomChart.js';
+import ExternalContact from '../models/ExternalContact.js';
+import ExternalContactType from '../models/ExternalContactType.js';
+import File from '../models/File.js';
+import Notification from '../models/Notification.js';
+import Project from '../models/Project.js';
+import ReviewAssignment from '../models/ReviewAssignment.js';
+import Team from '../models/Team.js';
 import { getPerformanceStats } from '../middleware/performanceMonitor.js';
 import { getCacheStats } from '../middleware/cacheMiddleware.js';
 
@@ -257,4 +268,330 @@ function getMemoryStats() {
         used: usedMemory,
         percentage
     };
+}
+
+/**
+ * Clear a collection and archive its documents
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with operation result
+ */
+export async function clearCollection(req, res) {
+    const { collection } = req.params;
+    
+    try {
+        // Map collection name to model
+        const modelMap = {
+            'books': Book,
+            'documents': Doc,
+            'charts': CustomChart,
+            'external_contacts': ExternalContact,
+            'external_contact_types': ExternalContactType,
+            'files': File,
+            'notifications': Notification,
+            'projects': Project,
+            'review_assignments': ReviewAssignment,
+            'teams': Team,
+            'users': User,
+            'categories': Category
+        };
+        
+        // Check if collection exists in our map
+        if (!modelMap[collection]) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Invalid collection: ${collection}` 
+            });
+        }
+        
+        // Get the model and archive collection name
+        const Model = modelMap[collection];
+        const archiveCollectionName = `archives_${collection}`;
+        
+        // Get all documents from the collection
+        const documents = await Model.find({});
+        
+        if (documents.length === 0) {
+            return res.status(200).json({ 
+                success: true, 
+                message: `No documents found in ${collection} collection` 
+            });
+        }
+        
+        // Create archive collection if it doesn't exist
+        if (!mongoose.connection.collections[archiveCollectionName]) {
+            await mongoose.connection.createCollection(archiveCollectionName);
+        }
+        
+        // Insert documents into archive collection
+        await mongoose.connection.collection(archiveCollectionName).insertMany(
+            documents.map(doc => doc.toObject())
+        );
+        
+        // Delete all documents from original collection
+        await Model.deleteMany({});
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: `Successfully archived and cleared ${documents.length} documents from ${collection}` 
+        });
+    } catch (error) {
+        console.error(`Error clearing collection ${collection}:`, error);
+        return res.status(500).json({ 
+            success: false, 
+            message: `Failed to clear collection: ${error.message}` 
+        });
+    }
+}
+
+/**
+ * Restore a collection from its archive
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with operation result
+ */
+export async function restoreCollection(req, res) {
+    const { collection } = req.params;
+    
+    try {
+        // Map collection name to model
+        const modelMap = {
+            'books': Book,
+            'documents': Doc,
+            'charts': CustomChart,
+            'external_contacts': ExternalContact,
+            'external_contact_types': ExternalContactType,
+            'files': File,
+            'notifications': Notification,
+            'projects': Project,
+            'review_assignments': ReviewAssignment,
+            'teams': Team,
+            'users': User,
+            'categories': Category
+        };
+        
+        // Check if collection exists in our map
+        if (!modelMap[collection]) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Invalid collection: ${collection}` 
+            });
+        }
+        
+        // Get the model and archive collection name
+        const Model = modelMap[collection];
+        const archiveCollectionName = `archives_${collection}`;
+        
+        // Check if archive collection exists
+        if (!mongoose.connection.collections[archiveCollectionName]) {
+            return res.status(404).json({ 
+                success: false, 
+                message: `Archive collection ${archiveCollectionName} not found` 
+            });
+        }
+        
+        // Get all documents from archive collection
+        const archivedDocs = await mongoose.connection.collection(archiveCollectionName).find({}).toArray();
+        
+        if (archivedDocs.length === 0) {
+            return res.status(200).json({ 
+                success: true, 
+                message: `No documents found in ${archiveCollectionName} collection` 
+            });
+        }
+        
+        // Insert documents into original collection
+        await Model.insertMany(archivedDocs);
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: `Successfully restored ${archivedDocs.length} documents to ${collection}` 
+        });
+    } catch (error) {
+        console.error(`Error restoring collection ${collection}:`, error);
+        return res.status(500).json({ 
+            success: false, 
+            message: `Failed to restore collection: ${error.message}` 
+        });
+    }
+}
+
+/**
+ * Archive files from uploads directory
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with operation result
+ */
+export async function archiveFiles(req, res) {
+    try {
+        const uploadsDir = path.join(process.cwd(), 'uploads');
+        const archiveDir = path.join(process.cwd(), 'uploads_archive');
+        
+        // Create archive directory if it doesn't exist
+        if (!fs.existsSync(archiveDir)) {
+            fs.mkdirSync(archiveDir, { recursive: true });
+        }
+        
+        // Check if uploads directory exists
+        if (!fs.existsSync(uploadsDir)) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Uploads directory not found' 
+            });
+        }
+        
+        // Get all files in uploads directory
+        const files = fs.readdirSync(uploadsDir);
+        
+        if (files.length === 0) {
+            return res.status(200).json({ 
+                success: true, 
+                message: 'No files found in uploads directory' 
+            });
+        }
+        
+        let movedCount = 0;
+        
+        // Move each file to archive directory
+        for (const file of files) {
+            const sourcePath = path.join(uploadsDir, file);
+            const destPath = path.join(archiveDir, file);
+            
+            // Skip directories and hidden files
+            if (fs.statSync(sourcePath).isDirectory() || file.startsWith('.')) {
+                continue;
+            }
+            
+            fs.renameSync(sourcePath, destPath);
+            movedCount++;
+        }
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: `Successfully archived ${movedCount} files from uploads directory` 
+        });
+    } catch (error) {
+        console.error('Error archiving files:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: `Failed to archive files: ${error.message}` 
+        });
+    }
+}
+
+/**
+ * Restore files from archive directory
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with operation result
+ */
+export async function restoreFiles(req, res) {
+    try {
+        const uploadsDir = path.join(process.cwd(), 'uploads');
+        const archiveDir = path.join(process.cwd(), 'uploads_archive');
+        
+        // Check if archive directory exists
+        if (!fs.existsSync(archiveDir)) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Archive directory not found' 
+            });
+        }
+        
+        // Create uploads directory if it doesn't exist
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        
+        // Get all files in archive directory
+        const files = fs.readdirSync(archiveDir);
+        
+        if (files.length === 0) {
+            return res.status(200).json({ 
+                success: true, 
+                message: 'No files found in archive directory' 
+            });
+        }
+        
+        let movedCount = 0;
+        
+        // Move each file to uploads directory
+        for (const file of files) {
+            const sourcePath = path.join(archiveDir, file);
+            const destPath = path.join(uploadsDir, file);
+            
+            // Skip directories and hidden files
+            if (fs.statSync(sourcePath).isDirectory() || file.startsWith('.')) {
+                continue;
+            }
+            
+            fs.renameSync(sourcePath, destPath);
+            movedCount++;
+        }
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: `Successfully restored ${movedCount} files to uploads directory` 
+        });
+    } catch (error) {
+        console.error('Error restoring files:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: `Failed to restore files: ${error.message}` 
+        });
+    }
+}
+
+/**
+ * Generate dummy data for testing
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with operation result
+ */
+export async function generateDummyData(req, res) {
+    try {
+        // This is a placeholder for generating dummy data
+        // In a real implementation, you would create sample data for each collection
+        
+        // Example: Create dummy categories
+        const categories = [
+            { name: 'Technical', description: 'Technical documentation' },
+            { name: 'Business', description: 'Business documentation' },
+            { name: 'Legal', description: 'Legal documentation' },
+            { name: 'Marketing', description: 'Marketing materials' }
+        ];
+        
+        await Category.insertMany(categories);
+        
+        // Example: Create dummy users
+        const users = [
+            { 
+                username: 'testuser1', 
+                email: 'test1@example.com',
+                password: '$2a$10$XOPbrlUPQdwdJUpSrIF6X.LbE14qsMmKGhM1A8W9iqaG3vv1BD7WC', // 'password123'
+                role: 'user'
+            },
+            { 
+                username: 'testuser2', 
+                email: 'test2@example.com',
+                password: '$2a$10$XOPbrlUPQdwdJUpSrIF6X.LbE14qsMmKGhM1A8W9iqaG3vv1BD7WC', // 'password123'
+                role: 'user'
+            }
+        ];
+        
+        await User.insertMany(users);
+        
+        // Add more dummy data generation as needed
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: 'Successfully generated dummy data' 
+        });
+    } catch (error) {
+        console.error('Error generating dummy data:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: `Failed to generate dummy data: ${error.message}` 
+        });
+    }
 }

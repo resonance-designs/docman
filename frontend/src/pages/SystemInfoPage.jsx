@@ -4,7 +4,7 @@
  * @page SystemInfoPage
  * @description System information dashboard displaying server status, database info, and application metrics
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -12,6 +12,7 @@ import { ServerIcon, DatabaseIcon, MonitorIcon, ShieldIcon } from "lucide-react"
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import LoadingSpinner from "../components/LoadingSpinner";
+import DangerZone from "../components/system/DangerZone";
 
 const SystemInfoPage = () => {
     const [systemInfo, setSystemInfo] = useState(null);
@@ -175,6 +176,8 @@ const SystemInfoPage = () => {
                             </div>
                         </div>
                     )}
+                    {/* Danger Zone Section */}
+                    <DangerZone />
                 </div>
             </div>
         </div>

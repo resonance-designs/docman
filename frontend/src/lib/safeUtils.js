@@ -4,7 +4,7 @@
  * @module safeUtils
  * @description Safe utility functions to prevent common React errors. These functions ensure data is always in the expected format
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 
