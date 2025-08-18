@@ -4,11 +4,12 @@
  * @component CatTable
  * @description Category table component for displaying and managing document categories
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 
-import { EyeIcon, Trash2Icon } from "lucide-react";
+import { EditIcon, Trash2Icon } from "lucide-react";
+import { Link } from "react-router";
 import { formatDate, decodeJWT } from "../lib/utils";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
@@ -65,9 +66,13 @@ const CatTable = ({ category, setCategories }) => {
                 </p>
             </td>
             <td className="p-4">
-                <p className="block">
-                    {category.description || "No description"}
-                </p>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    category.type === 'Book' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                }`}>
+                    {category.type || 'Document'}
+                </span>
             </td>
             <td className="p-4">
                 <p className="block">
@@ -76,15 +81,23 @@ const CatTable = ({ category, setCategories }) => {
             </td>
             <td className="p-4 flex items-center gap-1 float-right">
                 <div className="flex items-center gap-1">
-                    <EyeIcon className="size-4 text-resdes-teal" title="View Category" />
                     {isAdmin && (
-                        <button
-                            className="btn btn-ghost btn-xs text-resdes-teal"
-                            onClick={(e) => handleDelete(e, category._id)}
-                            title="Delete Category"
-                        >
-                            <Trash2Icon className="size-4" />
-                        </button>
+                        <>
+                            <Link
+                                to={`/categories/${category._id}/edit`}
+                                className="btn btn-ghost btn-xs text-resdes-teal"
+                                title="Edit Category"
+                            >
+                                <EditIcon className="size-4" />
+                            </Link>
+                            <button
+                                className="btn btn-ghost btn-xs text-red-500 hover:text-red-700"
+                                onClick={(e) => handleDelete(e, category._id)}
+                                title="Delete Category"
+                            >
+                                <Trash2Icon className="size-4" />
+                            </button>
+                        </>
                     )}
                 </div>
             </td>
@@ -97,6 +110,7 @@ CatTable.propTypes = {
         _id: PropTypes.string.isRequired,
         name: PropTypes.string.isRequired,
         description: PropTypes.string,
+        type: PropTypes.string,
         createdAt: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
     }).isRequired,
     setCategories: PropTypes.func.isRequired,

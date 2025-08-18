@@ -4,13 +4,14 @@
  * @routes projectsRoutes
  * @description Project management routes for project operations and team assignments
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import {
+    getAllProjects,
     getTeamProjects,
     getUserProjects,
     getProjectById,
@@ -30,6 +31,9 @@ import {
  * @type {express.Router}
  */
 const router = express.Router();
+
+// Get all projects (editors and admins can see all projects)
+router.get("/", verifyAccessToken, requireRole("editor", "admin"), getAllProjects);
 
 // Get user's projects across all teams
 router.get("/my-projects", verifyAccessToken, requireRole("viewer", "editor", "admin"), getUserProjects);

@@ -4,7 +4,7 @@
  * @model Team
  * @description Team model schema for collaborative team management with members, invitations, and project associations
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 // backend/src/models/Team.js
@@ -104,6 +104,18 @@ const teamSchema = new mongoose.Schema(
                 default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
             }
         }],
+        books: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Book'
+        }],
+        documents: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Document'
+        }],
+        projects: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Project'
+        }],
         settings: {
             isPrivate: {
                 type: Boolean,
@@ -132,13 +144,26 @@ teamSchema.virtual('memberCount').get(function() {
 
 /**
  * Virtual field to get the number of projects associated with this team
- * Populated from Project model where team field matches this team's _id
+ * @returns {number} Number of projects in the team
  */
-teamSchema.virtual('projectCount', {
-    ref: 'Project',
-    localField: '_id',
-    foreignField: 'team',
-    count: true
+teamSchema.virtual('projectCount').get(function() {
+    return this.projects ? this.projects.length : 0;
+});
+
+/**
+ * Virtual field to get the number of books associated with this team
+ * @returns {number} Number of books in the team
+ */
+teamSchema.virtual('bookCount').get(function() {
+    return this.books ? this.books.length : 0;
+});
+
+/**
+ * Virtual field to get the number of documents associated with this team
+ * @returns {number} Number of documents in the team
+ */
+teamSchema.virtual('documentCount').get(function() {
+    return this.documents ? this.documents.length : 0;
 });
 
 /**
@@ -203,6 +228,105 @@ teamSchema.methods.getUserRole = function(userId) {
         member.user.toString() === userId.toString()
     );
     return member ? member.role : null;
+};
+
+/**
+ * Add a book to this team
+ * @param {string|ObjectId} bookId - Book ID to add
+ * @returns {boolean} True if book was added, false if already exists
+ */
+teamSchema.methods.addBook = function(bookId) {
+    if (!this.books.includes(bookId)) {
+        this.books.push(bookId);
+        return true;
+    }
+    return false;
+};
+
+/**
+ * Remove a book from this team
+ * @param {string|ObjectId} bookId - Book ID to remove
+ * @returns {boolean} True if book was removed, false if not found
+ */
+teamSchema.methods.removeBook = function(bookId) {
+    const initialLength = this.books.length;
+    this.books = this.books.filter(id => id.toString() !== bookId.toString());
+    return this.books.length < initialLength;
+};
+
+/**
+ * Check if a book is assigned to this team
+ * @param {string|ObjectId} bookId - Book ID to check
+ * @returns {boolean} True if book is assigned to this team
+ */
+teamSchema.methods.hasBook = function(bookId) {
+    return this.books.some(id => id.toString() === bookId.toString());
+};
+
+/**
+ * Add a document to this team
+ * @param {string|ObjectId} documentId - Document ID to add
+ * @returns {boolean} True if document was added, false if already exists
+ */
+teamSchema.methods.addDocument = function(documentId) {
+    if (!this.documents.includes(documentId)) {
+        this.documents.push(documentId);
+        return true;
+    }
+    return false;
+};
+
+/**
+ * Remove a document from this team
+ * @param {string|ObjectId} documentId - Document ID to remove
+ * @returns {boolean} True if document was removed, false if not found
+ */
+teamSchema.methods.removeDocument = function(documentId) {
+    const initialLength = this.documents.length;
+    this.documents = this.documents.filter(id => id.toString() !== documentId.toString());
+    return this.documents.length < initialLength;
+};
+
+/**
+ * Check if a document is assigned to this team
+ * @param {string|ObjectId} documentId - Document ID to check
+ * @returns {boolean} True if document is assigned to this team
+ */
+teamSchema.methods.hasDocument = function(documentId) {
+    return this.documents.some(id => id.toString() === documentId.toString());
+};
+
+/**
+ * Add a project to this team
+ * @param {string|ObjectId} projectId - Project ID to add
+ * @returns {boolean} True if project was added, false if already exists
+ */
+teamSchema.methods.addProject = function(projectId) {
+    if (!this.projects.includes(projectId)) {
+        this.projects.push(projectId);
+        return true;
+    }
+    return false;
+};
+
+/**
+ * Remove a project from this team
+ * @param {string|ObjectId} projectId - Project ID to remove
+ * @returns {boolean} True if project was removed, false if not found
+ */
+teamSchema.methods.removeProject = function(projectId) {
+    const initialLength = this.projects.length;
+    this.projects = this.projects.filter(id => id.toString() !== projectId.toString());
+    return this.projects.length < initialLength;
+};
+
+/**
+ * Check if a project is assigned to this team
+ * @param {string|ObjectId} projectId - Project ID to check
+ * @returns {boolean} True if project is assigned to this team
+ */
+teamSchema.methods.hasProject = function(projectId) {
+    return this.projects.some(id => id.toString() === projectId.toString());
 };
 
 /**

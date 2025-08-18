@@ -57,13 +57,62 @@ A list of features I plan on implementing into the application.
 11. ~~Add informational and usage comments throughout the frontend code~~
 12. ~~Add informational and usage comments throughout the backend code~~
 13. ~~Make certain comments dynamic somehow~~
-14. Cleanup and compartmentalize the code as much as possible
-15. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-16. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to an archive collection(s). And all files are moved to uploads_archive
-17. Create a fork with local storage for data and bundle into an Electron app for desktop use
-18. Create another fork with docker and kubernetes for cloud use
-19. Create another fork with a mobile app for iOS and Android
-20. Create another fork for the purpose of refactoring into a Recipes MERN app
+14. ~~Add the functionality to add "Books" to the site that contain multiple chapters/documents~~
+15. ~~Modify the CreateBooksPage so that the only things collected are title, description, category, documents, owners, lastUpdatedBy, and the timestamps.~~
+16. Add a PaginatedBookTable component that uses the same design patterns and styling as used in the PaginatedDocTable component and use it in the ViewBooksPage.
+17. Add the FilterBar component to the ViewBooksPage that allows the user to search and filter the books by category, and owners.
+18. In Teams and Projects, add the functionality to add Books and Documents:
+    1.  Add a tab to the tab menu of the Teams details page and the Projects details page called "Books".
+        1.  In this tab, there should be a header that says "Team Books" and then present a table of all the books that are currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and ungroup them from the current team. There should be a button to ungroup all the selected books from the current team under the table.
+        2.  Below that there should be another header that says "Add Books" and then present a table of all the books that are not currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and group them to the current team. There should be a button to group all the selected books to the current team under the table.
+    2.  Add a tab to the tab menu of the Teams details page and the Projects details page called "Documents".
+        1.  In this tab, there should be a header that says "Team Documents" and then present a table of all the documents that are currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and ungroup them from the current team. There should be a button to ungroup all the selected documents from the current team under the table.
+        2.  Below that there should be another header that says "Add Documents" and then present a table of all the documents that are not currently assigned to the team.
+            1.  This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and group them to the current team. There should be a button to group all the selected documents to the current team under the table.
+19. The Members tab in the tab menu of the Teams details page does not currently function. Create a view for it to display all users in the Team.
+20. The Projects details page does not have a Collaborators tab in the tab menu. Create one and create a view for it to display all collaborators of the Project.
+21. In the SystemInfoPage, add a "Danger Zone" section at the bottom that has buttons to clear the following collections:
+    1. Clear Books
+       1. Copy all books to a collection called "archives_books". Then delete the books from the main collection.
+    2. Clear Documents
+       1. Copy all documents to a collection called "archives_documents". Then delete the documents from the main collection.
+    3. Clear Charts
+       1. Copy all charts to a collection called "archives_charts". Then delete the charts from the main collection.
+    4. Clear External Contacts
+       1. Copy all external contacts to a collection called "archives_external_contacts". Then delete the external contacts from the main collection.
+    5. Clear External Contact Types
+       1. Copy all external contact types to a collection called "archives_external_contact_types". Then delete the external contact types from the main collection.
+    6. Clear Files
+       1. Copy all files to a collection called "archives_files". Then delete the files from the main collection.
+    7. Clear Notifications
+       1. Copy all notifications to a collection called "archives_notifications". Then delete the notifications from the main collection.
+    8. Clear Projects
+       1. Copy all projects to a collection called "archives_projects". Then delete the projects from the main collection.
+    9. Clear Reviews
+       1. Copy all reviews to a collection called "archives_reviews". Then delete the reviews from the main collection.
+    10. Clear Review Assignments
+       1. Copy all review assignments to a collection called "archives_review_assignments". Then delete the review assignments from the main collection.
+    11. Clear Reviews
+       1. Copy all reviews to a collection called "archives_reviews". Then delete the reviews from the main collection.
+    12. Clear Teams
+       1. Copy all teams to a collection called "archives_teams". Then delete the teams from the main collection.
+    13. Clear Users
+       1. Copy all users to a collection called "archives_users". Then delete the users from the main collection.
+    14. Add a button to Delete all the files in the uploads directory.
+        1.  Instead of actually deleting the files, move them to an archive directory.
+    15. Have a confirmation modal before each action.
+    16. Have a button to restore all the collections from the archive collections back to the main collections.
+    17. Have a button to restore all the files from the archive directory back to the uploads directory.
+22. Cleanup and compartmentalize the code as much as possible
+23. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+24. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to the archive collection(s). And all files are moved to uploads_archive
+25. Create a fork with local storage for data and bundle into an Electron app for desktop use
+26. Create another fork with docker and kubernetes for cloud use
+27. Create another fork with a mobile app for iOS and Android
+28. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 

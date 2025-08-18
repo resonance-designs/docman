@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 // backend/src/models/Project.js
@@ -19,11 +19,10 @@ const projectSchema = new mongoose.Schema(
             trim: true,
             maxlength: [1000, "Description cannot exceed 1000 characters"]
         },
-        team: {
+        teams: [{
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Team',
-            required: [true, "Project must belong to a team"]
-        },
+            ref: 'Team'
+        }],
         owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -116,7 +115,7 @@ projectSchema.virtual('progress').get(function() {
 });
 
 // Index for efficient queries
-projectSchema.index({ team: 1 });
+projectSchema.index({ teams: 1 });
 projectSchema.index({ owner: 1 });
 projectSchema.index({ 'collaborators.user': 1 });
 projectSchema.index({ status: 1 });
@@ -176,6 +175,27 @@ projectSchema.methods.removeDocument = function(documentId) {
     this.documents = this.documents.filter(docId => 
         docId.toString() !== documentId.toString()
     );
+};
+
+// Instance method to add team to project
+projectSchema.methods.addTeam = function(teamId) {
+    if (!this.teams.includes(teamId)) {
+        this.teams.push(teamId);
+        return true;
+    }
+    return false;
+};
+
+// Instance method to remove team from project
+projectSchema.methods.removeTeam = function(teamId) {
+    const initialLength = this.teams.length;
+    this.teams = this.teams.filter(id => id.toString() !== teamId.toString());
+    return this.teams.length < initialLength;
+};
+
+// Instance method to check if project is assigned to team
+projectSchema.methods.hasTeam = function(teamId) {
+    return this.teams.some(id => id.toString() === teamId.toString());
 };
 
 const Project = mongoose.model("Project", projectSchema);

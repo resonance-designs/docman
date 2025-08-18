@@ -3,7 +3,7 @@
  * @file /docman/backend/src/server.js
  * @description Main entry point of the DocMan backend application
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { connectDB } from "./config/db.js";
@@ -19,6 +19,7 @@ import authRoutes from "./routes/authRoutes.js";
 import usersRoutes from "./routes/usersRoutes.js";
 import docsRoutes from "./routes/docsRoutes.js";
 import categoriesRoutes from "./routes/categoriesRoutes.js";
+import booksRoutes from "./routes/booksRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import systemRoutes from "./routes/systemRoutes.js";
 import teamsRoutes from "./routes/teamsRoutes.js";
@@ -74,6 +75,7 @@ app.use("/api/auth", authRoutes); // Declare authentication endpoints
 app.use("/api/users", usersRoutes); // Declare user endpoints
 app.use("/api/docs", docsRoutes); // Declare docs endpoints
 app.use("/api/categories", categoriesRoutes); // Declare category endpoints
+app.use("/api/books", booksRoutes); // Declare books endpoints
 app.use("/api/teams", teamsRoutes); // Declare teams endpoints
 app.use("/api/projects", projectsRoutes); // Declare projects endpoints
 app.use("/api/system", systemRoutes); // Declare system endpoints

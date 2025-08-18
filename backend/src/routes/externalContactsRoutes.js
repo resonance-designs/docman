@@ -4,7 +4,7 @@
  * @routes externalContactsRoutes
  * @description External contact management routes for stakeholder organization
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import express from "express";

@@ -4,7 +4,7 @@
  * @page CreateCatPage
  * @description Category creation page with form for adding new document categories
  * @author Richard Bakos
- * @version 2.0.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { useState } from "react";
@@ -20,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 const schema = z.object({
     name: z.string().min(1, { message: "Category name is required" }),
     description: z.string().optional(),
+    type: z.enum(["Document", "Book"], { message: "Category type is required" }),
 });
 
 const CreateCatPage = () => {
@@ -35,7 +36,8 @@ const CreateCatPage = () => {
         try {
             const res = await api.post("/categories", {
                 name: data.name,
-                description: data.description || ""
+                description: data.description || "",
+                type: data.type
             });
 
             toast.success("Category created successfully");
@@ -85,6 +87,23 @@ const CreateCatPage = () => {
                                         placeholder="Enter category name"
                                     />
                                     {errors.name && <p className="text-red-500 mt-1">{errors.name.message}</p>}
+                                </div>
+
+                                {/* Type */}
+                                <div className="form-control mb-4">
+                                    <label className="label" htmlFor="type">
+                                        <span className="label-text">Type</span>
+                                    </label>
+                                    <select
+                                        id="type"
+                                        {...register("type")}
+                                        className="select select-bordered"
+                                        defaultValue="Document"
+                                    >
+                                        <option value="Document">Document</option>
+                                        <option value="Book">Book</option>
+                                    </select>
+                                    {errors.type && <p className="text-red-500 mt-1">{errors.type.message}</p>}
                                 </div>
 
                                 {/* Description */}

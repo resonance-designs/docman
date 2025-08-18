@@ -1,7 +1,7 @@
 {
   "name": "rd-docman-backend",
   "private": true,
-  "version": "2.0.2",
+  "version": "2.1.3",
   "description": "DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
     "Document Management",
@@ -39,7 +39,9 @@
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage",
     "test:ci": "NODE_ENV=test jest --ci --coverage --watchAll=false",
-    "send-review-notifications": "node scripts/sendReviewNotifications.js"
+    "send-review-notifications": "node scripts/sendReviewNotifications.js",
+    "migrate-categories": "ATLAS=no NODE_ENV=development node src/scripts/migrateCategoryTypes.js",
+    "create-book-categories": "ATLAS=no NODE_ENV=development node src/scripts/createBookCategory.js"
   },
   "type": "module",
   "dependencies": {
