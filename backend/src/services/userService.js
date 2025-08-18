@@ -4,7 +4,7 @@
  * @service userService
  * @description Business logic service for user operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import User from "../models/User.js";

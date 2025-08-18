@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import CustomChart from "../models/CustomChart.js";

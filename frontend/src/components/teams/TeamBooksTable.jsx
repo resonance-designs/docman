@@ -4,7 +4,7 @@
  * @component TeamBooksTable
  * @description Specialized table component for managing books in teams with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 

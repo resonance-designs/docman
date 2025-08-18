@@ -4,7 +4,7 @@
  * @page EditTeamPage
  * @description Team editing page for updating team information and managing member roles
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

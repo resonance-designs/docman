@@ -4,7 +4,7 @@
  * @component PaginatedDocTable
  * @description Paginated table component for displaying documents with sorting, filtering, and bulk actions
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 

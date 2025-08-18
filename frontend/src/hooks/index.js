@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/hooks/index.js
  * @description Centralized export for all custom React hooks
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 
@@ -16,6 +16,7 @@ export { useStakeholderManagement } from "./useStakeholderManagement";
 export { useExternalContacts } from "./useExternalContacts";
 export { useReviewManagement } from "./useReviewManagement";
 export { useFormData } from "./useFormData";
+export { useDocumentManagement } from "./useDocumentManagement";
 
 // File & Upload Management
 export { useFileUpload } from "./useFileUpload";

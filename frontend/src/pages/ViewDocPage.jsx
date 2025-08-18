@@ -4,7 +4,7 @@
  * @page ViewDocPage
  * @description Document detail page displaying document information, version history, file downloads, and review management
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import { Link, useNavigate, useParams } from "react-router";
