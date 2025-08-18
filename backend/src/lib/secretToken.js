@@ -38,21 +38,23 @@ if (TOKEN_KEY === "docman-dev-secret-key-2024") {
 console.log("🔑 JWT Secret configured, length:", TOKEN_KEY.length);
 
 /**
- * Create a short-lived access token for API authentication
+ * Create an access token for API authentication
  * @param {string} id - User ID to encode in token
  * @param {string} role - User role to encode in token
- * @returns {string} JWT access token valid for 15 minutes
+ * @returns {string} JWT access token valid for 5 days
  */
 export function createAccessToken(id, role) {
-    // Use 30 minutes for better development experience
-    const token = jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "30m" });
+    // Use 5 days for token expiration
+    const token = jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "5d" });
     console.log("🔑 Created token for user:", id, "with role:", role);
 
     // Decode to check expiration
     const decoded = jwt.decode(token);
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = decoded.exp - now;
-    console.log("🔑 Token expires in:", expiresIn, "seconds (", Math.floor(expiresIn / 60), "minutes )");
+    const days = Math.floor(expiresIn / (60 * 60 * 24));
+    const hours = Math.floor((expiresIn % (60 * 60 * 24)) / (60 * 60));
+    console.log(`🔑 Token expires in: ${expiresIn} seconds (${days} days and ${hours} hours)`);
     console.log("🔑 Current server time:", new Date().toISOString());
     console.log("🔑 Token expiry time:", new Date(decoded.exp * 1000).toISOString());
 
@@ -63,10 +65,10 @@ export function createAccessToken(id, role) {
  * Create a long-lived refresh token (optional helper, not used by opaque token flow)
  * @param {string} id - User ID to encode in token
  * @param {string} role - User role to encode in token
- * @returns {string} JWT refresh token valid for 7 days
+ * @returns {string} JWT refresh token valid for 5 days
  */
 export function createSecretToken(id, role) {
-    return jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "7d" });
+    return jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "5d" });
 }
 
 /**
