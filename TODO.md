@@ -107,7 +107,7 @@ A list of features I plan on implementing into the application.
     16. ~~Have a button to restore all the collections from the archive collections back to the main collections.~~
     17. ~~Have a button to restore all the files from the archive directory back to the uploads directory.~~
     18. ~~Have buttons to generate dummy data~~
-22. Make it so the token only expires after 5 days of inactivity.
+22. ~~Make it so the token only expires after 5 days of inactivity.~~
 23. Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc
 24. A script to rewrite test scripts when updates are done to make sure the tests still work correctly.
 25. Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" actually do something.
