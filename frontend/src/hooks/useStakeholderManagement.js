@@ -4,7 +4,7 @@
  * @hook useStakeholderManagement
  * @description Custom hook for managing stakeholders and owners in document forms
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";
@@ -86,6 +86,24 @@ export function useStakeholderManagement(setValue, initialStakeholders = [], ini
         setValue('owners', owners);
     }, [setValue]);
 
+    /**
+     * Update only owners from external source
+     * @param {Array} owners - New owners array
+     */
+    const updateOwners = useCallback((owners = []) => {
+        setSelectedOwners(owners);
+        setValue('owners', owners);
+    }, [setValue]);
+
+    /**
+     * Update only stakeholders from external source
+     * @param {Array} stakeholders - New stakeholders array
+     */
+    const updateStakeholders = useCallback((stakeholders = []) => {
+        setSelectedStakeholders(stakeholders);
+        setValue('stakeholders', stakeholders);
+    }, [setValue]);
+
     return {
         // State
         selectedStakeholders,
@@ -102,6 +120,8 @@ export function useStakeholderManagement(setValue, initialStakeholders = [], ini
         // Utility functions
         resetStakeholdersAndOwners,
         updateStakeholdersAndOwners,
+        updateOwners,
+        updateStakeholders,
         
         // Setters for direct state updates
         setSelectedStakeholders,

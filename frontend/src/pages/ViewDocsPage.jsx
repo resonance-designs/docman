@@ -4,7 +4,7 @@
  * @page ViewDocsPage
  * @description Document listing page with search, filtering, sorting, and bulk operations for managing documents
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -66,7 +66,7 @@ const ViewDocsPage = () => {
                 
                 const [docsRes, categoriesRes, usersRes] = await Promise.all([
                     api.get(`/docs?${params.toString()}`),
-                    api.get("/categories"),
+                    api.get("/categories?type=Document"),
                     api.get("/users")
                 ]);
 
@@ -83,8 +83,8 @@ const ViewDocsPage = () => {
                 }
                 
                 setDocs(ensureArray(docsArray));
-                setCategories(ensureArray(categoriesRes.data));
-                setUsers(ensureArray(usersRes.data));
+                setCategories(ensureArray(categoriesRes.data.categories || categoriesRes.data));
+                setUsers(ensureArray(usersRes.data.users || usersRes.data));
                 setFilteredDocs(ensureArray(docsArray));
                 setPagination(docsRes.data.pagination || null);
             } catch (error) {

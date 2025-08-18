@@ -4,7 +4,7 @@
  * @component StakeholderSelection
  * @description Reusable component for selecting stakeholders and owners with chip-based UI
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import { X } from "lucide-react";

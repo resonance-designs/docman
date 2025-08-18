@@ -4,7 +4,7 @@
  * @page ViewBooksPage
  * @description Books listing page with filtering and management capabilities
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import React, { useState, useEffect } from 'react';
@@ -48,13 +48,13 @@ const ViewBooksPage = () => {
 
             const [booksRes, categoriesRes, usersRes] = await Promise.all([
                 api.get(`/books?${params.toString()}`),
-                api.get("/categories"),
+                api.get("/categories?type=Book"),
                 api.get("/users")
             ]);
 
             setBooks(ensureArray(booksRes.data.books));
-            setCategories(ensureArray(categoriesRes.data));
-            setUsers(ensureArray(usersRes.data));
+            setCategories(ensureArray(categoriesRes.data.categories || categoriesRes.data));
+            setUsers(ensureArray(usersRes.data.users || usersRes.data));
             setFilteredBooks(ensureArray(booksRes.data.books));
             setPagination(booksRes.data.pagination || null);
         } catch (error) {

@@ -4,7 +4,7 @@
  * @controller booksController
  * @description Book management controller for organizing documents into collections
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import Book from "../models/Book.js";
@@ -103,8 +103,8 @@ export async function getBookById(req, res) {
         const book = await Book.findById(req.params.id)
             .populate('category', 'name type')
             .populate('documents', 'title description reviewDate reviewCompleted')
-            .populate('owners', 'name email')
-            .populate('lastUpdatedBy', 'name email');
+            .populate('owners', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         if (!book) {
             return res.status(404).json({ message: "Book not found" });
@@ -144,13 +144,14 @@ export async function createBook(req, res) {
             return res.status(400).json({ message: "Category must be of type 'Book'" });
         }
 
+        const userId = req.user.id || req.user._id;
         const newBook = new Book({
             title,
             description,
             category,
             documents: documents || [],
-            owners: owners || [req.user.id], // Default to creator as owner
-            lastUpdatedBy: req.user.id
+            owners: owners || [userId], // Default to creator as owner
+            lastUpdatedBy: userId
         });
 
         await newBook.save();
@@ -158,8 +159,8 @@ export async function createBook(req, res) {
         // Populate the created book for response
         const populatedBook = await Book.findById(newBook._id)
             .populate('category', 'name type')
-            .populate('owners', 'name email')
-            .populate('lastUpdatedBy', 'name email');
+            .populate('owners', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
 
         res.status(201).json({ 
             message: "Book created successfully", 
@@ -179,53 +180,98 @@ export async function createBook(req, res) {
  */
 export async function updateBook(req, res) {
     try {
+        console.log("📚 UpdateBook: Request body:", req.body);
+        console.log("📚 UpdateBook: Book ID:", req.params.id);
+        console.log("📚 UpdateBook: User:", req.user);
+        
         const { title, description, category, documents, owners } = req.body;
         
         const book = await Book.findById(req.params.id);
+        console.log("📚 UpdateBook: Found book:", book ? "Yes" : "No");
         if (!book) {
             return res.status(404).json({ message: "Book not found" });
         }
 
         // Check if user has permission to update (owner or admin)
-        if (!book.isOwner(req.user.id) && req.user.role !== 'admin') {
+        console.log("📚 UpdateBook: Checking permissions...");
+        console.log("📚 UpdateBook: Book owners:", book.owners);
+        console.log("📚 UpdateBook: User ID:", req.user.id);
+        console.log("📚 UpdateBook: User _id:", req.user._id);
+        console.log("📚 UpdateBook: User role:", req.user.role);
+        
+        const userId = req.user.id || req.user._id;
+        console.log("📚 UpdateBook: Using user ID:", userId);
+        console.log("📚 UpdateBook: Is owner?", book.isOwner(userId));
+        
+        if (!book.isOwner(userId) && req.user.role !== 'admin') {
+            console.log("📚 UpdateBook: Permission denied");
             return res.status(403).json({ message: "Not authorized to update this book" });
         }
 
         // If category is being updated, verify it's of type 'Book'
+        console.log("📚 UpdateBook: Checking category...");
+        console.log("📚 UpdateBook: New category:", category);
+        console.log("📚 UpdateBook: Current category:", book.category.toString());
+        
         if (category && category !== book.category.toString()) {
+            console.log("📚 UpdateBook: Category is being changed, validating...");
             const categoryDoc = await Category.findById(category);
             if (!categoryDoc) {
+                console.log("📚 UpdateBook: Category not found");
                 return res.status(400).json({ message: "Category not found" });
             }
             if (categoryDoc.type !== 'Book') {
+                console.log("📚 UpdateBook: Category is not of type 'Book':", categoryDoc.type);
                 return res.status(400).json({ message: "Category must be of type 'Book'" });
             }
+            console.log("📚 UpdateBook: Category validation passed");
         }
 
         // Update fields
-        if (title) book.title = title;
-        if (description !== undefined) book.description = description;
-        if (category) book.category = category;
-        if (documents) book.documents = documents;
-        if (owners) book.owners = owners;
-        book.lastUpdatedBy = req.user.id;
+        console.log("📚 UpdateBook: Updating fields...");
+        if (title) {
+            console.log("📚 UpdateBook: Updating title:", title);
+            book.title = title;
+        }
+        if (description !== undefined) {
+            console.log("📚 UpdateBook: Updating description:", description);
+            book.description = description;
+        }
+        if (category) {
+            console.log("📚 UpdateBook: Updating category:", category);
+            book.category = category;
+        }
+        if (documents) {
+            console.log("📚 UpdateBook: Updating documents:", documents);
+            book.documents = documents;
+        }
+        if (owners) {
+            console.log("📚 UpdateBook: Updating owners:", owners);
+            book.owners = owners;
+        }
+        book.lastUpdatedBy = userId;
 
+        console.log("📚 UpdateBook: Saving book...");
         await book.save();
+        console.log("📚 UpdateBook: Book saved successfully");
 
         // Populate the updated book for response
+        console.log("📚 UpdateBook: Populating book for response...");
         const populatedBook = await Book.findById(book._id)
             .populate('category', 'name type')
             .populate('documents', 'title description')
-            .populate('owners', 'name email')
-            .populate('lastUpdatedBy', 'name email');
+            .populate('owners', 'firstname lastname email')
+            .populate('lastUpdatedBy', 'firstname lastname email');
+        console.log("📚 UpdateBook: Book populated successfully");
 
         res.status(200).json({ 
             message: "Book updated successfully", 
             book: populatedBook 
         });
     } catch (error) {
-        console.error("Error updating book:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error("📚 UpdateBook: Error updating book:", error);
+        console.error("📚 UpdateBook: Error stack:", error.stack);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
     }
 }
 
@@ -243,7 +289,8 @@ export async function deleteBook(req, res) {
         }
 
         // Check if user has permission to delete (owner or admin)
-        if (!book.isOwner(req.user.id) && req.user.role !== 'admin') {
+        const userId = req.user.id || req.user._id;
+        if (!book.isOwner(userId) && req.user.role !== 'admin') {
             return res.status(403).json({ message: "Not authorized to delete this book" });
         }
 
@@ -271,12 +318,13 @@ export async function addDocumentToBook(req, res) {
         }
 
         // Check if user has permission to modify (owner or admin)
-        if (!book.isOwner(req.user.id) && req.user.role !== 'admin') {
+        const userId = req.user.id || req.user._id;
+        if (!book.isOwner(userId) && req.user.role !== 'admin') {
             return res.status(403).json({ message: "Not authorized to modify this book" });
         }
 
         book.addDocument(documentId);
-        book.lastUpdatedBy = req.user.id;
+        book.lastUpdatedBy = userId;
         await book.save();
 
         res.status(200).json({ message: "Document added to book successfully" });
@@ -302,12 +350,13 @@ export async function removeDocumentFromBook(req, res) {
         }
 
         // Check if user has permission to modify (owner or admin)
-        if (!book.isOwner(req.user.id) && req.user.role !== 'admin') {
+        const userId = req.user.id || req.user._id;
+        if (!book.isOwner(userId) && req.user.role !== 'admin') {
             return res.status(403).json({ message: "Not authorized to modify this book" });
         }
 
         book.removeDocument(documentId);
-        book.lastUpdatedBy = req.user.id;
+        book.lastUpdatedBy = userId;
         await book.save();
 
         res.status(200).json({ message: "Document removed from book successfully" });

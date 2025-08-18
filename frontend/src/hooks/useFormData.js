@@ -4,7 +4,7 @@
  * @hook useFormData
  * @description Custom hook for loading common form data (users, categories, external contact types)
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -47,7 +47,7 @@ export function useFormData({
                     requests.push(api.get("/users"));
                 }
                 if (loadCategories) {
-                    requests.push(api.get("/categories?type=Document"));
+                    requests.push(api.get("/categories"));
                 }
                 if (loadExternalContactTypes) {
                     requests.push(api.get("/external-contacts/types"));

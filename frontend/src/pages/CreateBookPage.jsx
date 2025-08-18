@@ -2,119 +2,147 @@
  * @name CreateBookPage
  * @file /docman/frontend/src/pages/CreateBookPage.jsx
  * @page CreateBookPage
- * @description Book creation page with form for adding new books
+ * @description Book creation page with form for adding new books using shared design patterns
  * @author Richard Bakos
- * @version 2.1.3
+ * @version 2.1.4
  * @license UNLICENSED
  */
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
-import { ArrowLeftIcon, BookOpen, Plus } from "lucide-react";
+import { useNavigate, Link } from "react-router";
+import { ArrowLeftIcon, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-const schema = z.object({
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+// Import shared components and hooks
+import {
+    useFormData,
+    useDocumentManagement
+} from "../hooks";
+import BookBasicFields from "../components/forms/BookBasicFields";
+import DocumentSelection from "../components/forms/DocumentSelection";
+import StakeholderSelection from "../components/forms/StakeholderSelection";
+import InlineLoader from "../components/InlineLoader";
+
+// Book creation schema with required documents
+const createBookSchema = z.object({
     title: z.string().min(1, { message: "Book title is required" }),
-    description: z.string().optional(),
+    description: z.string().min(1, { message: "Description is required" }),
     category: z.string().min(1, { message: "Category is required" }),
-    documents: z.array(z.string()).optional(),
+    documents: z.array(z.string()).min(1, { message: "At least one document must be selected" }),
     owners: z.array(z.string()).optional(),
 });
 
+// Default form values
+const defaultFormValues = {
+    title: "",
+    description: "",
+    category: "",
+    documents: [],
+    owners: [],
+};
+
+/**
+ * Page component for creating new books with document selection and metadata
+ * @returns {JSX.Element} The create book page component
+ */
 const CreateBookPage = () => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState([]);
-    const [documents, setDocuments] = useState([]);
-    const [users, setUsers] = useState([]);
 
-    const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
-        resolver: zodResolver(schema),
-        defaultValues: {
-            documents: [],
-            owners: []
-        }
+    // Form setup with shared schema
+    const { register, handleSubmit, control, formState: { errors }, reset, setValue } = useForm({
+        resolver: zodResolver(createBookSchema),
+        defaultValues: defaultFormValues,
     });
 
-    useEffect(() => {
-        fetchFormData();
-    }, []);
-
-    const fetchFormData = async () => {
-        try {
-            // Fetch data with individual error handling
-            const results = await Promise.allSettled([
-                api.get("/categories"),
-                api.get("/docs"),
-                api.get("/users")
-            ]);
-
-            // Handle categories
-            if (results[0].status === 'fulfilled') {
-                const categoriesData = results[0].value.data;
-                console.log("📚 All categories:", categoriesData.categories);
-                const bookCategories = categoriesData.categories?.filter(cat => cat.type === 'Book') || [];
-                console.log("📚 Book categories:", bookCategories);
-                
-                if (bookCategories.length === 0) {
-                    console.log("📚 No book categories found. Please create some Book-type categories first.");
-                    toast.error("No Book categories available. Please create some Book-type categories first.");
-                }
-                
-                setCategories(bookCategories);
-            } else {
-                console.error("Failed to fetch categories:", results[0].reason);
-                toast.error("Failed to load categories");
-            }
-
-            // Handle documents
-            if (results[1].status === 'fulfilled') {
-                const documentsData = results[1].value.data;
-                setDocuments(documentsData.docs || []);
-            } else {
-                console.error("Failed to fetch documents:", results[1].reason);
-                // Don't show error for documents as it's optional
-            }
-
-            // Handle users
-            if (results[2].status === 'fulfilled') {
-                const usersData = results[2].value.data;
-                setUsers(usersData.users || []);
-            } else {
-                console.error("Failed to fetch users:", results[2].reason);
-                // Don't show error for users as it's optional
-            }
-
-        } catch (error) {
-            console.error("Error fetching form data:", error);
-            toast.error("Failed to load form data");
+    // Custom hooks for complex state management
+    const formDataResult = useFormData({
+        loadUsers: true,
+        loadCategories: true,
+        loadExternalContactTypes: false // Not needed for books
+    });
+    
+    const { 
+        users: rawUsers = [], 
+        categories: rawCategories = [], 
+        loading: formDataLoading 
+    } = formDataResult || {};
+    
+    // Ensure arrays are always arrays to prevent .map() errors
+    const users = Array.isArray(rawUsers) ? rawUsers : [];
+    // Filter categories to only show Book type categories
+    const allCategories = Array.isArray(rawCategories) ? rawCategories : [];
+    const categories = allCategories.filter(cat => cat.type === 'Book');
+    
+    const documentManagement = useDocumentManagement(setValue);
+    
+    // Simple owner management state (Books don't have stakeholders, only owners)
+    const [selectedOwners, setSelectedOwners] = useState([]);
+    
+    // Owner management functions
+    const handleOwnerAdd = (userId) => {
+        if (!selectedOwners.includes(userId)) {
+            const newOwners = [...selectedOwners, userId];
+            setSelectedOwners(newOwners);
+            setValue('owners', newOwners);
         }
     };
+    
+    const handleOwnerRemove = (userId) => {
+        const newOwners = selectedOwners.filter(id => id !== userId);
+        setSelectedOwners(newOwners);
+        setValue('owners', newOwners);
+    };
 
+    /**
+     * Handle form submission
+     * @param {Object} data - Form data from react-hook-form
+     */
     const onSubmit = async (data) => {
-        setLoading(true);
         try {
             const response = await api.post("/books", {
                 title: data.title,
-                description: data.description || "",
+                description: data.description,
                 category: data.category,
-                documents: data.documents || [],
-                owners: data.owners || []
+                documents: documentManagement.selectedDocuments,
+                owners: selectedOwners
             });
 
             toast.success("Book created successfully");
             reset();
+            setSelectedOwners([]);
+            documentManagement?.resetDocuments?.();
             navigate(`/books/${response.data.book._id}`);
         } catch (err) {
             console.error("Book creation failed", err);
             toast.error(err?.response?.data?.message || "Book creation failed");
-        } finally {
-            setLoading(false);
         }
     };
+
+    // Show loading state
+    if (formDataLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <InlineLoader message="Loading form data..." size="lg" color="teal" />
+            </div>
+        );
+    }
+
+    // Show error state if form data failed to load
+    if (formDataResult?.error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="alert alert-error max-w-md">
+                    <div>
+                        <h3 className="font-bold">Failed to load form data</h3>
+                        <div className="text-xs">Please refresh the page or check your connection.</div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen">
@@ -131,122 +159,87 @@ const CreateBookPage = () => {
                         <ArrowLeftIcon />
                         Back To Books
                     </Link>
-                    
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
                             <form onSubmit={handleSubmit(onSubmit)}>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    {/* Left Column */}
-                                    <div>
-                                        {/* Book Title */}
-                                        <div className="form-control mb-4">
-                                            <label className="label" htmlFor="title">
-                                                <span className="label-text">Book Title</span>
-                                            </label>
-                                            <input
-                                                id="title"
-                                                {...register("title")}
-                                                className="input input-bordered"
-                                                placeholder="Enter book title"
-                                            />
-                                            {errors.title && <p className="text-red-500 mt-1">{errors.title.message}</p>}
-                                        </div>
+                                {/* Basic Book Fields - Using shared component pattern */}
+                                <BookBasicFields
+                                    register={register}
+                                    control={control}
+                                    errors={errors}
+                                    categories={categories}
+                                />
 
-                                        {/* Category */}
-                                        <div className="form-control mb-4">
-                                            <label className="label" htmlFor="category">
-                                                <span className="label-text">Category</span>
-                                            </label>
-                                            <select
-                                                id="category"
-                                                {...register("category")}
-                                                className="select select-bordered"
-                                            >
-                                                <option value="">Select a category</option>
-                                                {categories.map(category => (
-                                                    <option key={category._id} value={category._id}>
-                                                        {category.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.category && <p className="text-red-500 mt-1">{errors.category.message}</p>}
-                                        </div>
+                                {/* Document Selection - Using shared component pattern */}
+                                <DocumentSelection
+                                    selectedDocuments={documentManagement.selectedDocuments}
+                                    onDocumentAdd={documentManagement.handleDocumentAdd}
+                                    onDocumentRemove={documentManagement.handleDocumentRemove}
+                                    validationError={errors.documents?.message}
+                                />
 
-                                        {/* Description */}
-                                        <div className="form-control mb-4">
-                                            <label className="label" htmlFor="description">
-                                                <span className="label-text">Description (Optional)</span>
-                                            </label>
-                                            <textarea
-                                                id="description"
-                                                {...register("description")}
-                                                className="textarea textarea-bordered"
-                                                rows="4"
-                                                placeholder="Enter book description"
-                                            />
-                                            {errors.description && <p className="text-red-500 mt-1">{errors.description.message}</p>}
-                                        </div>
+                                {/* Owners Selection - Using shared component pattern */}
+                                <div className="form-control">
+                                    <label className="label">
+                                        <span className="label-text font-semibold">Owners</span>
+                                    </label>
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        Select users who have ownership responsibility for this book
+                                    </p>
+                                    
+                                    {/* Owner Selection Dropdown */}
+                                    <select 
+                                        className="select select-bordered mb-3"
+                                        value=""
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                handleOwnerAdd(e.target.value);
+                                                e.target.value = ""; // Reset selection
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Add an owner...</option>
+                                        {users.filter(user => !selectedOwners.includes(user._id)).map((user) => (
+                                            <option key={user._id} value={user._id}>
+                                                {`${user.firstname || ""} ${user.lastname || ""}`.trim()} ({user.email})
+                                            </option>
+                                        ))}
+                                    </select>
 
-                                        {/* Documents */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Documents (Optional)</span>
-                                            </label>
-                                            <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {documents.map(doc => (
-                                                    <label key={doc._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={doc._id}
-                                                            {...register("documents")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{doc.title}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
+                                    {/* Selected Owners Chips */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedOwners.map((ownerId) => {
+                                            const user = users.find(u => u._id === ownerId);
+                                            if (!user) return null;
+                                            
+                                            return (
+                                                <div 
+                                                    key={ownerId} 
+                                                    className="badge badge-secondary gap-2 p-3"
+                                                >
+                                                    <span>{`${user.firstname || ""} ${user.lastname || ""}`.trim()}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOwnerRemove(ownerId)}
+                                                        className="btn btn-ghost btn-xs p-0 min-h-0 h-4 w-4"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-
-                                    {/* Right Column */}
-                                    <div>
-                                        {/* Owners */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Owners (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {users.map(user => (
-                                                    <label key={user._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={user._id}
-                                                            {...register("owners")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{user.name} ({user.email})</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    
+                                    {selectedOwners.length === 0 && (
+                                        <p className="text-sm text-gray-500 italic">No owners selected</p>
+                                    )}
                                 </div>
 
                                 {/* Submit Button */}
-                                <div className="form-control mt-6">
-                                    <button
-                                        type="submit"
-                                        className="uppercase font-mono btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300" 
-                                        disabled={loading}
-                                    >
-                                        {loading ? (
-                                            'Creating Book...'
-                                        ) : (
-                                            <>
-                                                <BookOpen className="size-5" />
-                                                <span>Create Book</span>
-                                            </>
-                                        )}
+                                <div className="form-control mt-4">
+                                    <button type="submit" className="uppercase font-mono btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-[.8] transition-opacity duration-300">
+                                        <BookOpen className="size-5" />
+                                        Create Book
                                     </button>
                                 </div>
                             </form>
