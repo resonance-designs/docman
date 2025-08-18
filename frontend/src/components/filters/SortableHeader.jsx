@@ -4,7 +4,7 @@
  * @component SortableHeader
  * @description Sortable table header component with visual indicators for column sorting
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import { ChevronUpIcon, ChevronDownIcon, ChevronsUpDownIcon } from "lucide-react";

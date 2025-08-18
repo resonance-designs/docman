@@ -4,7 +4,7 @@
  * @page RegUserPage
  * @description User registration page with form validation and account creation functionality
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import { useState } from "react";

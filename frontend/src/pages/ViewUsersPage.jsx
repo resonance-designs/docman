@@ -4,7 +4,7 @@
  * @page ViewUsersPage
  * @description User management page with filtering, search, and user administration for system administrators
  * @author Richard Bakos
- * @version 2.1.6
+ * @version 2.1.7
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
