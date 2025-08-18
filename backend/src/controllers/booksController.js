@@ -4,7 +4,7 @@
  * @controller booksController
  * @description Book management controller for organizing documents into collections
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import Book from "../models/Book.js";
@@ -18,28 +18,60 @@ import Category from "../models/Category.js";
  */
 export async function getAllBooks(req, res) {
     try {
-        const { limit = 50, page = 1, team, project, category } = req.query;
-        
+        const { 
+            limit = 50, 
+            page = 1, 
+            category, 
+            owner, 
+            search, 
+            startDate, 
+            endDate, 
+            sortBy = 'createdAt', 
+            sortOrder = 'desc' 
+        } = req.query;
+
         // Parse pagination
         const limitNum = Math.min(parseInt(limit) || 50, 100); // Max 100 books per page
         const skip = (Math.max(parseInt(page) || 1, 1) - 1) * limitNum;
 
         // Build filter query
         const filter = {};
-        if (team) filter.teams = team;
-        if (project) filter.projects = project;
+        
+        // Category filter
         if (category) filter.category = category;
+        
+        // Owner filter
+        if (owner) filter.owners = { $in: [owner] };
+        
+        // Text search filter (search in title and description)
+        if (search) {
+            filter.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+        
+        // Date range filter
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) filter.createdAt.$gte = new Date(startDate);
+            if (endDate) filter.createdAt.$lte = new Date(endDate);
+        }
+
+        // Build sort object
+        const sortObj = {};
+        const validSortFields = ['title', 'createdAt', 'updatedAt'];
+        const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+        const sortDirection = sortOrder === 'asc' ? 1 : -1;
+        sortObj[sortField] = sortDirection;
 
         // Execute query with pagination
         const [books, totalCount] = await Promise.all([
             Book.find(filter)
-                .populate('author', 'name email')
                 .populate('category', 'name type')
-                .populate('owners', 'name email')
-                .populate('stakeholders', 'name email')
-                .populate('teams', 'name')
-                .populate('projects', 'name')
-                .sort({ createdAt: -1 })
+                .populate('owners', 'firstname lastname email')
+                .populate('lastUpdatedBy', 'firstname lastname email')
+                .sort(sortObj)
                 .skip(skip)
                 .limit(limitNum),
             Book.countDocuments(filter)
@@ -69,13 +101,9 @@ export async function getAllBooks(req, res) {
 export async function getBookById(req, res) {
     try {
         const book = await Book.findById(req.params.id)
-            .populate('author', 'name email')
             .populate('category', 'name type')
             .populate('documents', 'title description reviewDate reviewCompleted')
             .populate('owners', 'name email')
-            .populate('stakeholders', 'name email')
-            .populate('teams', 'name description')
-            .populate('projects', 'name description status')
             .populate('lastUpdatedBy', 'name email');
 
         if (!book) {
@@ -97,7 +125,7 @@ export async function getBookById(req, res) {
  */
 export async function createBook(req, res) {
     try {
-        const { title, description, category, documents, teams, projects, stakeholders, owners } = req.body;
+        const { title, description, category, documents, owners } = req.body;
         
         if (!title) {
             return res.status(400).json({ message: "Book title is required" });
@@ -119,12 +147,8 @@ export async function createBook(req, res) {
         const newBook = new Book({
             title,
             description,
-            author: req.user.id,
             category,
             documents: documents || [],
-            teams: teams || [],
-            projects: projects || [],
-            stakeholders: stakeholders || [],
             owners: owners || [req.user.id], // Default to creator as owner
             lastUpdatedBy: req.user.id
         });
@@ -133,12 +157,9 @@ export async function createBook(req, res) {
 
         // Populate the created book for response
         const populatedBook = await Book.findById(newBook._id)
-            .populate('author', 'name email')
             .populate('category', 'name type')
             .populate('owners', 'name email')
-            .populate('stakeholders', 'name email')
-            .populate('teams', 'name')
-            .populate('projects', 'name');
+            .populate('lastUpdatedBy', 'name email');
 
         res.status(201).json({ 
             message: "Book created successfully", 
@@ -158,7 +179,7 @@ export async function createBook(req, res) {
  */
 export async function updateBook(req, res) {
     try {
-        const { title, description, category, documents, teams, projects, stakeholders, owners } = req.body;
+        const { title, description, category, documents, owners } = req.body;
         
         const book = await Book.findById(req.params.id);
         if (!book) {
@@ -186,9 +207,6 @@ export async function updateBook(req, res) {
         if (description !== undefined) book.description = description;
         if (category) book.category = category;
         if (documents) book.documents = documents;
-        if (teams) book.teams = teams;
-        if (projects) book.projects = projects;
-        if (stakeholders) book.stakeholders = stakeholders;
         if (owners) book.owners = owners;
         book.lastUpdatedBy = req.user.id;
 
@@ -196,13 +214,9 @@ export async function updateBook(req, res) {
 
         // Populate the updated book for response
         const populatedBook = await Book.findById(book._id)
-            .populate('author', 'name email')
             .populate('category', 'name type')
             .populate('documents', 'title description')
             .populate('owners', 'name email')
-            .populate('stakeholders', 'name email')
-            .populate('teams', 'name')
-            .populate('projects', 'name')
             .populate('lastUpdatedBy', 'name email');
 
         res.status(200).json({ 

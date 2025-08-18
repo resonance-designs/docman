@@ -4,7 +4,7 @@
  * @page CreateProjectPage
  * @description Project creation page with form for setting up new projects and team assignments
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -23,7 +23,7 @@ const CreateProjectPage = () => {
     const [formData, setFormData] = useState({
         name: "",
         description: "",
-        teamId: preselectedTeamId || "",
+        teamIds: preselectedTeamId ? [preselectedTeamId] : [],
         status: "active",
         priority: "medium",
         startDate: "",
@@ -107,8 +107,8 @@ const CreateProjectPage = () => {
             newErrors.name = "Project name cannot exceed 100 characters";
         }
 
-        if (!formData.teamId) {
-            newErrors.teamId = "Please select a team";
+        if (!formData.teamIds || formData.teamIds.length === 0) {
+            newErrors.teamIds = "Please select at least one team";
         }
 
         if (formData.description && formData.description.length > 1000) {
@@ -142,7 +142,7 @@ const CreateProjectPage = () => {
             const projectData = {
                 name: formData.name.trim(),
                 description: formData.description.trim() || undefined,
-                teamId: formData.teamId,
+                teamIds: formData.teamIds,
                 status: formData.status,
                 priority: formData.priority,
                 startDate: formData.startDate || undefined,
@@ -166,7 +166,7 @@ const CreateProjectPage = () => {
                     if (errorMessage.toLowerCase().includes("name")) {
                         serverErrors.name = errorMessage;
                     } else if (errorMessage.toLowerCase().includes("team")) {
-                        serverErrors.teamId = errorMessage;
+                        serverErrors.teamIds = errorMessage;
                     }
                 });
                 setErrors(serverErrors);
@@ -243,32 +243,50 @@ const CreateProjectPage = () => {
 
                                 {/* Team Selection */}
                                 <div>
-                                    <label htmlFor="teamId" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Team *
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Teams * (Select one or more teams)
                                     </label>
                                     {teamsLoading ? (
                                         <InlineLoader message="Loading teams..." size="xs" color="teal" />
                                     ) : (
-                                        <select
-                                            id="teamId"
-                                            name="teamId"
-                                            value={formData.teamId}
-                                            onChange={handleChange}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-resdes-blue ${
-                                                errors.teamId ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                            disabled={loading}
-                                        >
-                                            <option value="">Select a team</option>
-                                            {teams.map(team => (
-                                                <option key={team._id} value={team._id}>
-                                                    {team.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <div className={`border rounded-md p-3 max-h-48 overflow-y-auto ${
+                                            errors.teamIds ? 'border-red-500' : 'border-gray-300'
+                                        }`}>
+                                            {teams.length === 0 ? (
+                                                <p className="text-gray-500 text-sm">No teams available</p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {teams.map(team => (
+                                                        <label key={team._id} className="flex items-center space-x-2 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={formData.teamIds.includes(team._id)}
+                                                                onChange={(e) => {
+                                                                    const isChecked = e.target.checked;
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        teamIds: isChecked 
+                                                                            ? [...prev.teamIds, team._id]
+                                                                            : prev.teamIds.filter(id => id !== team._id)
+                                                                    }));
+                                                                }}
+                                                                disabled={loading}
+                                                                className="checkbox checkbox-sm"
+                                                            />
+                                                            <span className="text-sm text-gray-700">{team.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     )}
-                                    {errors.teamId && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.teamId}</p>
+                                    {errors.teamIds && (
+                                        <p className="mt-1 text-sm text-red-600">{errors.teamIds}</p>
+                                    )}
+                                    {formData.teamIds.length > 0 && (
+                                        <p className="mt-1 text-sm text-gray-600">
+                                            {formData.teamIds.length} team{formData.teamIds.length > 1 ? 's' : ''} selected
+                                        </p>
                                     )}
                                 </div>
 
@@ -414,7 +432,7 @@ const CreateProjectPage = () => {
                                 <button
                                     type="submit"
                                     className="px-4 py-2 text-sm font-medium text-white bg-resdes-blue rounded-md hover:bg-resdes-blue hover:opacity-80 disabled:opacity-50"
-                                    disabled={loading || !formData.name.trim() || !formData.teamId}
+                                    disabled={loading || !formData.name.trim() || formData.teamIds.length === 0}
                                 >
                                     {loading ? "Creating..." : "Create Project"}
                                 </button>

@@ -4,17 +4,17 @@
  * @routes booksRoutes
  * @description Book management routes for organizing documents into collections
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
-import { 
-    getAllBooks, 
-    getBookById, 
-    createBook, 
-    updateBook, 
+import {
+    getAllBooks,
+    getBookById,
+    createBook,
+    updateBook,
     deleteBook,
     addDocumentToBook,
     removeDocumentFromBook

@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import Project from "../models/Project.js";
@@ -85,7 +85,7 @@ export async function getTeamProjects(req, res) {
         }
 
         // Build filter object
-        const filter = { team: teamId };
+        const filter = { teams: teamId };
 
         // Search filter
         if (search) {
@@ -113,6 +113,7 @@ export async function getTeamProjects(req, res) {
 
         const projects = await Project.find(filter)
             .populate('owner', 'firstname lastname email')
+            .populate('teams', 'name')
             .populate('collaborators.user', 'firstname lastname email')
             .populate('documents', 'title reviewDate')
             .sort(sortObj);
@@ -196,7 +197,7 @@ export async function getProjectById(req, res) {
         const userId = req.user._id.toString();
 
         const project = await Project.findById(projectId)
-            .populate('team', 'name')
+            .populate('teams', 'name')
             .populate('owner', 'firstname lastname email')
             .populate('collaborators.user', 'firstname lastname email')
             .populate('documents');
@@ -206,8 +207,16 @@ export async function getProjectById(req, res) {
         }
 
         // Check if user has access to this project
-        const team = await Team.findById(project.team._id);
-        const hasTeamAccess = team && team.isMember(userId);
+        let hasTeamAccess = false;
+        if (project.teams && project.teams.length > 0) {
+            for (const teamId of project.teams) {
+                const team = await Team.findById(teamId._id);
+                if (team && team.isMember(userId)) {
+                    hasTeamAccess = true;
+                    break;
+                }
+            }
+        }
         const hasProjectAccess = project.isCollaborator(userId);
 
         if (!hasTeamAccess && !hasProjectAccess && req.user.role !== 'admin') {
@@ -229,7 +238,7 @@ export async function getProjectById(req, res) {
  */
 export async function createProject(req, res) {
     try {
-        const { name, description, teamId, status, priority, startDate, endDate, tags } = req.body;
+        const { name, description, teamIds, status, priority, startDate, endDate, tags } = req.body;
         const userId = req.user._id.toString();
 
         // Validation
@@ -244,8 +253,8 @@ export async function createProject(req, res) {
             }
         }
 
-        if (!teamId) {
-            validationErrors.push("Team ID is required");
+        if (!teamIds || !Array.isArray(teamIds) || teamIds.length === 0) {
+            validationErrors.push("At least one team ID is required");
         }
 
         if (validationErrors.length > 0) {
@@ -255,21 +264,29 @@ export async function createProject(req, res) {
             });
         }
 
-        // Check if team exists and user has access
-        const team = await Team.findById(teamId);
-        if (!team) {
-            return res.status(404).json({ message: "Team not found" });
+        // Check if teams exist and user has access to at least one
+        const teams = await Team.find({ _id: { $in: teamIds } });
+        if (teams.length !== teamIds.length) {
+            return res.status(404).json({ message: "One or more teams not found" });
         }
 
-        if (!team.isMember(userId) && req.user.role !== 'admin') {
-            return res.status(403).json({ message: "Access denied" });
+        let hasAccess = false;
+        for (const team of teams) {
+            if (team.isMember(userId) || req.user.role === 'admin') {
+                hasAccess = true;
+                break;
+            }
+        }
+
+        if (!hasAccess) {
+            return res.status(403).json({ message: "Access denied - must be member of at least one team" });
         }
 
         // Create project
         const projectData = {
             name: sanitizeString(name),
             description: description ? sanitizeString(description) : undefined,
-            team: teamId,
+            teams: teamIds,
             owner: userId
         };
 
@@ -296,9 +313,18 @@ export async function createProject(req, res) {
         const newProject = new Project(projectData);
         await newProject.save();
 
+        // Add project to teams
+        for (const teamId of teamIds) {
+            const team = await Team.findById(teamId);
+            if (team) {
+                team.addProject(newProject._id);
+                await team.save();
+            }
+        }
+
         // Populate the response
         const populatedProject = await Project.findById(newProject._id)
-            .populate('team', 'name')
+            .populate('teams', 'name')
             .populate('owner', 'firstname lastname email')
             .populate('collaborators.user', 'firstname lastname email');
 
@@ -449,10 +475,19 @@ export async function addCollaborator(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
-        // Check if user exists and is team member
-        const team = await Team.findById(project.team);
-        if (!team.isMember(collaboratorId)) {
-            return res.status(400).json({ message: "User must be a team member" });
+        // Check if user exists and is member of at least one team
+        let isTeamMember = false;
+        if (project.teams && project.teams.length > 0) {
+            for (const teamId of project.teams) {
+                const team = await Team.findById(teamId);
+                if (team && team.isMember(collaboratorId)) {
+                    isTeamMember = true;
+                    break;
+                }
+            }
+        }
+        if (!isTeamMember) {
+            return res.status(400).json({ message: "User must be a member of at least one project team" });
         }
 
         // Check if already a collaborator

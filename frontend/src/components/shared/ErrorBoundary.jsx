@@ -4,7 +4,7 @@
  * @component ErrorBoundary
  * @description React error boundary component for graceful error handling and user feedback
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { Component } from "react";

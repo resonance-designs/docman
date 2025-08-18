@@ -4,7 +4,7 @@
  * @routes docsRoutes
  * @description Document management routes for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import express from "express";

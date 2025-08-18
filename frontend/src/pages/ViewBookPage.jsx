@@ -4,7 +4,7 @@
  * @page ViewBookPage
  * @description Individual book view page showing book details and contained documents
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -232,86 +232,7 @@ const ViewBookPage = () => {
 
                         {/* Sidebar */}
                         <div className="space-y-6">
-                            {/* Teams */}
-                            {book.teams && book.teams.length > 0 && (
-                                <div className="card bg-base-100 shadow-lg">
-                                    <div className="card-body">
-                                        <h3 className="card-title text-lg">
-                                            <Users className="size-5 text-resdes-orange" />
-                                            Teams
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {book.teams.map(team => (
-                                                <div key={team._id} className="flex items-center justify-between">
-                                                    <span>{team.name}</span>
-                                                    <Link to={`/teams/${team._id}`} className="btn btn-xs btn-ghost">
-                                                        View
-                                                    </Link>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* Projects */}
-                            {book.projects && book.projects.length > 0 && (
-                                <div className="card bg-base-100 shadow-lg">
-                                    <div className="card-body">
-                                        <h3 className="card-title text-lg">
-                                            <Briefcase className="size-5 text-resdes-orange" />
-                                            Projects
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {book.projects.map(project => (
-                                                <div key={project._id} className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="block">{project.name}</span>
-                                                        {project.status && (
-                                                            <span className={`text-xs px-2 py-1 rounded-full ${
-                                                                project.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                                project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                                                project.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800' :
-                                                                'bg-gray-100 text-gray-800'
-                                                            }`}>
-                                                                {project.status}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <Link to={`/projects/${project._id}`} className="btn btn-xs btn-ghost">
-                                                        View
-                                                    </Link>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Stakeholders */}
-                            {book.stakeholders && book.stakeholders.length > 0 && (
-                                <div className="card bg-base-100 shadow-lg">
-                                    <div className="card-body">
-                                        <h3 className="card-title text-lg">
-                                            <Users className="size-5 text-resdes-orange" />
-                                            Stakeholders
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {book.stakeholders.map(stakeholder => (
-                                                <div key={stakeholder._id} className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="block">{stakeholder.name}</span>
-                                                        <span className="text-xs text-gray-500">{stakeholder.email}</span>
-                                                    </div>
-                                                    <Link to={`/user/${stakeholder._id}`} className="btn btn-xs btn-ghost">
-                                                        View
-                                                    </Link>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Owners */}
                             {book.owners && book.owners.length > 0 && (

@@ -4,7 +4,7 @@
  * @routes teamsRoutes
  * @description Team management routes for team operations, member management, and collaboration
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import express from "express";
@@ -18,9 +18,22 @@ import {
     updateTeam,
     deleteTeam,
     inviteToTeam,
+    addMemberToTeam,
     acceptInvitation,
     removeMember,
-    updateMemberRole
+    updateMemberRole,
+    getTeamBooks,
+    getAvailableBooks,
+    addBooksToTeam,
+    removeBooksFromTeam,
+    getTeamDocuments,
+    getAvailableDocuments,
+    addDocumentsToTeam,
+    removeDocumentsFromTeam,
+    getTeamProjects,
+    getAvailableProjects,
+    addProjectsToTeam,
+    removeProjectsFromTeam
 } from "../controllers/teamsController.js";
 
 /**
@@ -51,8 +64,27 @@ router.delete("/:id", verifyAccessToken, requireRole("editor", "admin"), deleteT
 
 // Team member management
 router.post("/:id/invite", verifyAccessToken, requireRole("editor", "admin"), inviteToTeam);
+router.post("/:id/members", verifyAccessToken, requireRole("editor", "admin"), addMemberToTeam);
 router.post("/accept/:token", verifyAccessToken, requireRole("viewer", "editor", "admin"), acceptInvitation);
 router.delete("/:id/members/:userId", verifyAccessToken, requireRole("viewer", "editor", "admin"), removeMember);
 router.put("/:id/members/:userId/role", verifyAccessToken, requireRole("editor", "admin"), updateMemberRole);
+
+// Team book management
+router.get("/:id/books", verifyAccessToken, requireRole("viewer", "editor", "admin"), getTeamBooks);
+router.get("/:id/available-books", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAvailableBooks);
+router.post("/:id/books", verifyAccessToken, requireRole("editor", "admin"), addBooksToTeam);
+router.delete("/:id/books", verifyAccessToken, requireRole("editor", "admin"), removeBooksFromTeam);
+
+// Team document management
+router.get("/:id/documents", verifyAccessToken, requireRole("viewer", "editor", "admin"), getTeamDocuments);
+router.get("/:id/available-documents", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAvailableDocuments);
+router.post("/:id/documents", verifyAccessToken, requireRole("editor", "admin"), addDocumentsToTeam);
+router.delete("/:id/documents", verifyAccessToken, requireRole("editor", "admin"), removeDocumentsFromTeam);
+
+// Team project management
+router.get("/:id/projects", verifyAccessToken, requireRole("viewer", "editor", "admin"), getTeamProjects);
+router.get("/:id/available-projects", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAvailableProjects);
+router.post("/:id/projects", verifyAccessToken, requireRole("editor", "admin"), addProjectsToTeam);
+router.delete("/:id/projects", verifyAccessToken, requireRole("editor", "admin"), removeProjectsFromTeam);
 
 export default router;

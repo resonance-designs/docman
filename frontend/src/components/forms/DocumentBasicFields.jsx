@@ -4,7 +4,7 @@
  * @component DocumentBasicFields
  * @description Reusable form component for basic document fields (title, description, author, category, review date)
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { Controller } from "react-hook-form";

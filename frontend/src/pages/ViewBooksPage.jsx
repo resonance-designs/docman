@@ -4,172 +4,156 @@
  * @page ViewBooksPage
  * @description Books listing page with filtering and management capabilities
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { Link } from "react-router";
-import { BookOpen, Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { BookOpen, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { useUserRole } from "../hooks";
-import InlineLoader from "../components/InlineLoader";
+import LoadingSpinner from "../components/LoadingSpinner";
 import FilterBar from "../components/filters/FilterBar";
+import PaginatedBookTable from "../components/PaginatedBookTable";
+import { ensureArray, createSafeArray } from "../lib/safeUtils";
 
 const ViewBooksPage = () => {
     const { userRole } = useUserRole();
     const [books, setBooks] = useState([]);
+    const [filteredBooks, setFilteredBooks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchValue, setSearchValue] = useState("");
-    const [teamFilter, setTeamFilter] = useState("");
-    const [projectFilter, setProjectFilter] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState("");
-    const [teams, setTeams] = useState([]);
-    const [projects, setProjects] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [pagination, setPagination] = useState({});
+    const [users, setUsers] = useState([]);
+    const [pagination, setPagination] = useState(null);
+    const [pageSize, setPageSize] = useState(10);
+
+    // Filter states
+    const [searchValue, setSearchValue] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
+    const [ownerFilter, setOwnerFilter] = useState("");
+    const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+    const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
 
     useEffect(() => {
-        fetchBooks();
-        fetchFilterOptions();
-    }, []);
+        fetchInitialData();
+    }, [pageSize]);
 
-    useEffect(() => {
-        if (books.length > 0 || searchValue || teamFilter || projectFilter || categoryFilter) {
-            fetchBooks();
-        }
-    }, [searchValue, teamFilter, projectFilter, categoryFilter]);
-
-    const fetchBooks = async () => {
+    const fetchInitialData = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
             const params = new URLSearchParams();
-            if (searchValue) params.append('search', searchValue);
-            if (teamFilter) params.append('team', teamFilter);
-            if (projectFilter) params.append('project', projectFilter);
-            if (categoryFilter) params.append('category', categoryFilter);
-            
-            const response = await api.get(`/books?${params.toString()}`);
-            setBooks(response.data.books || []);
-            setPagination(response.data.pagination || {});
+            params.append('page', 1);
+            params.append('limit', pageSize);
+
+            const [booksRes, categoriesRes, usersRes] = await Promise.all([
+                api.get(`/books?${params.toString()}`),
+                api.get("/categories"),
+                api.get("/users")
+            ]);
+
+            setBooks(ensureArray(booksRes.data.books));
+            setCategories(ensureArray(categoriesRes.data));
+            setUsers(ensureArray(usersRes.data));
+            setFilteredBooks(ensureArray(booksRes.data.books));
+            setPagination(booksRes.data.pagination || null);
         } catch (error) {
-            console.error("Error fetching books:", error);
-            toast.error("Failed to fetch books");
+            console.error("Error fetching data:", error);
+            toast.error("Failed to load data");
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchFilterOptions = async () => {
+    useEffect(() => {
+        const fetchFilteredBooks = async () => {
+            try {
+                const params = new URLSearchParams();
+                if (searchValue) params.append('search', searchValue);
+                if (categoryFilter) params.append('category', categoryFilter);
+                if (ownerFilter) params.append('owner', ownerFilter);
+                if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+                if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+                if (sortConfig.key) params.append('sortBy', sortConfig.key);
+                if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+                params.append('page', 1);
+                params.append('limit', pageSize);
+
+                const res = await api.get(`/books?${params.toString()}`);
+                setFilteredBooks(ensureArray(res.data.books));
+                setPagination(res.data.pagination || null);
+            } catch (error) {
+                console.error("Error fetching filtered books:", error);
+                toast.error("Failed to filter books");
+            }
+        };
+
+        fetchFilteredBooks();
+    }, [searchValue, categoryFilter, ownerFilter, dateRange, sortConfig, pageSize]);
+
+    const handleClearAllFilters = () => {
+        setSearchValue("");
+        setCategoryFilter("");
+        setOwnerFilter("");
+        setDateRange({ startDate: "", endDate: "" });
+        setSortConfig({ key: "createdAt", direction: "desc" });
+    };
+
+    const handlePageChange = async (newPage) => {
         try {
-            const results = await Promise.allSettled([
-                api.get("/teams"),
-                api.get("/projects"),
-                api.get("/categories")
-            ]);
+            const params = new URLSearchParams();
+            if (searchValue) params.append('search', searchValue);
+            if (categoryFilter) params.append('category', categoryFilter);
+            if (ownerFilter) params.append('owner', ownerFilter);
+            if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+            if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            if (sortConfig.key) params.append('sortBy', sortConfig.key);
+            if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+            params.append('page', newPage);
+            params.append('limit', pageSize);
 
-            // Handle teams
-            if (results[0].status === 'fulfilled') {
-                setTeams(results[0].value.data.teams || []);
-            } else {
-                console.error("Failed to fetch teams:", results[0].reason);
-            }
-
-            // Handle projects
-            if (results[1].status === 'fulfilled') {
-                setProjects(results[1].value.data.projects || []);
-            } else {
-                console.error("Failed to fetch projects:", results[1].reason);
-            }
-
-            // Handle categories
-            if (results[2].status === 'fulfilled') {
-                const categoriesData = results[2].value.data;
-                setCategories(categoriesData.categories?.filter(cat => cat.type === 'Book') || []);
-            } else {
-                console.error("Failed to fetch categories:", results[2].reason);
-            }
+            const res = await api.get(`/books?${params.toString()}`);
+            setFilteredBooks(ensureArray(res.data.books));
+            setPagination(res.data.pagination || null);
         } catch (error) {
-            console.error("Error fetching filter options:", error);
+            console.error("Error changing page:", error);
+            toast.error("Failed to load page");
         }
     };
 
-    const handleDeleteBook = async (bookId) => {
-        if (!window.confirm("Are you sure you want to delete this book?")) {
-            return;
-        }
-
-        try {
-            await api.delete(`/books/${bookId}`);
-            toast.success("Book deleted successfully");
-            fetchBooks();
-        } catch (error) {
-            console.error("Error deleting book:", error);
-            toast.error("Failed to delete book");
-        }
+    const handlePageSizeChange = (newPageSize) => {
+        setPageSize(newPageSize);
     };
 
-    // Filter options
-    const teamOptions = teams.map(team => ({ value: team._id, label: team.name }));
-    const projectOptions = projects.map(project => ({ value: project._id, label: project.name }));
-    const categoryOptions = categories.map(category => ({ value: category._id, label: category.name }));
+    const safeCategoriesArray = createSafeArray(categories);
+    const safeUsersArray = createSafeArray(users);
 
-    // Filter configuration
     const filters = [
-        {
-            key: "team",
-            value: teamFilter,
-            onChange: setTeamFilter,
-            options: teamOptions,
-            placeholder: "All Teams",
-            label: "Team"
-        },
-        {
-            key: "project",
-            value: projectFilter,
-            onChange: setProjectFilter,
-            options: projectOptions,
-            placeholder: "All Projects",
-            label: "Project"
-        },
         {
             key: "category",
             value: categoryFilter,
             onChange: setCategoryFilter,
-            options: categoryOptions,
+            options: safeCategoriesArray.map(cat => ({
+                value: cat._id,
+                label: cat.name
+            })),
             placeholder: "All Categories",
             label: "Category"
+        },
+        {
+            key: "owner",
+            value: ownerFilter,
+            onChange: setOwnerFilter,
+            options: safeUsersArray.map(user => ({
+                value: user._id,
+                label: `${user.firstname} ${user.lastname}`
+            })),
+            placeholder: "All Owners",
+            label: "Owner"
         }
     ];
 
-    // Handle clear all filters
-    const handleClearAllFilters = () => {
-        setSearchValue("");
-        setTeamFilter("");
-        setProjectFilter("");
-        setCategoryFilter("");
-    };
-
-    // Client-side filtering for search (since backend might not support search yet)
-    const displayBooks = books.filter(book =>
-        book.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-        book.description?.toLowerCase().includes(searchValue.toLowerCase())
-    );
-
-    const canCreateBooks = userRole === 'admin' || userRole === 'editor';
-    const canEditBooks = userRole === 'admin' || userRole === 'editor';
-
-    if (loading) {
-        return (
-            <div className="min-h-screen">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="max-w-screen-xl mx-auto">
-                        <InlineLoader message="Loading books..." size="lg" color="teal" />
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const canCreateBooks = userRole === "editor" || userRole === "admin";
 
     return (
         <div className="min-h-screen">
@@ -188,102 +172,49 @@ const ViewBooksPage = () => {
                             </Link>
                         )}
                     </div>
+                    
+                    {/* Loading State */}
+                    {loading && <LoadingSpinner message="Loading books..." size="lg" color="teal" />}
 
                     {/* Filter Bar */}
-                    {!loading && books.length > 0 && (
+                    {!loading && (books.length > 0 || userRole === 'admin') && (
                         <FilterBar
                             searchValue={searchValue}
                             onSearchChange={setSearchValue}
                             filters={filters}
+                            dateRange={dateRange}
+                            onDateRangeChange={setDateRange}
                             onClearAll={handleClearAllFilters}
                         />
                     )}
 
-                    {/* Books Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {displayBooks.map(book => (
-                            <div key={book._id} className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
-                                <div className="card-body">
-                                    <h2 className="card-title text-lg">
-                                        <BookOpen className="size-5 text-resdes-orange" />
-                                        {book.title}
-                                    </h2>
-                                    
-                                    {book.description && (
-                                        <p className="text-sm text-gray-600 mb-2">
-                                            {book.description.length > 100 
-                                                ? `${book.description.substring(0, 100)}...` 
-                                                : book.description
-                                            }
-                                        </p>
-                                    )}
-
-                                    <div className="text-sm text-gray-500 space-y-1">
-                                        <p><strong>Category:</strong> {book.category?.name}</p>
-                                        <p><strong>Author:</strong> {book.author?.name}</p>
-                                        <p><strong>Documents:</strong> {book.documentCount || 0}</p>
-                                        {book.teams?.length > 0 && (
-                                            <p><strong>Teams:</strong> {book.teams.map(t => t.name).join(', ')}</p>
-                                        )}
-                                        {book.projects?.length > 0 && (
-                                            <p><strong>Projects:</strong> {book.projects.map(p => p.name).join(', ')}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="card-actions justify-end mt-4">
-                                        <Link to={`/books/${book._id}`} className="btn btn-sm btn-ghost">
-                                            <Eye className="size-4" />
-                                            View
-                                        </Link>
-                                        {canEditBooks && (
-                                            <>
-                                                <Link to={`/books/${book._id}/edit`} className="btn btn-sm btn-ghost">
-                                                    <Edit className="size-4" />
-                                                    Edit
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleDeleteBook(book._id)}
-                                                    className="btn btn-sm btn-ghost text-red-500 hover:text-red-700"
-                                                >
-                                                    <Trash2 className="size-4" />
-                                                    Delete
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
                     {/* Empty State */}
                     {!loading && books.length === 0 && (
-                        <div className="text-center py-12">
-                            <BookOpen className="size-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-600 mb-2">No books found</h3>
-                            <p className="text-gray-500 mb-4">Get started by creating your first book</p>
+                        <div className="text-center py-8">
+                            <p className="text-gray-500 text-lg mb-4">No books found.</p>
                             {canCreateBooks && (
-                                <Link to="/books/create" className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80">
-                                    <Plus className="size-5" />
+                                <Link
+                                    to="/books/create"
+                                    className="btn bg-resdes-teal text-white hover:bg-resdes-teal hover:opacity-80"
+                                >
+                                    <Plus size={16} />
                                     Create First Book
                                 </Link>
                             )}
                         </div>
                     )}
 
-                    {/* No Results State */}
-                    {!loading && books.length > 0 && displayBooks.length === 0 && (
-                        <div className="text-center py-12">
-                            <BookOpen className="size-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-600 mb-2">No books match your filters</h3>
-                            <p className="text-gray-500 mb-4">Try adjusting your search or filter criteria</p>
-                            <button
-                                onClick={handleClearAllFilters}
-                                className="btn bg-resdes-orange text-slate-950 hover:bg-resdes-orange hover:opacity-80"
-                            >
-                                Clear Filters
-                            </button>
-                        </div>
+                    {/* Books Table */}
+                    {!loading && filteredBooks.length > 0 && (
+                        <PaginatedBookTable
+                            books={filteredBooks}
+                            setBooks={setFilteredBooks}
+                            sortConfig={sortConfig}
+                            onSort={setSortConfig}
+                            pagination={pagination}
+                            onPageChange={handlePageChange}
+                            onPageSizeChange={handlePageSizeChange}
+                        />
                     )}
                 </div>
             </div>

@@ -4,7 +4,7 @@
  * @component FormField
  * @description Reusable form field component with consistent styling, validation, and error handling
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import PropTypes from "prop-types";

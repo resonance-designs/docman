@@ -4,7 +4,7 @@
  * @page EditBookPage
  * @description Book editing page with form for updating existing books
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -22,9 +22,6 @@ const schema = z.object({
     description: z.string().optional(),
     category: z.string().min(1, { message: "Category is required" }),
     documents: z.array(z.string()).optional(),
-    teams: z.array(z.string()).optional(),
-    projects: z.array(z.string()).optional(),
-    stakeholders: z.array(z.string()).optional(),
     owners: z.array(z.string()).optional(),
 });
 
@@ -35,8 +32,6 @@ const EditBookPage = () => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [categories, setCategories] = useState([]);
     const [documents, setDocuments] = useState([]);
-    const [teams, setTeams] = useState([]);
-    const [projects, setProjects] = useState([]);
     const [users, setUsers] = useState([]);
     const [book, setBook] = useState(null);
 
@@ -44,9 +39,6 @@ const EditBookPage = () => {
         resolver: zodResolver(schema),
         defaultValues: {
             documents: [],
-            teams: [],
-            projects: [],
-            stakeholders: [],
             owners: []
         }
     });
@@ -64,8 +56,6 @@ const EditBookPage = () => {
                 api.get(`/books/${id}`),
                 api.get("/categories"),
                 api.get("/docs"),
-                api.get("/teams"),
-                api.get("/projects"),
                 api.get("/users")
             ]);
 
@@ -79,9 +69,6 @@ const EditBookPage = () => {
                 setValue('description', bookData.description || '');
                 setValue('category', bookData.category._id);
                 setValue('documents', bookData.documents?.map(doc => doc._id) || []);
-                setValue('teams', bookData.teams?.map(team => team._id) || []);
-                setValue('projects', bookData.projects?.map(project => project._id) || []);
-                setValue('stakeholders', bookData.stakeholders?.map(stakeholder => stakeholder._id) || []);
                 setValue('owners', bookData.owners?.map(owner => owner._id) || []);
             } else {
                 console.error("Failed to fetch book:", results[0].reason);
@@ -106,28 +93,12 @@ const EditBookPage = () => {
                 console.error("Failed to fetch documents:", results[2].reason);
             }
 
-            // Handle teams
-            if (results[3].status === 'fulfilled') {
-                const teamsData = results[3].value.data;
-                setTeams(teamsData.teams || []);
-            } else {
-                console.error("Failed to fetch teams:", results[3].reason);
-            }
-
-            // Handle projects
-            if (results[4].status === 'fulfilled') {
-                const projectsData = results[4].value.data;
-                setProjects(projectsData.projects || []);
-            } else {
-                console.error("Failed to fetch projects:", results[4].reason);
-            }
-
             // Handle users
-            if (results[5].status === 'fulfilled') {
-                const usersData = results[5].value.data;
+            if (results[3].status === 'fulfilled') {
+                const usersData = results[3].value.data;
                 setUsers(usersData.users || []);
             } else {
-                console.error("Failed to fetch users:", results[5].reason);
+                console.error("Failed to fetch users:", results[3].reason);
             }
 
         } catch (error) {
@@ -147,9 +118,6 @@ const EditBookPage = () => {
                 description: data.description || "",
                 category: data.category,
                 documents: data.documents || [],
-                teams: data.teams || [],
-                projects: data.projects || [],
-                stakeholders: data.stakeholders || [],
                 owners: data.owners || []
             });
 
@@ -287,66 +255,6 @@ const EditBookPage = () => {
 
                                     {/* Right Column */}
                                     <div>
-                                        {/* Teams */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Teams (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {teams.map(team => (
-                                                    <label key={team._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={team._id}
-                                                            {...register("teams")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{team.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Projects */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Projects (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {projects.map(project => (
-                                                    <label key={project._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={project._id}
-                                                            {...register("projects")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{project.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Stakeholders */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Stakeholders (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {users.map(user => (
-                                                    <label key={user._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={user._id}
-                                                            {...register("stakeholders")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{user.name} ({user.email})</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
                                         {/* Owners */}
                                         <div className="form-control mb-4">
                                             <label className="label">

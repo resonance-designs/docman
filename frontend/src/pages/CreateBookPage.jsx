@@ -4,7 +4,7 @@
  * @page CreateBookPage
  * @description Book creation page with form for adding new books
  * @author Richard Bakos
- * @version 2.1.2
+ * @version 2.1.3
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";
@@ -21,9 +21,6 @@ const schema = z.object({
     description: z.string().optional(),
     category: z.string().min(1, { message: "Category is required" }),
     documents: z.array(z.string()).optional(),
-    teams: z.array(z.string()).optional(),
-    projects: z.array(z.string()).optional(),
-    stakeholders: z.array(z.string()).optional(),
     owners: z.array(z.string()).optional(),
 });
 
@@ -32,17 +29,12 @@ const CreateBookPage = () => {
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
     const [documents, setDocuments] = useState([]);
-    const [teams, setTeams] = useState([]);
-    const [projects, setProjects] = useState([]);
     const [users, setUsers] = useState([]);
 
     const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
         resolver: zodResolver(schema),
         defaultValues: {
             documents: [],
-            teams: [],
-            projects: [],
-            stakeholders: [],
             owners: []
         }
     });
@@ -57,8 +49,6 @@ const CreateBookPage = () => {
             const results = await Promise.allSettled([
                 api.get("/categories"),
                 api.get("/docs"),
-                api.get("/teams"),
-                api.get("/projects"),
                 api.get("/users")
             ]);
 
@@ -89,30 +79,12 @@ const CreateBookPage = () => {
                 // Don't show error for documents as it's optional
             }
 
-            // Handle teams
-            if (results[2].status === 'fulfilled') {
-                const teamsData = results[2].value.data;
-                setTeams(teamsData.teams || []);
-            } else {
-                console.error("Failed to fetch teams:", results[2].reason);
-                // Don't show error for teams as it's optional
-            }
-
-            // Handle projects
-            if (results[3].status === 'fulfilled') {
-                const projectsData = results[3].value.data;
-                setProjects(projectsData.projects || []);
-            } else {
-                console.error("Failed to fetch projects:", results[3].reason);
-                // Don't show error for projects as it's optional
-            }
-
             // Handle users
-            if (results[4].status === 'fulfilled') {
-                const usersData = results[4].value.data;
+            if (results[2].status === 'fulfilled') {
+                const usersData = results[2].value.data;
                 setUsers(usersData.users || []);
             } else {
-                console.error("Failed to fetch users:", results[4].reason);
+                console.error("Failed to fetch users:", results[2].reason);
                 // Don't show error for users as it's optional
             }
 
@@ -130,9 +102,6 @@ const CreateBookPage = () => {
                 description: data.description || "",
                 category: data.category,
                 documents: data.documents || [],
-                teams: data.teams || [],
-                projects: data.projects || [],
-                stakeholders: data.stakeholders || [],
                 owners: data.owners || []
             });
 
@@ -241,66 +210,6 @@ const CreateBookPage = () => {
 
                                     {/* Right Column */}
                                     <div>
-                                        {/* Teams */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Teams (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {teams.map(team => (
-                                                    <label key={team._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={team._id}
-                                                            {...register("teams")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{team.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Projects */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Projects (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {projects.map(project => (
-                                                    <label key={project._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={project._id}
-                                                            {...register("projects")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{project.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Stakeholders */}
-                                        <div className="form-control mb-4">
-                                            <label className="label">
-                                                <span className="label-text">Stakeholders (Optional)</span>
-                                            </label>
-                                            <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                                                {users.map(user => (
-                                                    <label key={user._id} className="flex items-center space-x-2 p-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            value={user._id}
-                                                            {...register("stakeholders")}
-                                                            className="checkbox checkbox-sm"
-                                                        />
-                                                        <span className="text-sm">{user.name} ({user.email})</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-
                                         {/* Owners */}
                                         <div className="form-control mb-4">
                                             <label className="label">
