@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearBooks.js
  * @description Script to clear all books from the database
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

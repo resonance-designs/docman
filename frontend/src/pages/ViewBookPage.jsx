@@ -4,7 +4,7 @@
  * @page ViewBookPage
  * @description Individual book view page showing book details and contained documents
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

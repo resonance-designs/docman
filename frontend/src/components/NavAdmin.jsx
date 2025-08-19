@@ -4,11 +4,11 @@
  * @component NavAdmin
  * @description Component for displaying navigation links for the admin panel.
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import { Link } from "react-router";
-import { UserPlus, FolderPlus, Shield, MonitorIcon, BarChartIcon } from "lucide-react";
+import { UserPlus, FolderPlus, Shield, Monitor as MonitorIcon, BarChart as BarChartIcon, Users as UsersIcon, Folder as FolderIcon } from "lucide-react";
 import PropTypes from "prop-types";
 
 const NavAdmin = ({ role }) => {
@@ -59,7 +59,20 @@ const NavAdmin = ({ role }) => {
                     <UserPlus className="size-4" />
                     <span>External Contacts</span>
                 </Link>
-
+                <Link
+                    to="/admin/teams"
+                    className="btn btn-sm bg-slate-950 text-resdes-orange hover:bg-slate-800 transition-colors duration-300"
+                >
+                    <UsersIcon className="size-4" />
+                    <span>Manage Teams</span>
+                </Link>
+                <Link
+                    to="/admin/projects"
+                    className="btn btn-sm bg-slate-950 text-resdes-orange hover:bg-slate-800 transition-colors duration-300"
+                >
+                    <FolderIcon className="size-4" />
+                    <span>Manage Projects</span>
+                </Link>
             </div>
         </div>
     );

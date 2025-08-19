@@ -4,7 +4,7 @@
  * @script createBookCategory
  * @description Script to create a sample Book category for testing
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 

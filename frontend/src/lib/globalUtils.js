@@ -4,7 +4,7 @@
  * @module globalUtils
  * @description Global utility functions for common operations across the application
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 // frontend/src/lib/globalUtils.js

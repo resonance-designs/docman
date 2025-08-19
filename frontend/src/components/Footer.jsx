@@ -4,7 +4,7 @@
  * @component Footer
  * @description Application footer component with copyright information and company branding
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 /**

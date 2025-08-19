@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createAllDummyData.js
  * @description Script to create dummy data for all collections in the database
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

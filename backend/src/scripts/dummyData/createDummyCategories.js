@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyCategories.js
  * @description Script to create dummy categories in the database
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

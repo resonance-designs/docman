@@ -4,7 +4,7 @@
  * @routes reviewRoutes
  * @description Document review routes for managing review workflows and approvals
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import express from "express";

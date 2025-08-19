@@ -4,12 +4,12 @@
  * @page TeamsPage
  * @description Team management page displaying user teams with creation, editing, and member management capabilities
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { UsersIcon, PlusIcon, Settings } from "lucide-react";
+import { Users as UsersIcon, Plus as PlusIcon, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";

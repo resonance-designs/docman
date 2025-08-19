@@ -4,7 +4,7 @@
  * @routes uploadRoutes
  * @description File upload routes for handling document uploads and file management
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import express from "express";

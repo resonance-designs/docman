@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/hooks/index.js
  * @description Centralized export for all custom React hooks
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 
