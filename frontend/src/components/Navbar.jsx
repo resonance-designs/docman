@@ -4,7 +4,7 @@
  * @component Navbar
  * @description Component for the main navigation bar with responsive menu and authentication handling.
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 

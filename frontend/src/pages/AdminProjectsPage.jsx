@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/pages/AdminProjectsPage.jsx
  * @page AdminProjectsPage
  * @description Admin page for managing all projects in the system
- * @version 1.0.0
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

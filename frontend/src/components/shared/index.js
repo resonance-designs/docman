@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/shared/index.js
  * @description Centralized export for all shared/reusable components
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 

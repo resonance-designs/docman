@@ -4,7 +4,7 @@
  * @component ReviewAssignments
  * @description Reusable component for managing document review assignments with date scheduling and notes
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import { Controller } from "react-hook-form";

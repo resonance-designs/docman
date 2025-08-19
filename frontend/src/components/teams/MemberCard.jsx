@@ -4,7 +4,7 @@
  * @component MemberCard
  * @description Card component for displaying team member information
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import { MoreVerticalIcon, UserIcon, CrownIcon, ShieldIcon } from "lucide-react";

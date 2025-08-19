@@ -4,7 +4,7 @@
  * @middleware uploadMid
  * @description File upload middleware for handling multipart form data and file validation
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import multer from "multer";

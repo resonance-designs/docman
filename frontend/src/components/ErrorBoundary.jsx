@@ -4,7 +4,7 @@
  * @component ErrorBoundary
  * @description Component for catching and displaying React errors
  * @author Richard Bakos
- * @version 2.1.9
+ * @version 2.1.10
  * @license UNLICENSED
  */
 import React from "react";
