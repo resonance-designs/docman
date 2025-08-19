@@ -28,9 +28,13 @@ import EditBookPage from "./pages/EditBookPage";
 import CustomChartsPage from "./pages/CustomChartsPage";
 import TeamsPage from "./pages/TeamsPage";
 import TeamDetailPage from "./pages/TeamDetailPage";
+import TeamSettingsPage from "./pages/TeamSettingsPage";
+import AdminTeamsPage from "./pages/AdminTeamsPage";
 import ProjectsPage from "./pages/ProjectsPage";
 import CreateProjectPage from "./pages/CreateProjectPage";
 import ProjectDetailPage from "./pages/ProjectDetailPage";
+import ProjectSettingsPage from "./pages/ProjectSettingsPage";
+import AdminProjectsPage from "./pages/AdminProjectsPage";
 import EditProjectPage from "./pages/EditProjectPage";
 import EditTeamPage from "./pages/EditTeamPage";
 import LoginPage from "./pages/LoginPage";
@@ -216,6 +220,22 @@ const App = () => {
                         }
                     />
                     <Route
+                        path="/teams/:id/settings"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <TeamSettingsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/teams"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <AdminTeamsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
                         path="/projects"
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
@@ -244,6 +264,22 @@ const App = () => {
                         element={
                             <ProtectedRoute isAuthenticated={isAuthenticated}>
                                 <EditProjectPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/projects/:id/settings"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <ProjectSettingsPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/projects"
+                        element={
+                            <ProtectedRoute isAuthenticated={isAuthenticated}>
+                                <AdminProjectsPage />
                             </ProtectedRoute>
                         }
                     />

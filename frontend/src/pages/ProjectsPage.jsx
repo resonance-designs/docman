@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { FolderIcon, PlusIcon, Settings } from "lucide-react";
+import { Folder as FolderIcon, Plus as PlusIcon, Settings } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";

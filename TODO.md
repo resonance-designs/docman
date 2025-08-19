@@ -109,35 +109,44 @@ A list of features I plan on implementing into the application.
     18. ~~Have buttons to generate dummy data~~
 22. ~~Make it so the token only expires after 5 days of inactivity.~~
 23. ~~Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc~~
-24. A script to rewrite test scripts when updates are done to make sure the tests still work correctly.
-25. Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" actually do something.
-26. Cleanup and compartmentalize the code as much as possible
-27. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-28. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to the archive collection(s). And all files are moved to uploads_archive
-29. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
-30. Create another fork with docker and kubernetes for cloud use
-31. Create another fork with a mobile app for iOS and Android
-32. Create another fork for the purpose of refactoring into a Recipes MERN app
+24. ~~A script to rewrite test scripts when to make sure the tests still work correctly with any updates since the tests were written.~~
+25. Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" in the Projects and Teams pages actually do something. -- NEED TO TEST
+26. Update user-levels/roles logic.
+    1.  We are going to introduce a new role, "Super Admin" (represented as "superadmin" in the Model/DB).
+    2.  Access/Restrictions to resources in the app, among the currently established roles remains the same, except we are going to take away the following for regular "Admins":
+        1.  The "Danger Zone" section in the SystemInfoPage.
+        2.  The ability to edit other users profiles at all.
+        3.  The ability to delete other users.
+        4.  The ability to manage all teams and projects.
+        5.  The ability to mange specific teams and projects, unless they are an owner of the team or project.
+        6.  Admins can only create new users with roles up to their own, they can not create a "Super Admin" account.
+    3. Any authenticated user with any role (even viewer) can edit anything (documents, books, teams, projects, etc...) as long as they are marked as an author, owner, and/or contributor/collaborator of that resource.
+    4. Stakeholders and review assignees can only view/download the documents they are assigned to unless they are also marked as an author or owner of the document as well.
+    5. Super Admins can do everything we just stripped away from admins above. They have access to absolutely everything the API provides.
+    6. Make sure to update the role of the user with resonance.designs.com@gmail.com to superadmin.
+27. Document security levels
+28. Develop a short-code system to embed custom charts built with CustomChartsPage.
+29. Make sure header comments and JSDoc comments are added to all files.
+30. Cleanup and compartmentalize the code as much as possible.
+31. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+32. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to a temp_collection(s). And all files are moved to temp_uploads_archive.
+33. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
+34. Create another fork with docker and kubernetes for cloud use
+35. Create another fork with a mobile app for iOS and Android
+36. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 
 ### Backend Suggestions
 
-1. **Rate Limiting**
-   - Protect registration and login endpoints with rate limiting to prevent brute-force attacks.
-2. **HTTPS**
+1. **HTTPS**
    - Always use HTTPS in production to protect tokens in transit.
-3. **Email Sending**
+2. **Email Sending**
    - Use a real email service (like SendGrid, Mailgun, or Nodemailer) for password resets.
    - Make sure reset tokens expire and are single-use.
-4. **Token Expiry**
-   - Set reasonable JWT expiry (e.g., 1-3 days).
-   - Consider implementing refresh tokens for longer sessions.
-5. **User Data Exposure**
+3. **User Data Exposure**
    - Never send the password field in API responses.
    - Only expose necessary user info.
-6.  **Logout**
-    - On the backend, consider implementing token blacklisting for logout (optional, more advanced).
 
 ---
 
