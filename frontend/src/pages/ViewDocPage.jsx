@@ -8,7 +8,7 @@
  * @license UNLICENSED
  */
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon } from "lucide-react";
+import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon, ClipboardCheckIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { formatDate } from "../lib/utils";
@@ -279,6 +279,39 @@ const ViewDocPage = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Review Assignees */}
+                            {doc.reviewAssignees && doc.reviewAssignees.length > 0 && (
+                                <div className="mb-6 p-4 bg-base-300 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                        <h3 className="text-lg font-semibold">Review Assignees</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.reviewAssignees.map((assignee) => (
+                                            <div key={assignee._id} className="badge badge-info">
+                                                {getFullName(assignee)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {doc.reviewNotes && (
+                                        <div className="mt-3 p-3 bg-base-200 rounded-lg">
+                                            <p className="text-sm text-gray-600 mb-1">Review Notes:</p>
+                                            <p className="text-sm">{doc.reviewNotes}</p>
+                                        </div>
+                                    )}
+                                    {doc.reviewDueDate && (
+                                        <div className="mt-2">
+                                            <p className="text-sm text-gray-600">
+                                                Review Due: <span className="font-medium text-blue-600">
+                                                    {formatDate(new Date(doc.reviewDueDate))}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* External Contacts */}
                             {doc.externalContacts && doc.externalContacts.length > 0 && (
                                 <div className="grid grid-cols-4 gap-4">

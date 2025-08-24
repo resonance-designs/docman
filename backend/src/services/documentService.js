@@ -32,6 +32,9 @@ export function hasDocumentAccess(doc, userId, userRole) {
     // Check if user is an owner
     if (doc.owners?.some(owner => owner.toString() === userId)) return true;
     
+    // Check if user is a review assignee
+    if (doc.reviewAssignees?.some(assignee => assignee.toString() === userId)) return true;
+    
     return false;
 }
 
@@ -175,7 +178,7 @@ export function buildDocumentSort(sortBy = 'createdAt', sortOrder = 'desc') {
  * @returns {Object} Parsed and validated data
  */
 export function parseDocumentFields(requestBody) {
-    const { stakeholders, owners, externalContacts } = requestBody;
+    const { stakeholders, owners, externalContacts, reviewAssignees } = requestBody;
     const parsed = {};
 
     // Parse stakeholders
@@ -220,6 +223,20 @@ export function parseDocumentFields(requestBody) {
         }
     }
 
+    // Parse review assignees
+    if (reviewAssignees) {
+        try {
+            const parsedAssignees = JSON.parse(reviewAssignees);
+            if (Array.isArray(parsedAssignees)) {
+                parsed.reviewAssignees = parsedAssignees.filter(id => 
+                    typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)
+                );
+            }
+        } catch (error) {
+            throw new Error("Invalid review assignees format");
+        }
+    }
+
     return parsed;
 }
 
@@ -241,13 +258,14 @@ export async function getDocuments(queryParams, user) {
         console.log('📄 Built filter before user access:', JSON.stringify(filter, null, 2));
         
         // Add user-based filtering for non-admins
-        if (user.role !== 'admin') {
+        if (user.role !== 'admin' && user.role !== 'superadmin') {
             const userId = new mongoose.Types.ObjectId(user.id);
             const userAccessFilter = {
                 $or: [
                     { author: userId },
                     { stakeholders: userId },
-                    { owners: userId }
+                    { owners: userId },
+                    { reviewAssignees: userId }
                 ]
             };
             
@@ -318,6 +336,15 @@ export async function getDocuments(queryParams, user) {
                     localField: 'owners',
                     foreignField: '_id',
                     as: 'owners',
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'reviewAssignees',
+                    foreignField: '_id',
+                    as: 'reviewAssignees',
                     pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
@@ -395,6 +422,7 @@ export async function getDocumentById(documentId, user) {
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email username')
             .populate('owners', 'firstname lastname email username')
+            .populate('reviewAssignees', 'firstname lastname email username')
             .populate('reviewCompletedBy', 'firstname lastname email username')
             .populate('lastUpdatedBy', 'firstname lastname email username')
             .populate('externalContacts.type');
@@ -437,6 +465,8 @@ export async function createDocument(documentData, file, user) {
             reviewPeriod: documentData.reviewPeriod || '2weeks',
             lastReviewedOn: documentData.lastReviewedOn,
             nextReviewDueOn: documentData.nextReviewDueOn,
+            reviewDueDate: documentData.reviewDueDate,
+            reviewNotes: documentData.reviewNotes,
             ...parsedFields,
             createdBy: user._id || user.id,
             lastUpdatedBy: user._id || user.id
@@ -481,6 +511,7 @@ export async function createDocument(documentData, file, user) {
             { path: 'category', select: 'name' },
             { path: 'stakeholders', select: 'firstname lastname email' },
             { path: 'owners', select: 'firstname lastname email' },
+            { path: 'reviewAssignees', select: 'firstname lastname email' },
             { path: 'externalContacts.type' }
         ]);
 
@@ -551,6 +582,7 @@ export async function updateDocument(documentId, updateData, file, user) {
             { path: 'category', select: 'name' },
             { path: 'stakeholders', select: 'firstname lastname email' },
             { path: 'owners', select: 'firstname lastname email' },
+            { path: 'reviewAssignees', select: 'firstname lastname email' },
             { path: 'reviewCompletedBy', select: 'firstname lastname email' },
             { path: 'lastUpdatedBy', select: 'firstname lastname email' },
             { path: 'externalContacts.type' }

@@ -293,7 +293,9 @@ export default function EnhancedDocumentFields({
                         id="reviewIntervalDays" 
                         type="number"
                         min="1"
-                        {...register("reviewIntervalDays", { valueAsNumber: true })} 
+                        {...register("reviewIntervalDays", { 
+                            setValueAs: (value) => value === "" ? null : Number(value) 
+                        })} 
                         className="input input-bordered" 
                         placeholder="Enter number of days"
                         disabled={isViewMode}

@@ -57,17 +57,17 @@ const baseDocumentSchema = {
     reviewInterval: z.enum(['monthly', 'quarterly', 'semiannually', 'annually', 'custom'], {
         required_error: "Review interval is required"
     }),
-    reviewIntervalDays: z.number().min(1, "Custom interval must be at least 1 day").optional(),
+    reviewIntervalDays: z.number().min(1, "Custom interval must be at least 1 day").nullable().optional(),
     reviewPeriod: z.enum(['1week', '2weeks', '3weeks', '1month'], {
         required_error: "Review period is required"
     }),
-    lastReviewedOn: z.date().optional(),
-    nextReviewDueOn: z.date().optional(),
+    lastReviewedOn: z.date().nullable().optional(),
+    nextReviewDueOn: z.date().nullable().optional(),
     stakeholders: z.array(z.string()).optional(),
     owners: z.array(z.string()).optional(),
     // Review assignments
     reviewAssignees: z.array(z.string()).optional(),
-    reviewDueDate: z.date().optional(),
+    reviewDueDate: z.date().nullable().optional(),
     reviewNotes: z.string().optional(),
 };
 

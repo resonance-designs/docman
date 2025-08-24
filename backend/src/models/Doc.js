@@ -21,6 +21,9 @@ import mongoose from "mongoose";
  * @property {string} reviewPeriod - Time frame for completing review (1week, 2weeks, 3weeks, 1month)
  * @property {Date} lastReviewedOn - Date when review was last completed (optional)
  * @property {Date} nextReviewDueOn - Calculated date for next review (optional)
+ * @property {ObjectId[]} reviewAssignees - Array of User references assigned to review the document
+ * @property {Date} reviewDueDate - Due date for completing the review (optional)
+ * @property {string} reviewNotes - Notes for the review assignees (optional)
  * @property {ObjectId} author - Reference to User who created the document (required)
  * @property {ObjectId} category - Reference to Category for document classification (required)
  * @property {ObjectId[]} stakeholders - Array of User references who are stakeholders
@@ -81,6 +84,18 @@ const docSchema = new mongoose.Schema(
         },
         nextReviewDueOn: {
             type: Date,
+            default: null
+        },
+        reviewAssignees: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
+        reviewDueDate: {
+            type: Date,
+            default: null
+        },
+        reviewNotes: {
+            type: String,
             default: null
         },
         author: {

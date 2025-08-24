@@ -229,8 +229,8 @@ export default function ReviewAssignments({
                         <h4 className="font-semibold">Review Assignment Summary</h4>
                         <p className="text-sm">
                             {reviewAssignees.length} reviewer{reviewAssignees.length !== 1 ? 's' : ''} assigned
-                            {calculatedDueDate && (
-                                <span> • Due: {calculatedDueDate.toLocaleDateString()}</span>
+                            {reviewDueDate && (
+                                <span> • Due: {reviewDueDate.toLocaleDateString()}</span>
                             )}
                         </p>
                         {reviewNotes && (

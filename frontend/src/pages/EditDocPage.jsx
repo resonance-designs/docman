@@ -183,7 +183,7 @@ const EditDocPage = () => {
             // We’ll still be safe to include required fields if changed.
             const maybeAppend = (key, value) => {
                 // if dirty tracking fails for arrays/controllers, just append when present
-                if (dirtyFields[key] || key === "stakeholders" || key === "owners") {
+                if (dirtyFields[key] || key === "stakeholders" || key === "owners" || key === "reviewAssignees") {
                     if (value !== undefined && value !== null && value !== "") {
                         formData.append(key, value);
                     }
@@ -223,6 +223,20 @@ const EditDocPage = () => {
                 formData.append("owners", JSON.stringify(data.owners));
             } else if (dirtyFields.owners) {
                 formData.append("owners", JSON.stringify([]));
+            }
+
+            if (data.reviewAssignees && data.reviewAssignees.length > 0) {
+                formData.append("reviewAssignees", JSON.stringify(data.reviewAssignees));
+            } else if (dirtyFields.reviewAssignees) {
+                formData.append("reviewAssignees", JSON.stringify([]));
+            }
+
+            // Add review assignment fields
+            if (data.reviewDueDate) {
+                formData.append("reviewDueDate", data.reviewDueDate.toISOString());
+            }
+            if (data.reviewNotes) {
+                formData.append("reviewNotes", data.reviewNotes);
             }
 
             // Optional file replace
