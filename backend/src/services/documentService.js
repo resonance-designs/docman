@@ -92,18 +92,28 @@ export function buildDocumentFilter(queryParams) {
     // Overdue filter (from frontend) - validate enum values
     if (overdue && typeof overdue === 'string') {
         if (overdue === 'true') {
-            // Overdue: reviewDate has passed AND document is not yet reviewed
+            // Overdue: opensForReview has passed AND document is not yet reviewed
             conditions.push({ 
                 $and: [
-                    { reviewDate: { $lt: new Date() } },
+                    { 
+                        $or: [
+                            { opensForReview: { $lt: new Date() } },
+                            { reviewDate: { $lt: new Date() } } // Migration fallback
+                        ]
+                    },
                     { reviewCompleted: { $ne: true } }
                 ]
             });
         } else if (overdue === 'false') {
-            // Not overdue: either reviewDate hasn't passed OR document is already reviewed
+            // Not overdue: either opensForReview hasn't passed OR document is already reviewed
             conditions.push({
                 $or: [
-                    { reviewDate: { $gte: new Date() } },
+                    { 
+                        $or: [
+                            { opensForReview: { $gte: new Date() } },
+                            { reviewDate: { $gte: new Date() } } // Migration fallback
+                        ]
+                    },
                     { reviewCompleted: true }
                 ]
             });
@@ -153,7 +163,7 @@ export function buildDocumentFilter(queryParams) {
  * @returns {Object} Sort object
  */
 export function buildDocumentSort(sortBy = 'createdAt', sortOrder = 'desc') {
-    const allowedSortFields = ['title', 'createdAt', 'reviewDate', 'author', 'category'];
+    const allowedSortFields = ['title', 'createdAt', 'opensForReview', 'reviewDate', 'author', 'category'];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortOrder === 'asc' ? 1 : -1;
     return { [sortField]: sortDirection };
@@ -421,7 +431,12 @@ export async function createDocument(documentData, file, user) {
             description: documentData.description,
             author: documentData.author,
             category: documentData.category,
-            reviewDate: documentData.reviewDate,
+            opensForReview: documentData.opensForReview || documentData.reviewDate, // Migration fallback
+            reviewInterval: documentData.reviewInterval || 'quarterly',
+            reviewIntervalDays: documentData.reviewIntervalDays,
+            reviewPeriod: documentData.reviewPeriod || '2weeks',
+            lastReviewedOn: documentData.lastReviewedOn,
+            nextReviewDueOn: documentData.nextReviewDueOn,
             ...parsedFields,
             createdBy: user._id || user.id,
             lastUpdatedBy: user._id || user.id

@@ -23,7 +23,7 @@ import { editDocumentSchema, defaultFormValues } from "../lib/documentFormSchema
 import { useStakeholderManagement } from "../hooks/useStakeholderManagement";
 import { useExternalContacts } from "../hooks/useExternalContacts";
 import { useReviewManagement } from "../hooks/useReviewManagement";
-import DocumentBasicFields from "../components/forms/DocumentBasicFields";
+import EnhancedDocumentFields from "../components/forms/EnhancedDocumentFields";
 import StakeholderSelection from "../components/forms/StakeholderSelection";
 import ExternalContactsManager from "../components/forms/ExternalContactsManager";
 import ReviewAssignments from "../components/forms/ReviewAssignments";
@@ -58,6 +58,7 @@ const EditDocPage = () => {
         formState: { errors, dirtyFields },
         reset,
         setValue,
+        watch,
     } = useForm({
         resolver: zodResolver(editDocumentSchema),
         defaultValues: defaultFormValues,
@@ -106,7 +107,12 @@ const EditDocPage = () => {
                     author: doc.author?._id ? String(doc.author._id) : String(doc.author || ""),
                     description: doc.description || "",
                     category: doc.category?._id ? String(doc.category._id) : String(doc.category || ""),
-                    reviewDate: doc.reviewDate ? new Date(doc.reviewDate) : null,
+                    opensForReview: doc.opensForReview ? new Date(doc.opensForReview) : (doc.reviewDate ? new Date(doc.reviewDate) : null), // Migration fallback
+                    reviewInterval: doc.reviewInterval || "quarterly",
+                    reviewIntervalDays: doc.reviewIntervalDays || null,
+                    reviewPeriod: doc.reviewPeriod || "2weeks",
+                    lastReviewedOn: doc.lastReviewedOn ? new Date(doc.lastReviewedOn) : null,
+                    nextReviewDueOn: doc.nextReviewDueOn ? new Date(doc.nextReviewDueOn) : null,
                     stakeholders: mappedStakeholders,
                     owners: mappedOwners,
                     reviewAssignees: mappedReviewAssignees,
@@ -189,8 +195,21 @@ const EditDocPage = () => {
             maybeAppend("description", data.description);
             maybeAppend("category", data.category);
 
-            if (data.reviewDate) {
-                formData.append("reviewDate", data.reviewDate.toISOString());
+            if (data.opensForReview) {
+                formData.append("opensForReview", data.opensForReview.toISOString());
+            }
+            
+            // Add new review fields
+            maybeAppend("reviewInterval", data.reviewInterval);
+            if (data.reviewIntervalDays) {
+                formData.append("reviewIntervalDays", data.reviewIntervalDays);
+            }
+            maybeAppend("reviewPeriod", data.reviewPeriod);
+            if (data.lastReviewedOn) {
+                formData.append("lastReviewedOn", data.lastReviewedOn.toISOString());
+            }
+            if (data.nextReviewDueOn) {
+                formData.append("nextReviewDueOn", data.nextReviewDueOn.toISOString());
             }
 
             if (data.stakeholders && data.stakeholders.length > 0) {
@@ -279,15 +298,19 @@ const EditDocPage = () => {
                 console.log("Form validation errors:", errors);
                 toast.error("Please fix the form errors before submitting");
             })}>
-                                {/* Basic Document Fields - Replaced with shared component */}
-                                <DocumentBasicFields
+                                {/* Enhanced Document Fields - Replaced with new component */}
+                                <EnhancedDocumentFields
                                     register={register}
                                     control={control}
                                     errors={errors}
+                                    watch={watch}
+                                    setValue={setValue}
                                     users={users}
                                     categories={categories}
                                     showFileUpload={true}
                                     fileRequired={false}
+                                    isViewMode={false}
+                                    isEditMode={true}
                                 />
 
                                 {/* Stakeholders and Owners - Replaced with shared component */}
@@ -301,23 +324,7 @@ const EditDocPage = () => {
                                     onOwnerRemove={stakeholderManagement.handleOwnerRemove}
                                 />
 
-                                {/* Review Date */}
-                                <div className="form-control mb-4">
-                                    <label className="label" htmlFor="reviewDate">Opens For Review:</label>
-                                    <Controller
-                                        name="reviewDate"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <DatePicker
-                                                placeholderText="Select review date"
-                                                selected={field.value}
-                                                onChange={(date) => field.onChange(date)}
-                                                className="input input-bordered w-full"
-                                            />
-                                        )}
-                                    />
-                                    {errors.reviewDate && <p className="text-red-500 mt-1">{errors.reviewDate.message}</p>}
-                                </div>
+
 
                                 {/* Review Assignments - Replaced with shared component */}
                                 <ReviewAssignments
@@ -331,6 +338,8 @@ const EditDocPage = () => {
                                     onDueDateChange={reviewManagement.handleReviewDueDateChange}
                                     onNotesChange={reviewManagement.handleReviewNotesChange}
                                     validationError={reviewManagement.getReviewValidationError()}
+                                    opensForReview={watch("opensForReview")}
+                                    reviewPeriod={watch("reviewPeriod")}
                                 />
                                 {/* External Contacts - Replaced with shared component */}
                                 <ExternalContactsManager

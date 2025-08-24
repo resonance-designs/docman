@@ -58,8 +58,8 @@ const ViewDocPage = () => {
                 'BEGIN:VEVENT',
                 `UID:${doc._id}`,
                 `DTSTAMP:${new Date().toISOString().replace(/-|:|\.\d+/g, '')}`,
-                `DTSTART:${new Date(doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
-                `DTEND:${new Date(doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `DTSTART:${new Date(doc.opensForReview || doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `DTEND:${new Date(doc.opensForReview || doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
                 `SUMMARY:Review Document: ${doc.title}`,
                 `DESCRIPTION:Review document "${doc.title}" for category ${doc.category?.name || 'Uncategorized'}`,
                 'END:VEVENT',
@@ -83,8 +83,8 @@ const ViewDocPage = () => {
     };
 
 
-    // Check if document needs review (review date is today or in the past)
-    const needsReview = doc && new Date(doc.reviewDate) <= new Date();
+    // Check if document needs review (opens for review date is today or in the past)
+    const needsReview = doc && new Date(doc.opensForReview || doc.reviewDate) <= new Date();
 
     if (loading) {
         return (
@@ -160,13 +160,13 @@ const ViewDocPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Review Date */}
+                                {/* Opens For Review */}
                                 <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
                                     <CalendarIcon className={needsReview ? "text-red-600" : "text-resdes-orange"} size={20} />
                                     <div>
-                                        <p className="text-sm text-gray-600">Review Date</p>
+                                        <p className="text-sm text-gray-600">Opens For Review</p>
                                         <p className={`font-medium ${needsReview ? "text-red-600 font-bold" : ""}`}>
-                                        {formatDate(new Date(doc.reviewDate))}
+                                        {formatDate(new Date(doc.opensForReview || doc.reviewDate))}
                                         {needsReview && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">OVERDUE</span>}
                                         </p>
                                         <button
@@ -179,6 +179,61 @@ const ViewDocPage = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Review Interval */}
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                    <CalendarIcon className="text-resdes-blue" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Review Interval</p>
+                                        <p className="font-medium">
+                                            {doc.reviewInterval === 'custom' 
+                                                ? `Every ${doc.reviewIntervalDays} days`
+                                                : doc.reviewInterval?.charAt(0).toUpperCase() + doc.reviewInterval?.slice(1) || 'Quarterly'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Review Period */}
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                    <CalendarIcon className="text-resdes-green" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Review Period</p>
+                                        <p className="font-medium">
+                                            {doc.reviewPeriod === '1week' && '1 Week'}
+                                            {doc.reviewPeriod === '2weeks' && '2 Weeks'}
+                                            {doc.reviewPeriod === '3weeks' && '3 Weeks'}
+                                            {doc.reviewPeriod === '1month' && '1 Month'}
+                                            {!doc.reviewPeriod && '2 Weeks'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Last Reviewed On */}
+                                {doc.lastReviewedOn && (
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <CalendarIcon className="text-green-600" size={20} />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Last Reviewed On</p>
+                                            <p className="font-medium text-green-600">
+                                                {formatDate(new Date(doc.lastReviewedOn))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Next Review Due On */}
+                                {doc.nextReviewDueOn && (
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <CalendarIcon className="text-blue-600" size={20} />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Next Review Due On</p>
+                                            <p className="font-medium text-blue-600">
+                                                {formatDate(new Date(doc.nextReviewDueOn))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Description */}

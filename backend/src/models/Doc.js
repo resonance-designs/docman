@@ -15,7 +15,12 @@ import mongoose from "mongoose";
  * @typedef {Object} DocSchema
  * @property {string} title - Document title (required)
  * @property {string} description - Document description (required)
- * @property {Date} reviewDate - Date when document needs to be reviewed (required)
+ * @property {Date} opensForReview - Date when document opens for review (required)
+ * @property {string} reviewInterval - Review interval type (monthly, quarterly, semiannually, annually, custom)
+ * @property {number} reviewIntervalDays - Number of days for custom review interval (required if reviewInterval is 'custom')
+ * @property {string} reviewPeriod - Time frame for completing review (1week, 2weeks, 3weeks, 1month)
+ * @property {Date} lastReviewedOn - Date when review was last completed (optional)
+ * @property {Date} nextReviewDueOn - Calculated date for next review (optional)
  * @property {ObjectId} author - Reference to User who created the document (required)
  * @property {ObjectId} category - Reference to Category for document classification (required)
  * @property {ObjectId[]} stakeholders - Array of User references who are stakeholders
@@ -50,9 +55,33 @@ const docSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        reviewDate: {
+        opensForReview: {
             type: Date,
             required: true
+        },
+        reviewInterval: {
+            type: String,
+            enum: ['monthly', 'quarterly', 'semiannually', 'annually', 'custom'],
+            default: 'quarterly'
+        },
+        reviewIntervalDays: {
+            type: Number,
+            required: function() {
+                return this.reviewInterval === 'custom';
+            }
+        },
+        reviewPeriod: {
+            type: String,
+            enum: ['1week', '2weeks', '3weeks', '1month'],
+            default: '2weeks'
+        },
+        lastReviewedOn: {
+            type: Date,
+            default: null
+        },
+        nextReviewDueOn: {
+            type: Date,
+            default: null
         },
         author: {
             type: mongoose.Schema.Types.ObjectId,

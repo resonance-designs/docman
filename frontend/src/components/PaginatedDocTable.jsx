@@ -181,11 +181,11 @@ const PaginatedDocTable = ({ docs, setDocs, itemsPerPage = 10, sortConfig, onSor
                                         Added On
                                     </SortableHeader>
                                     <SortableHeader
-                                        sortKey="reviewDate"
+                                        sortKey="opensForReview"
                                         currentSort={sortConfig}
                                         onSort={onSort}
                                     >
-                                        Review Date
+                                        Opens For Review
                                     </SortableHeader>
                                     <th className="p-4">
                                         <p className="block text-sm antialiased leading-none float-right">

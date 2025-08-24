@@ -168,6 +168,11 @@ export async function updateReviewAssignment(req, res) {
             await createUpdateAssignment(assignment);
         }
 
+        // If this review is completed, check if all reviews for this document are completed
+        if (status === 'completed') {
+            await checkAndUpdateDocumentReviewStatus(assignment.document);
+        }
+
         // Populate the assignment with details
         const populatedAssignment = await ReviewAssignment.findById(assignment._id)
             .populate('assignee', 'firstname lastname email')
@@ -380,5 +385,66 @@ DocMan System
     } catch (error) {
         console.error("Error sending update assignment email:", error);
         throw error;
+    }
+}
+
+/**
+ * Check if all reviews for a document are completed and update document status
+ * @param {string} documentId - Document ID
+ */
+async function checkAndUpdateDocumentReviewStatus(documentId) {
+    try {
+        // Get all review assignments for this document
+        const assignments = await ReviewAssignment.find({ document: documentId });
+        
+        // Check if all assignments are completed
+        const allCompleted = assignments.length > 0 && assignments.every(assignment => assignment.status === 'completed');
+        
+        if (allCompleted) {
+            // Calculate next review date based on review interval
+            const doc = await Doc.findById(documentId);
+            if (!doc) return;
+            
+            const now = new Date();
+            let nextReviewDate = null;
+            
+            // Calculate next review date based on interval
+            switch (doc.reviewInterval) {
+                case 'monthly':
+                    nextReviewDate = new Date(now);
+                    nextReviewDate.setMonth(nextReviewDate.getMonth() + 1);
+                    break;
+                case 'quarterly':
+                    nextReviewDate = new Date(now);
+                    nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+                    break;
+                case 'semiannually':
+                    nextReviewDate = new Date(now);
+                    nextReviewDate.setMonth(nextReviewDate.getMonth() + 6);
+                    break;
+                case 'annually':
+                    nextReviewDate = new Date(now);
+                    nextReviewDate.setFullYear(nextReviewDate.getFullYear() + 1);
+                    break;
+                case 'custom':
+                    if (doc.reviewIntervalDays) {
+                        nextReviewDate = new Date(now);
+                        nextReviewDate.setDate(nextReviewDate.getDate() + doc.reviewIntervalDays);
+                    }
+                    break;
+            }
+            
+            // Update document with completion info
+            await Doc.findByIdAndUpdate(documentId, {
+                lastReviewedOn: now,
+                nextReviewDueOn: nextReviewDate,
+                reviewCompleted: true,
+                reviewCompletedAt: now
+            });
+            
+            console.log(`Document ${documentId} review completed. Next review due: ${nextReviewDate?.toDateString()}`);
+        }
+    } catch (error) {
+        console.error("Error checking document review status:", error);
     }
 }

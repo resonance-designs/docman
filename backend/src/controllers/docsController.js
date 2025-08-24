@@ -118,12 +118,13 @@ export async function getDocById(req, res) {
  */
 export async function createDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category } = req.body;
+        const { title, description, opensForReview, reviewDate, author, category } = req.body;
 
-        // Validate required fields
-        if (!title || !description || !reviewDate || !author || !category) {
+        // Validate required fields - support both new and old field names for migration
+        const reviewDateField = opensForReview || reviewDate;
+        if (!title || !description || !reviewDateField || !author || !category) {
             return res.status(400).json({
-                message: "Title, description, reviewDate, author, and category are required."
+                message: "Title, description, opensForReview (or reviewDate), author, and category are required."
             });
         }
 

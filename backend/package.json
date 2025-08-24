@@ -41,6 +41,7 @@
     "test:ci": "NODE_ENV=test jest --ci --coverage --watchAll=false",
     "send-review-notifications": "node scripts/sendReviewNotifications.js",
     "migrate-categories": "ATLAS=no NODE_ENV=development node src/scripts/migrateCategoryTypes.js",
+    "migrate-review-fields": "ATLAS=no NODE_ENV=development node src/scripts/migrateReviewFields.js",
     "create-book-categories": "ATLAS=no NODE_ENV=development node src/scripts/createBookCategory.js",
     "clear:users": "ATLAS=no NODE_ENV=development node src/scripts/clearData/clearUsers.js",
     "clear:books": "ATLAS=no NODE_ENV=development node src/scripts/clearData/clearBooks.js",

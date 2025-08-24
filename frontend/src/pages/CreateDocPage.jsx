@@ -25,7 +25,7 @@ import {
     useFormData,
     useFileUpload
 } from "../hooks";
-import DocumentBasicFields from "../components/forms/DocumentBasicFields";
+import EnhancedDocumentFields from "../components/forms/EnhancedDocumentFields";
 import StakeholderSelection from "../components/forms/StakeholderSelection";
 import ExternalContactsManager from "../components/forms/ExternalContactsManager";
 import ReviewAssignments from "../components/forms/ReviewAssignments";
@@ -43,7 +43,7 @@ const CreateDocPage = () => {
     const navigate = useNavigate();
 
     // Form setup with shared schema
-    const { register, handleSubmit, control, formState: { errors }, reset, setValue } = useForm({
+    const { register, handleSubmit, control, formState: { errors }, reset, setValue, watch } = useForm({
         resolver: zodResolver(createDocumentSchema),
         defaultValues: defaultFormValues,
     });
@@ -98,9 +98,22 @@ const CreateDocPage = () => {
             formData.append("description", data.description);
             formData.append("category", data.category);
 
-            // Use reviewDate from form data directly
-            if (data.reviewDate) {
-                formData.append("reviewDate", data.reviewDate.toISOString());
+            // Use opensForReview from form data directly
+            if (data.opensForReview) {
+                formData.append("opensForReview", data.opensForReview.toISOString());
+            }
+            
+            // Add new review fields
+            formData.append("reviewInterval", data.reviewInterval);
+            if (data.reviewIntervalDays) {
+                formData.append("reviewIntervalDays", data.reviewIntervalDays);
+            }
+            formData.append("reviewPeriod", data.reviewPeriod);
+            if (data.lastReviewedOn) {
+                formData.append("lastReviewedOn", data.lastReviewedOn.toISOString());
+            }
+            if (data.nextReviewDueOn) {
+                formData.append("nextReviewDueOn", data.nextReviewDueOn.toISOString());
             }
 
             // Use hook state for stakeholders and owners
@@ -197,15 +210,20 @@ const CreateDocPage = () => {
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
                             <form onSubmit={handleSubmit(onSubmit)}>
-                                {/* Basic Document Fields - Replaced with shared component */}
-                                <DocumentBasicFields
+                                {/* Enhanced Document Fields - Replaced with new component */}
+                                <EnhancedDocumentFields
                                     register={register}
                                     control={control}
                                     errors={errors}
+                                    watch={watch}
+                                    setValue={setValue}
                                     users={users}
                                     categories={categories}
                                     showFileUpload={true}
                                     fileRequired={true}
+                                    isViewMode={false}
+                                    isEditMode={false}
+                                    showNextReviewDate={false}
                                 />
 
                                 {/* Stakeholders and Owners - Replaced with shared component */}
@@ -233,6 +251,8 @@ const CreateDocPage = () => {
                                     onDueDateChange={reviewManagement.handleReviewDueDateChange}
                                     onNotesChange={reviewManagement.handleReviewNotesChange}
                                     validationError={reviewManagement.getReviewValidationError()}
+                                    opensForReview={watch("opensForReview")}
+                                    reviewPeriod={watch("reviewPeriod")}
                                 />
                                 
                                 {/* External Contacts - Replaced with shared component */}
