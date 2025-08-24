@@ -460,9 +460,9 @@ const ProjectDetailPage = () => {
 
     const isOwner = project.owner && currentUser && project.owner._id === currentUser.id;
     const isAdmin = project.members?.some(member =>
-        member.user._id === currentUser?.id && member.role === 'admin'
+        member.user && member.user._id === currentUser?.id && member.role === 'admin'
     );
-    const canManageProject = isOwner || isAdmin || currentUser?.role === 'admin';
+    const canManageProject = isOwner || isAdmin || currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
 
     const getStatusColor = (status) => {
         switch (status) {

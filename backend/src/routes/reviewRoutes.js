@@ -26,19 +26,19 @@ import {
  */
 const router = express.Router();
 
-// POST /api/reviews - Create review assignments for a document (only editors and admins can assign reviews)
-router.post("/", verifyAccessToken, requireRole("editor", "admin"), createReviewAssignments);
+// POST /api/reviews - Create review assignments for a document (only editors, admins, and superadmins can assign reviews)
+router.post("/", verifyAccessToken, requireRole("editor", "admin", "superadmin"), createReviewAssignments);
 
 // GET /api/reviews/document/:documentId - Get review assignments for a specific document (all authenticated users can view)
-router.get("/document/:documentId", verifyAccessToken, requireRole("viewer", "editor", "admin"), getDocumentReviewAssignments);
+router.get("/document/:documentId", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getDocumentReviewAssignments);
 
 // GET /api/reviews/user/:userId - Get review assignments for a specific user (all authenticated users can view)
-router.get("/user/:userId", verifyAccessToken, requireRole("viewer", "editor", "admin"), getUserReviewAssignments);
+router.get("/user/:userId", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getUserReviewAssignments);
 
-// PUT /api/reviews/:id - Update review assignment status (assignee or admins can update)
-router.put("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin"), updateReviewAssignment);
+// PUT /api/reviews/:id - Update review assignment status (assignee, admins, and superadmins can update)
+router.put("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), updateReviewAssignment);
 
-// GET /api/reviews/overdue - Get overdue review assignments (only admins can view overdue reviews)
-router.get("/overdue", verifyAccessToken, requireRole("admin"), getOverdueReviewAssignments);
+// GET /api/reviews/overdue - Get overdue review assignments (only admins and superadmins can view overdue reviews)
+router.get("/overdue", verifyAccessToken, requireRole("admin", "superadmin"), getOverdueReviewAssignments);
 
 export default router;

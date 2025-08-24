@@ -61,7 +61,7 @@ const ViewBookPage = () => {
         });
     };
 
-    const canEditBook = userRole === 'admin' || userRole === 'editor' || book?.isOwner;
+    const canEditBook = userRole === 'admin' || userRole === 'editor' || userRole === 'superadmin' || book?.isOwner;
 
     if (loading) {
         return (

@@ -7,7 +7,7 @@
  * @version 2.1.10
  * @license UNLICENSED
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import {
     FolderIcon,
@@ -23,6 +23,7 @@ import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 import { useConfirmationContext } from "../../context/ConfirmationContext";
+import { decodeJWT } from "../../lib/utils";
 
 /**
  * Project card component for displaying project information with actions
@@ -34,7 +35,21 @@ import { useConfirmationContext } from "../../context/ConfirmationContext";
 const ProjectCard = ({ project, onProjectDeleted }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [userRole, setUserRole] = useState(null);
     const { confirm } = useConfirmationContext();
+
+    /**
+     * Get current user info from token when component mounts
+     */
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            const decoded = decodeJWT(token);
+            setCurrentUser(decoded);
+            setUserRole(decoded?.role);
+        }
+    }, []);
 
     /**
      * Handle project deletion with confirmation
@@ -110,6 +125,13 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
     const documentCount = project.documentCount || project.documents?.length || 0;
     const collaboratorCount = project.collaboratorCount || project.collaborators?.length || 0;
     const isOverdue = project.endDate && new Date(project.endDate) < new Date();
+    
+    // Check if current user can manage this project (owner, collaborator, or admin/superadmin)
+    const isOwner = project.owner && currentUser && project.owner._id === currentUser.id;
+    const isCollaborator = project.collaborators && currentUser && 
+        project.collaborators.some(collab => collab._id === currentUser.id || collab.user?._id === currentUser.id);
+    const isAdmin = userRole === "admin" || userRole === "superadmin";
+    const canManageProject = isOwner || isCollaborator || isAdmin;
 
     return (
         <div className="bg-base-100 rounded-lg shadow-md border-2 border-resdes-orange hover:shadow-lg transition-shadow">
@@ -145,16 +167,17 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
                     </div>
                     
                     {/* Menu */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            className="p-1 rounded-full hover:bg-gray-100"
-                            disabled={loading}
-                        >
-                            <MoreVerticalIcon size={16} className="text-gray-500" />
-                        </button>
+                    {canManageProject && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                className="p-1 rounded-full hover:bg-gray-100"
+                                disabled={loading}
+                            >
+                                <MoreVerticalIcon size={16} className="text-gray-500" />
+                            </button>
                         
-                        {showMenu && (
+                        {showMenu && canManageProject && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
                                 <div className="py-1">
                                     <Link
@@ -176,7 +199,8 @@ const ProjectCard = ({ project, onProjectDeleted }) => {
                                 </div>
                             </div>
                         )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

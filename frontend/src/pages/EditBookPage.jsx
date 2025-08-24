@@ -11,6 +11,7 @@ import { useNavigate, useParams, Link } from "react-router";
 import { ArrowLeftIcon, BookOpen } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
+import { ensureArray } from "../lib/safeUtils";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -272,7 +273,7 @@ const EditBookPage = () => {
                                         }}
                                     >
                                         <option value="">Add an owner...</option>
-                                        {users.filter(user => !selectedOwners.includes(user._id)).map((user) => (
+                                        {ensureArray(users).filter(user => !selectedOwners.includes(user._id)).map((user) => (
                                             <option key={user._id} value={user._id}>
                                                 {`${user.firstname || ""} ${user.lastname || ""}`.trim()} ({user.email})
                                             </option>
@@ -282,7 +283,7 @@ const EditBookPage = () => {
                                     {/* Selected Owners Chips */}
                                     <div className="flex flex-wrap gap-2">
                                         {selectedOwners.map((ownerId) => {
-                                            const user = users.find(u => u._id === ownerId);
+                                            const user = ensureArray(users).find(u => u._id === ownerId);
                                             if (!user) return null;
                                             
                                             return (

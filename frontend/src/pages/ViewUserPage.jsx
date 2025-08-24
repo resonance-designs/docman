@@ -28,7 +28,7 @@ const ViewUserPage = () => {
             try {
                 const decoded = decodeJWT(token);
                 setCurrentUser(decoded);
-                setIsAdmin(decoded?.role === "admin");
+                setIsAdmin(decoded?.role === "admin" || decoded?.role === "superadmin");
             } catch (error) {
                 console.error("Invalid token:", error);
             }
@@ -295,10 +295,18 @@ const ViewUserPage = () => {
                                     <div className="p-4 bg-base-300 rounded-lg">
                                         <h4 className="font-semibold text-base-content mb-2">Permissions</h4>
                                         <div className="space-y-1 text-sm text-base-content">
+                                            {user.role === 'superadmin' && (
+                                                <>
+                                                    <div>✓ Complete system control</div>
+                                                    <div>✓ User management & deletion</div>
+                                                    <div>✓ System administration</div>
+                                                    <div>✓ Danger zone access</div>
+                                                </>
+                                            )}
                                             {user.role === 'admin' && (
                                                 <>
-                                                    <div>✓ Full system access</div>
-                                                    <div>✓ User management</div>
+                                                    <div>✓ System access (limited)</div>
+                                                    <div>✓ Resource management</div>
                                                     <div>✓ Document management</div>
                                                     <div>✓ Team management</div>
                                                 </>

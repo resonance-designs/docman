@@ -20,8 +20,8 @@ import { sanitizeErrorMessage, logError } from "../lib/utils.js";
  * @returns {boolean} True if user has access
  */
 export function hasDocumentAccess(doc, userId, userRole) {
-    // Admins have access to all documents
-    if (userRole === 'admin') return true;
+    // Admins and superadmins have access to all documents
+    if (userRole === 'admin' || userRole === 'superadmin') return true;
     
     // Check if user is the author
     if (doc.author?.toString() === userId) return true;

@@ -71,7 +71,7 @@ const DocTable = ({ doc, setDocs }) => {
     const needsReview = new Date(doc.reviewDate) <= new Date();
 
     // Check if user is admin
-    const isAdmin = userRole === "admin";
+    const isAdmin = userRole === "admin" || userRole === "superadmin";
 
     return (
         <tr className="bg-base-100 p-4 border-b border-resdes-orange text-base-content text-sm antialiased font-normal leading-normal">

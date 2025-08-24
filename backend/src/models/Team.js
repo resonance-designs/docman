@@ -188,7 +188,7 @@ teamSchema.pre('save', function(next) {
     if (this.isNew || this.isModified('owner')) {
         // Check if owner is already in members
         const ownerInMembers = this.members.some(member =>
-            member.user.toString() === this.owner.toString()
+            member.user && member.user.toString() === this.owner.toString()
         );
 
         if (!ownerInMembers) {
@@ -208,9 +208,41 @@ teamSchema.pre('save', function(next) {
  * @returns {boolean} True if user is a member of the team
  */
 teamSchema.methods.isMember = function(userId) {
-    return this.members.some(member =>
-        member.user.toString() === userId.toString()
-    );
+    console.log("isMember check - userId:", userId, "type:", typeof userId);
+    console.log("isMember check - owner:", this.owner, "type:", typeof this.owner);
+    console.log("isMember check - owner._id:", this.owner?._id, "type:", typeof this.owner?._id);
+    
+    // Check if user is the owner
+    // Handle both populated (object with _id) and non-populated (ObjectId) owner
+    let ownerIdStr;
+    if (this.owner) {
+        if (this.owner._id) {
+            // Owner is populated
+            ownerIdStr = this.owner._id.toString();
+        } else {
+            // Owner is not populated (just ObjectId)
+            ownerIdStr = this.owner.toString();
+        }
+    }
+    const userIdStr = userId.toString();
+    
+    console.log("isMember check - ownerIdStr:", ownerIdStr, "userIdStr:", userIdStr, "equal:", ownerIdStr === userIdStr);
+    
+    if (this.owner && ownerIdStr === userIdStr) {
+        console.log("User is owner, returning true");
+        return true;
+    }
+    
+    // Check if user is in members array
+    const isMemberInArray = this.members.some(member => {
+        if (!member.user) return false;
+        const memberIdStr = member.user._id ? member.user._id.toString() : member.user.toString();
+        console.log("Checking member:", memberIdStr, "against user:", userIdStr);
+        return memberIdStr === userIdStr;
+    });
+    
+    console.log("isMember result:", isMemberInArray);
+    return isMemberInArray;
 };
 
 /**
@@ -220,7 +252,7 @@ teamSchema.methods.isMember = function(userId) {
  */
 teamSchema.methods.isAdmin = function(userId) {
     return this.members.some(member =>
-        member.user.toString() === userId.toString() && member.role === 'admin'
+        member.user && member.user.toString() === userId.toString() && member.role === 'admin'
     );
 };
 
@@ -231,7 +263,7 @@ teamSchema.methods.isAdmin = function(userId) {
  */
 teamSchema.methods.getUserRole = function(userId) {
     const member = this.members.find(member =>
-        member.user.toString() === userId.toString()
+        member.user && member.user.toString() === userId.toString()
     );
     return member ? member.role : null;
 };

@@ -91,7 +91,7 @@ const ViewCatsPage = () => {
     };
 
     // Check if user can create categories (editor or admin)
-    const canCreateCategory = userRole === "editor" || userRole === "admin";
+    const canCreateCategory = userRole === "editor" || userRole === "admin" || userRole === "superadmin";
 
     return (
         <div className="min-h-screen">

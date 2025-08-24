@@ -91,14 +91,17 @@ export async function register(req, res) {
         });
         if (existingUser) return res.status(409).json({ message: "User already exists." });
 
-        const hashedPassword = await bcrypt.hash(password, 12);
+        // Use the provided role or default to viewer
+        const assignedRole = role || "viewer";
+
+        // Create user - password will be hashed by pre-save middleware
         const user = new User({
             email: sanitizedEmail,
             firstname: sanitizedFirstname,
             lastname: sanitizedLastname,
             username: sanitizedUsername,
-            password: hashedPassword,
-            role: role || "viewer"
+            password: password, // Don't hash here - let pre-save middleware handle it
+            role: assignedRole
         });
         await user.save();
 
@@ -131,7 +134,10 @@ export async function login(req, res) {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ message: "All fields are required." });
 
-        const user = await User.findOne({ email });
+        // Allow login with either email or username
+        const user = await User.findOne({
+            $or: [{ email: email }, { username: email }]
+        });
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ message: "Invalid credentials." });
         }
@@ -202,7 +208,7 @@ export async function resetPassword(req, res) {
     });
     if (!user) return res.status(400).json({ message: "Invalid or expired token." });
 
-    user.password = await bcrypt.hash(password, 12);
+    user.password = password; // Don't hash here - let pre-save middleware handle it
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();

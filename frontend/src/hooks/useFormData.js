@@ -10,6 +10,7 @@
 import { useState, useEffect } from "react";
 import api from "../lib/axios";
 import toast from "react-hot-toast";
+import { ensureArray } from "../lib/safeUtils";
 
 /**
  * Custom hook for loading common form data
@@ -113,7 +114,7 @@ export function useFormData({
     const getFullName = (user) => {
         if (!user) return "Unknown";
         if (typeof user === "string") {
-            const foundUser = users.find(u => u._id === user);
+            const foundUser = ensureArray(users).find(u => u._id === user);
             if (foundUser) {
                 return `${foundUser.firstname || ""} ${foundUser.lastname || ""}`.trim() || "Unknown";
             }
@@ -130,7 +131,7 @@ export function useFormData({
     const getCategoryName = (category) => {
         if (!category) return "Unknown";
         if (typeof category === "string") {
-            const foundCategory = categories.find(c => c._id === category);
+            const foundCategory = ensureArray(categories).find(c => c._id === category);
             return foundCategory?.name || category;
         }
         return category.name || "Unknown";

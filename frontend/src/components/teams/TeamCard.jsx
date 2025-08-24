@@ -7,13 +7,14 @@
  * @version 2.1.10
  * @license UNLICENSED
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { UsersIcon, FolderIcon, MoreVerticalIcon, EditIcon, TrashIcon, UserPlusIcon } from "lucide-react";
 import PropTypes from "prop-types";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
 import { useConfirmationContext } from "../../context/ConfirmationContext";
+import { decodeJWT } from "../../lib/utils";
 
 /**
  * Team card component for displaying team information with actions
@@ -25,7 +26,21 @@ import { useConfirmationContext } from "../../context/ConfirmationContext";
 const TeamCard = ({ team, onTeamDeleted }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [userRole, setUserRole] = useState(null);
     const { confirm } = useConfirmationContext();
+
+    /**
+     * Get current user info from token when component mounts
+     */
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) {
+            const decoded = decodeJWT(token);
+            setCurrentUser(decoded);
+            setUserRole(decoded?.role);
+        }
+    }, []);
 
     /**
      * Handle team deletion with confirmation
@@ -54,7 +69,11 @@ const TeamCard = ({ team, onTeamDeleted }) => {
         });
     };
 
-    const isOwner = team.owner && team.owner._id;
+    // Check if current user is the team owner or has admin/superadmin privileges
+    const isOwner = team.owner && currentUser && team.owner._id === currentUser.id;
+    const isAdmin = userRole === "admin" || userRole === "superadmin";
+    const canManageTeam = isOwner || isAdmin;
+    
     const memberCount = team.memberCount || team.members?.length || 0;
     const projectCount = team.projectCount || 0;
 
@@ -106,7 +125,7 @@ const TeamCard = ({ team, onTeamDeleted }) => {
                                         <UserPlusIcon size={14} className="mr-2" />
                                         Invite Members
                                     </Link>
-                                    {isOwner && (
+                                    {canManageTeam && (
                                         <button
                                             onClick={handleDeleteTeam}
                                             className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
@@ -146,11 +165,11 @@ const TeamCard = ({ team, onTeamDeleted }) => {
                 )}
 
                 {/* Recent Members */}
-                {team.members && team.members.length > 0 && (
+                {team.members && team.members.filter(member => member.user).length > 0 && (
                     <div className="mt-4 pt-4 border-t border-base-300">
                         <p className="text-sm font-semibold text-base mb-2">Recent Members</p>
                         <div className="flex -space-x-2">
-                            {team.members.slice(0, 4).map((member, index) => (
+                            {team.members.slice(0, 4).filter(member => member.user).map((member, index) => (
                                 <div
                                     key={member.user._id || index}
                                     className="w-8 h-8 rounded-full bg-resdes-blue text-white text-xs flex items-center justify-center border-2 border-white"
@@ -159,9 +178,9 @@ const TeamCard = ({ team, onTeamDeleted }) => {
                                     {member.user.firstname?.[0]}{member.user.lastname?.[0]}
                                 </div>
                             ))}
-                            {team.members.length > 4 && (
+                            {team.members.filter(member => member.user).length > 4 && (
                                 <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 text-xs flex items-center justify-center border-2 border-white">
-                                    +{team.members.length - 4}
+                                    +{team.members.filter(member => member.user).length - 4}
                                 </div>
                             )}
                         </div>

@@ -13,7 +13,7 @@ import PropTypes from "prop-types";
 
 const NavAdmin = ({ role }) => {
     // Only render if user is admin
-    if (role !== "admin") {
+    if (role !== "admin" && role !== "superadmin") {
         return null;
     }
 

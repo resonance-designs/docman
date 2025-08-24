@@ -65,7 +65,7 @@ const EditProjectPage = () => {
             }
         };
 
-        if (userRole === "editor" || userRole === "admin") {
+        if (userRole === "editor" || userRole === "admin" || userRole === "superadmin") {
             fetchTeams();
         } else {
             setTeamsLoading(false);
@@ -248,7 +248,7 @@ const EditProjectPage = () => {
         }));
     };
 
-    if (userRole !== "editor" && userRole !== "admin") {
+    if (userRole !== "editor" && userRole !== "admin" && userRole !== "superadmin") {
         return (
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-4">
@@ -257,7 +257,7 @@ const EditProjectPage = () => {
                             <FolderIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">Access Restricted</h3>
                             <p className="text-gray-500">
-                                You need editor or admin privileges to edit projects.
+                                You need editor, admin, or superadmin privileges to edit projects.
                             </p>
                         </div>
                     </div>

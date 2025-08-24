@@ -82,7 +82,7 @@ export async function getTeamProjects(req, res) {
             return res.status(404).json({ message: "Team not found" });
         }
 
-        if (!team.isMember(userId) && req.user.role !== 'admin') {
+        if (!team.isMember(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -221,7 +221,7 @@ export async function getProjectById(req, res) {
         }
         const hasProjectAccess = project.isCollaborator(userId);
 
-        if (!hasTeamAccess && !hasProjectAccess && req.user.role !== 'admin') {
+        if (!hasTeamAccess && !hasProjectAccess && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -274,7 +274,7 @@ export async function createProject(req, res) {
 
         let hasAccess = false;
         for (const team of teams) {
-            if (team.isMember(userId) || req.user.role === 'admin') {
+            if (team.isMember(userId) || (req.user.role === 'admin' || req.user.role === 'superadmin')) {
                 hasAccess = true;
                 break;
             }
@@ -358,7 +358,7 @@ export async function updateProject(req, res) {
         }
 
         // Check permissions (owner, manager, or admin)
-        if (project.owner.toString() !== userId && !project.isManager(userId) && req.user.role !== 'admin') {
+        if (project.owner.toString() !== userId && !project.isManager(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -395,7 +395,7 @@ export async function updateProject(req, res) {
 
             let hasAccess = false;
             for (const team of teams) {
-                if (team.isMember(userId) || req.user.role === 'admin') {
+                if (team.isMember(userId) || (req.user.role === 'admin' || req.user.role === 'superadmin')) {
                     hasAccess = true;
                     break;
                 }
@@ -476,7 +476,7 @@ export async function deleteProject(req, res) {
         }
 
         // Check permissions (owner or admin)
-        if (project.owner.toString() !== userId && req.user.role !== 'admin') {
+        if (project.owner.toString() !== userId && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -517,7 +517,7 @@ export async function addCollaborator(req, res) {
         }
 
         // Check permissions (owner, manager, or admin)
-        if (project.owner.toString() !== userId && !project.isManager(userId) && req.user.role !== 'admin') {
+        if (project.owner.toString() !== userId && !project.isManager(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -578,7 +578,7 @@ export async function removeCollaborator(req, res) {
                          project.isManager(currentUserId) ||
                          collaboratorId === currentUserId; // Users can remove themselves
 
-        if (!canRemove && req.user.role !== 'admin') {
+        if (!canRemove && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -619,7 +619,7 @@ export async function addDocument(req, res) {
         }
 
         // Check permissions (collaborator or admin)
-        if (!project.isCollaborator(userId) && req.user.role !== 'admin') {
+        if (!project.isCollaborator(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -669,7 +669,7 @@ export async function removeDocument(req, res) {
         }
 
         // Check permissions (manager or admin)
-        if (!project.isManager(userId) && project.owner.toString() !== userId && req.user.role !== 'admin') {
+        if (!project.isManager(userId) && project.owner.toString() !== userId && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -722,7 +722,7 @@ export async function getProjectBooks(req, res) {
         // Check if user has access to this project
         const hasAccess = project.owner.toString() === currentUserId ||
                          project.isCollaborator(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -754,7 +754,7 @@ export async function getAvailableProjectBooks(req, res) {
         // Check if user has access to this project
         const hasAccess = project.owner.toString() === currentUserId ||
                          project.isCollaborator(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -799,7 +799,7 @@ export async function addBooksToProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -859,7 +859,7 @@ export async function removeBooksFromProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -916,7 +916,7 @@ export async function getProjectDocuments(req, res) {
         // Check if user has access to this project
         const hasAccess = project.owner.toString() === currentUserId ||
                          project.isCollaborator(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -948,7 +948,7 @@ export async function getAvailableProjectDocuments(req, res) {
         // Check if user has access to this project
         const hasAccess = project.owner.toString() === currentUserId ||
                          project.isCollaborator(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -993,7 +993,7 @@ export async function addDocumentsToProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -1067,7 +1067,7 @@ export async function removeDocumentsFromProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -1137,7 +1137,7 @@ export async function getProjectCollaborators(req, res) {
         // Check if user has access to this project
         const hasAccess = project.owner.toString() === currentUserId ||
                          project.isCollaborator(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -1225,7 +1225,7 @@ export async function getAvailableCollaborators(req, res) {
                              collab.user._id.toString() === currentUserId && 
                              ['manager', 'admin'].includes(collab.role)
                          ) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });

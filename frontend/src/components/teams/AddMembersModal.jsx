@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { XIcon, UserPlusIcon, SearchIcon, UsersIcon } from "lucide-react";
 import api from "../../lib/axios";
 import toast from "react-hot-toast";
+import { ensureArray } from "../../lib/safeUtils";
 
 const AddMembersModal = ({ isOpen, onClose, teamId, onMemberAdded, currentMembers = [] }) => {
     const [users, setUsers] = useState([]);
@@ -21,7 +22,7 @@ const AddMembersModal = ({ isOpen, onClose, teamId, onMemberAdded, currentMember
     const [selectedRole, setSelectedRole] = useState('member');
 
     // Get current member user IDs for filtering
-    const currentMemberIds = currentMembers.map(member => member.user._id);
+    const currentMemberIds = currentMembers.filter(member => member.user).map(member => member.user._id);
 
     // Fetch all users when modal opens
     useEffect(() => {
@@ -74,7 +75,7 @@ const AddMembersModal = ({ isOpen, onClose, teamId, onMemberAdded, currentMember
     };
 
     const getFilteredUsers = () => {
-        return users.filter(user => {
+        return ensureArray(users).filter(user => {
             if (!searchTerm) return true;
             const searchLower = searchTerm.toLowerCase();
             return (

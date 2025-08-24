@@ -100,7 +100,8 @@ export function useUserRole({ autoUpdate = true } = {}) {
         const roleHierarchy = {
             viewer: 1,
             editor: 2,
-            admin: 3
+            admin: 3,
+            superadmin: 4
         };
 
         const userLevel = roleHierarchy[userRole] || 0;
@@ -118,6 +119,11 @@ export function useUserRole({ autoUpdate = true } = {}) {
      * Check if user is admin
      */
     const isAdmin = hasRole("admin");
+
+    /**
+     * Check if user is super admin
+     */
+    const isSuperAdmin = hasRole("superadmin");
 
     /**
      * Check if user is viewer only
@@ -185,6 +191,7 @@ export function useUserRole({ autoUpdate = true } = {}) {
         hasPermission,
         canEdit,
         isAdmin,
+        isSuperAdmin,
         isViewer,
 
         // Actions

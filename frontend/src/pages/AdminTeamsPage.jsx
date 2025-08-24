@@ -43,7 +43,7 @@ const AdminTeamsPage = () => {
             setUserRole(decoded?.role);
             
             // Redirect if not admin
-            if (decoded?.role !== "admin") {
+            if (decoded?.role !== "admin" && decoded?.role !== "superadmin") {
                 toast.error("You don't have permission to access this page");
                 navigate("/teams");
             }
@@ -71,7 +71,7 @@ const AdminTeamsPage = () => {
             }
         };
 
-        if (userRole === "admin") {
+        if (userRole === "admin" || userRole === "superadmin") {
             fetchTeams();
         }
     }, [userRole]);

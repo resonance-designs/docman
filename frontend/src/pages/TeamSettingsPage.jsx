@@ -153,7 +153,7 @@ const TeamSettingsPage = () => {
     };
 
     // Check if user has permission to edit
-    const canEdit = userRole === "admin" || isOwner;
+    const canEdit = userRole === "admin" || userRole === "superadmin" || isOwner;
 
     if (loading) {
         return (

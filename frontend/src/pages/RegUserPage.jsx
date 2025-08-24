@@ -49,7 +49,7 @@ function RegisterUser() {
                 role,
             });
             toast.success("User registered successfully!");
-            navigate("/");
+            navigate("/users");
         } catch (error) {
             console.log("Error creating user", error);
             if (error.response?.status === 429) {
@@ -192,6 +192,7 @@ function RegisterUser() {
                                         <option value="viewer">Viewer</option>
                                         <option value="editor">Editor</option>
                                         <option value="admin">Admin</option>
+                                        <option value="superadmin">Super Admin</option>
                                     </select>
                                 </div>
                                 <div className="card-actions justify-end">

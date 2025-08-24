@@ -177,7 +177,7 @@ const Navbar = () => {
                                 <UserIcon className="size-5" />
                                 <span>Profile</span>
                             </Link>
-                            {(role === "editor" || role === "admin") && (
+                            {(role === "editor" || role === "admin" || role === "superadmin") && (
                                 <>
                                     <Link
                                         to="/teams"

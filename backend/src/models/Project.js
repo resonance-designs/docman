@@ -152,22 +152,28 @@ projectSchema.pre('save', function(next) {
 
 // Instance method to check if user is collaborator
 projectSchema.methods.isCollaborator = function(userId) {
+    // Check if user is the owner
+    if (this.owner && this.owner.toString() === userId.toString()) {
+        return true;
+    }
+    
+    // Check if user is in collaborators array
     return this.collaborators.some(collab => 
-        collab.user.toString() === userId.toString()
+        collab.user && collab.user.toString() === userId.toString()
     );
 };
 
 // Instance method to check if user is manager
 projectSchema.methods.isManager = function(userId) {
     return this.collaborators.some(collab => 
-        collab.user.toString() === userId.toString() && collab.role === 'manager'
+        collab.user && collab.user.toString() === userId.toString() && collab.role === 'manager'
     );
 };
 
 // Instance method to get user's role in project
 projectSchema.methods.getUserRole = function(userId) {
     const collaborator = this.collaborators.find(collab => 
-        collab.user.toString() === userId.toString()
+        collab.user && collab.user.toString() === userId.toString()
     );
     return collaborator ? collaborator.role : null;
 };

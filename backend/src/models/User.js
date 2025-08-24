@@ -18,7 +18,7 @@ import bcrypt from "bcrypt";
  * @property {string} email - User's email address (required, unique)
  * @property {string} username - User's username (required, unique)
  * @property {string} password - User's hashed password (required)
- * @property {string} role - User's role: admin, editor, or viewer (default: viewer)
+ * @property {string} role - User's role: superadmin, admin, editor, or viewer (default: viewer)
  * @property {string} telephone - User's phone number (optional)
  * @property {string} title - User's job title (optional)
  * @property {string} department - User's department (optional)
@@ -59,7 +59,7 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["admin", "editor", "viewer"],
+            enum: ["superadmin", "admin", "editor", "viewer"],
             default: "viewer", // New users are read-only by default
         },
         telephone: {

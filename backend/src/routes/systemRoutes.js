@@ -28,25 +28,25 @@ import {
  */
 const router = express.Router();
 
-// GET /api/system/info - Get system information and health status (only admins can view system info)
-router.get("/info", verifyAccessToken, requireRole("admin"), getSystemInfo);
+// GET /api/system/info - Get system information and health status (admins and super admins can view system info)
+router.get("/info", verifyAccessToken, requireRole("admin", "superadmin"), getSystemInfo);
 
-// GET /api/system/performance - Get performance metrics (admin only)
-router.get("/performance", verifyAccessToken, requireRole("admin"), getPerformanceMetrics);
+// GET /api/system/performance - Get performance metrics (admin and super admin only)
+router.get("/performance", verifyAccessToken, requireRole("admin", "superadmin"), getPerformanceMetrics);
 
-// POST /api/system/clear/:collection - Clear a collection and archive its documents (admin only)
-router.post("/clear/:collection", verifyAccessToken, requireRole("admin"), clearCollection);
+// POST /api/system/clear/:collection - Clear a collection and archive its documents (super admin only)
+router.post("/clear/:collection", verifyAccessToken, requireRole("superadmin"), clearCollection);
 
-// POST /api/system/restore/:collection - Restore a collection from its archive (admin only)
-router.post("/restore/:collection", verifyAccessToken, requireRole("admin"), restoreCollection);
+// POST /api/system/restore/:collection - Restore a collection from its archive (super admin only)
+router.post("/restore/:collection", verifyAccessToken, requireRole("superadmin"), restoreCollection);
 
-// POST /api/system/archive-files - Archive files from uploads directory (admin only)
-router.post("/archive-files", verifyAccessToken, requireRole("admin"), archiveFiles);
+// POST /api/system/archive-files - Archive files from uploads directory (super admin only)
+router.post("/archive-files", verifyAccessToken, requireRole("superadmin"), archiveFiles);
 
-// POST /api/system/restore-files - Restore files from archive directory (admin only)
-router.post("/restore-files", verifyAccessToken, requireRole("admin"), restoreFiles);
+// POST /api/system/restore-files - Restore files from archive directory (super admin only)
+router.post("/restore-files", verifyAccessToken, requireRole("superadmin"), restoreFiles);
 
-// POST /api/system/generate-dummy-data - Generate dummy data for testing (admin only)
-router.post("/generate-dummy-data", verifyAccessToken, requireRole("admin"), generateDummyData);
+// POST /api/system/generate-dummy-data - Generate dummy data for testing (super admin only)
+router.post("/generate-dummy-data", verifyAccessToken, requireRole("superadmin"), generateDummyData);
 
 export default router;
