@@ -41,8 +41,15 @@ export default function StakeholderSelection({
     onOwnerAdd,
     onOwnerRemove
 }) {
+    // Early safety check
+    if (!users) {
+        console.warn('StakeholderSelection: users prop is null/undefined, using empty array');
+    }
     // Get user object by ID
-    const getUserById = (userId) => users.find(user => user._id === userId);
+    const getUserById = (userId) => {
+        const safeUsers = ensureArray(users);
+        return safeUsers.find(user => user._id === userId);
+    };
 
     // Get available users for stakeholder selection (not already selected)
     const safeUsers = ensureArray(users);

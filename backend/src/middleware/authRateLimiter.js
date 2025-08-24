@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 // Load environment variables based on NODE_ENV
 if (process.env.NODE_ENV === 'development') {
     dotenv.config({ path: '.env.dev' });
+    console.log("🚀 Development environment detected - Rate limiting will be disabled");
 } else if (process.env.NODE_ENV === 'production') {
     dotenv.config({ path: '.env.prod' });
 } else {
@@ -35,6 +36,12 @@ const passwordResetRateLimiter = new Ratelimit({
 // Middleware functions for each auth endpoint
 export async function limitLogin(req, res, next) {
     try {
+        // Skip rate limiting in development environment
+        if (process.env.NODE_ENV === 'development') {
+            console.log("🚀 Development mode: Skipping login rate limiting");
+            return next();
+        }
+        
         // Use IP address as identifier
         const identifier = req.ip || req.connection.remoteAddress;
         const { success } = await loginRateLimiter.limit(`login:${identifier}`);
@@ -54,6 +61,12 @@ export async function limitLogin(req, res, next) {
 
 export async function limitRegister(req, res, next) {
     try {
+        // Skip rate limiting in development environment
+        if (process.env.NODE_ENV === 'development') {
+            console.log("🚀 Development mode: Skipping registration rate limiting");
+            return next();
+        }
+        
         // Use IP address as identifier
         const identifier = req.ip || req.connection.remoteAddress;
         const { success } = await registerRateLimiter.limit(`register:${identifier}`);
@@ -73,6 +86,12 @@ export async function limitRegister(req, res, next) {
 
 export async function limitPasswordReset(req, res, next) {
     try {
+        // Skip rate limiting in development environment
+        if (process.env.NODE_ENV === 'development') {
+            console.log("🚀 Development mode: Skipping password reset rate limiting");
+            return next();
+        }
+        
         // Use IP address as identifier
         const identifier = req.ip || req.connection.remoteAddress;
         const { success } = await passwordResetRateLimiter.limit(`password-reset:${identifier}`);

@@ -83,7 +83,7 @@ const AccountNav = () => {
                                 <span>Profile</span>
                             </Link>
                             
-                            {(role === "editor" || role === "admin") && (
+                            {(role === "editor" || role === "admin" || role === "superadmin") && (
                                 <>
                                     <Link
                                         to="/teams"

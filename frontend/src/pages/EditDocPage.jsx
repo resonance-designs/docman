@@ -15,6 +15,8 @@ import api from "../lib/axios";
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // Import shared components and hooks
 import { editDocumentSchema, defaultFormValues } from "../lib/documentFormSchema";
@@ -53,7 +55,7 @@ const EditDocPage = () => {
         register,
         handleSubmit,
         control,
-        formState: { errors },
+        formState: { errors, dirtyFields },
         reset,
         setValue,
     } = useForm({
@@ -81,8 +83,10 @@ const EditDocPage = () => {
                     api.get("/external-contacts/types"),
                 ]);
                 const doc = docRes.data;
-                setUsers(usersRes.data || []);
-                setCategories(catsRes.data || []);
+                
+                // Extract data from nested response structure
+                setUsers(usersRes.data?.users || usersRes.data || []);
+                setCategories(catsRes.data?.categories || catsRes.data || []);
                 setExternalContactTypes(typesRes.data || []);
 
                 // Normalize incoming values - extract _id from populated objects
@@ -159,6 +163,8 @@ const EditDocPage = () => {
 
 
     const onSubmit = async (data) => {
+        console.log("Form submitted with data:", data);
+        console.log("Dirty fields:", dirtyFields);
         setSaving(true);
         try {
             // Handle version upload first if there's a version file
@@ -269,7 +275,10 @@ const EditDocPage = () => {
                         <div className="card-body">
                             <h2 className="card-title text-2xl mb-4">Edit Document</h2>
 
-                            <form onSubmit={handleSubmit(onSubmit)}>
+                            <form onSubmit={handleSubmit(onSubmit, (errors) => {
+                console.log("Form validation errors:", errors);
+                toast.error("Please fix the form errors before submitting");
+            })}>
                                 {/* Basic Document Fields - Replaced with shared component */}
                                 <DocumentBasicFields
                                     register={register}
@@ -338,13 +347,6 @@ const EditDocPage = () => {
                                     onUpdateContact={externalContactsManagement.handleUpdateExternalContact}
                                     isNewContactValid={externalContactsManagement.isNewContactValid()}
                                 />
-
-                                {/* Optional File Replace */}
-                                <div className="form-control mb-4">
-                                    <label className="label" htmlFor="file">Replace File (optional)</label>
-                                    <input id="file" type="file" {...register("file")} className="file-input" />
-                                    {errors.file && <p className="text-red-500 mt-1">{errors.file.message}</p>}
-                                </div>
 
                                 {/* Optional File Replace */}
                                 <div className="form-control mb-4">

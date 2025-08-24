@@ -37,7 +37,13 @@ export async function getUserTeams(req, res) {
         .populate('members.user', 'firstname lastname email')
         .sort({ createdAt: -1 });
 
-        res.status(200).json(teams);
+        // Filter out members with null user references (deleted users)
+        const cleanedTeams = teams.map(team => ({
+            ...team.toObject(),
+            members: team.members.filter(member => member.user !== null)
+        }));
+
+        res.status(200).json(cleanedTeams);
     } catch (error) {
         console.error("Error fetching user teams:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -76,7 +82,13 @@ export async function getAllTeams(req, res) {
             .populate('members.user', 'firstname lastname email')
             .sort(sortObj);
 
-        res.status(200).json(teams);
+        // Filter out members with null user references (deleted users)
+        const cleanedTeams = teams.map(team => ({
+            ...team.toObject(),
+            members: team.members.filter(member => member.user !== null)
+        }));
+
+        res.status(200).json(cleanedTeams);
     } catch (error) {
         console.error("Error fetching all teams:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -104,12 +116,19 @@ export async function getTeamById(req, res) {
             return res.status(404).json({ message: "Team not found" });
         }
 
-        // Check if user has access to this team
-        if (!team.isMember(userId) && req.user.role !== 'admin') {
+        // Check if user has access to this team (member/owner or superadmin)
+        if (!team.isMember(userId) && req.user.role !== 'superadmin') {
+            console.log("Access denied for user:", userId, "Team owner:", team.owner?._id?.toString(), "User role:", req.user.role);
             return res.status(403).json({ message: "Access denied" });
         }
 
-        res.status(200).json(team);
+        // Filter out members with null user references (deleted users)
+        const cleanedTeam = {
+            ...team.toObject(),
+            members: team.members.filter(member => member.user !== null)
+        };
+
+        res.status(200).json(cleanedTeam);
     } catch (error) {
         console.error("Error fetching team:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -172,9 +191,15 @@ export async function createTeam(req, res) {
             .populate('owner', 'firstname lastname email')
             .populate('members.user', 'firstname lastname email');
 
+        // Filter out members with null user references (deleted users)
+        const cleanedTeam = {
+            ...populatedTeam.toObject(),
+            members: populatedTeam.members.filter(member => member.user !== null)
+        };
+
         res.status(201).json({
             message: "Team created successfully",
-            team: populatedTeam
+            team: cleanedTeam
         });
     } catch (error) {
         console.error("Error creating team:", error);
@@ -200,7 +225,7 @@ export async function updateTeam(req, res) {
         }
 
         // Check permissions (owner or admin)
-        if (team.owner.toString() !== userId && !team.isAdmin(userId) && req.user.role !== 'admin') {
+        if (team.owner.toString() !== userId && !team.isAdmin(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -237,9 +262,15 @@ export async function updateTeam(req, res) {
         .populate('members.user', 'firstname lastname email')
         .populate('lastUpdatedBy', 'firstname lastname email');
 
+        // Filter out members with null user references (deleted users)
+        const cleanedTeam = {
+            ...updatedTeam.toObject(),
+            members: updatedTeam.members.filter(member => member.user !== null)
+        };
+
         res.status(200).json({
             message: "Team updated successfully",
-            team: updatedTeam
+            team: cleanedTeam
         });
     } catch (error) {
         console.error("Error updating team:", error);
@@ -264,7 +295,7 @@ export async function deleteTeam(req, res) {
         }
 
         // Check permissions (owner or admin)
-        if (team.owner.toString() !== userId && req.user.role !== 'admin') {
+        if (team.owner.toString() !== userId && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -308,7 +339,7 @@ export async function inviteToTeam(req, res) {
                          team.isAdmin(userId) ||
                          (team.settings.allowMemberInvites && team.isMember(userId));
 
-        if (!canInvite && req.user.role !== 'admin') {
+        if (!canInvite && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -386,7 +417,7 @@ export async function addMemberToTeam(req, res) {
         const canAddMember = team.owner.toString() === currentUserId ||
                             team.isAdmin(currentUserId);
 
-        if (!canAddMember && req.user.role !== 'admin') {
+        if (!canAddMember && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -499,7 +530,7 @@ export async function removeMember(req, res) {
                          team.isAdmin(currentUserId) ||
                          memberUserId === currentUserId; // Users can remove themselves
 
-        if (!canRemove && req.user.role !== 'admin') {
+        if (!canRemove && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -546,7 +577,7 @@ export async function updateMemberRole(req, res) {
         }
 
         // Check permissions (owner or admin)
-        if (team.owner.toString() !== currentUserId && !team.isAdmin(currentUserId) && req.user.role !== 'admin') {
+        if (team.owner.toString() !== currentUserId && !team.isAdmin(currentUserId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -599,7 +630,7 @@ export async function getTeamBooks(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -631,7 +662,7 @@ export async function getAvailableBooks(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -676,7 +707,7 @@ export async function addBooksToTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -733,7 +764,7 @@ export async function removeBooksFromTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -787,7 +818,7 @@ export async function getTeamDocuments(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -819,7 +850,7 @@ export async function getAvailableDocuments(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -864,7 +895,7 @@ export async function addDocumentsToTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -921,7 +952,7 @@ export async function removeDocumentsFromTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -967,7 +998,7 @@ export async function getTeamProjects(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -1010,7 +1041,7 @@ export async function getAvailableProjects(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -1056,7 +1087,7 @@ export async function addProjectsToTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -1119,7 +1150,7 @@ export async function removeProjectsFromTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         req.user.role === 'admin';
+                         (req.user.role === 'admin' || req.user.role === 'superadmin');
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });

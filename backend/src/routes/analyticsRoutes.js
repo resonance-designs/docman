@@ -22,9 +22,9 @@ import { cacheAnalytics, setCacheHeaders } from "../middleware/cacheMiddleware.j
 const router = express.Router();
 
 // GET /api/analytics - Get analytics data and system metrics (all authenticated users can view analytics)
-router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), cacheAnalytics(), setCacheHeaders(600), getAnalyticsData);
+router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), cacheAnalytics(), setCacheHeaders(600), getAnalyticsData);
 
 // GET /api/analytics/export - Export analytics data in various formats (all authenticated users can export)
-router.get("/export", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAnalyticsExport);
+router.get("/export", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getAnalyticsExport);
 
 export default router;

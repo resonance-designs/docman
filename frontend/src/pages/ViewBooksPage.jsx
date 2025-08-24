@@ -153,7 +153,7 @@ const ViewBooksPage = () => {
         }
     ];
 
-    const canCreateBooks = userRole === "editor" || userRole === "admin";
+    const canCreateBooks = userRole === "editor" || userRole === "admin" || userRole === "superadmin";
 
     return (
         <div className="min-h-screen">
@@ -177,7 +177,7 @@ const ViewBooksPage = () => {
                     {loading && <LoadingSpinner message="Loading books..." size="lg" color="teal" />}
 
                     {/* Filter Bar */}
-                    {!loading && (books.length > 0 || userRole === 'admin') && (
+                    {!loading && (books.length > 0 || userRole === 'admin' || userRole === 'superadmin') && (
                         <FilterBar
                             searchValue={searchValue}
                             onSearchChange={setSearchValue}

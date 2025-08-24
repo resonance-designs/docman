@@ -131,6 +131,8 @@ export async function verifyAccessToken(req, res, next) {
             return res.status(401).json({ message: "User not found" });
         }
 
+        // Ensure user object has id field for compatibility
+        user.id = user._id.toString();
         req.user = user;
         console.log("🔒 verifyAccessToken: Success! User attached to request:", user.email);
         next();

@@ -149,7 +149,7 @@ const ViewDocsPage = () => {
     }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig, pageSize]);
 
     // Check if user can create documents (editor or admin)
-    const canCreateDocument = userRole === "editor" || userRole === "admin";
+    const canCreateDocument = userRole === "editor" || userRole === "admin" || userRole === "superadmin";
 
     // Filter options with safe array handling
     const safeCategoriesArray = createSafeArray(categories);

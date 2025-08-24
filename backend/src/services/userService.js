@@ -29,12 +29,13 @@ import {
  * @returns {boolean} True if user has access
  */
 export function hasUserAccess(requestingUserId, requestingUserRole, targetUserId) {
-    // Admins can access any user
-    if (requestingUserRole === 'admin') return true;
+    // Super admins can access any user
+    if (requestingUserRole === 'superadmin') return true;
     
     // Users can access their own data
     if (requestingUserId === targetUserId) return true;
     
+    // Regular admins can no longer edit other users' profiles
     return false;
 }
 
@@ -77,7 +78,7 @@ export function buildUserFilter(queryParams) {
 
     // Role filter - validate role
     if (role && typeof role === 'string') {
-        const allowedRoles = ['admin', 'user', 'moderator'];
+        const allowedRoles = ['viewer', 'editor', 'admin', 'superadmin'];
         if (allowedRoles.includes(role)) {
             filter.role = role;
         }
@@ -214,7 +215,7 @@ export async function getUsers(queryParams, requestingUser) {
         const sort = buildUserSort(queryParams.sortBy, queryParams.sortOrder);
 
         // Select fields based on user role
-        const selectFields = requestingUser.role === 'admin'
+        const selectFields = (requestingUser.role === 'admin' || requestingUser.role === 'superadmin')
             ? "_id firstname lastname email role profilePicture backgroundImage createdAt telephone title department"
             : "_id firstname lastname email role profilePicture backgroundImage createdAt";
 
@@ -256,7 +257,7 @@ export async function getUserById(userId, requestingUser) {
             throw new Error("Access denied");
         }
 
-        const selectFields = requestingUser.role === 'admin' || requestingUser.id === userId
+        const selectFields = (requestingUser.role === 'admin' || requestingUser.role === 'superadmin') || requestingUser.id === userId
             ? "_id firstname lastname email telephone title department bio role profilePicture backgroundImage theme createdAt updatedAt"
             : "_id firstname lastname email role profilePicture backgroundImage createdAt";
 
@@ -309,9 +310,19 @@ export async function updateUser(userId, updateData, requestingUser) {
             validation.sanitized.password = await bcrypt.hash(validation.sanitized.password, 12);
         }
 
-        // Only admins can change roles
-        if (validation.sanitized.role && requestingUser.role !== 'admin') {
-            delete validation.sanitized.role;
+        // Only super admins can change roles, and admins can only create users with roles up to their own
+        if (validation.sanitized.role) {
+            if (requestingUser.role === 'superadmin') {
+                // Super admins can set any role
+            } else if (requestingUser.role === 'admin') {
+                // Admins can only set roles up to admin (not superadmin)
+                if (validation.sanitized.role === 'superadmin') {
+                    delete validation.sanitized.role;
+                }
+            } else {
+                // Non-admins cannot change roles
+                delete validation.sanitized.role;
+            }
         }
 
         // Update user
@@ -340,8 +351,8 @@ export async function updateUser(userId, updateData, requestingUser) {
  */
 export async function deleteUser(userId, requestingUser) {
     try {
-        // Only admins can delete users, and they can't delete themselves
-        if (requestingUser.role !== 'admin') {
+        // Only super admins can delete users, and they can't delete themselves
+        if (requestingUser.role !== 'superadmin') {
             throw new Error("Insufficient permissions");
         }
 

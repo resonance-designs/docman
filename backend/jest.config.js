@@ -11,17 +11,13 @@ export default {
   // Test environment
   testEnvironment: 'node',
   
-  // Use ES modules
-  preset: 'es-jest',
-  extensionsToTreatAsEsm: ['.js'],
-  
   // Module transformation
   transform: {
     '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
   },
   
   // Module name mapping for ES modules
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
   

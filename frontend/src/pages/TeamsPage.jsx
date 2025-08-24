@@ -50,15 +50,15 @@ const TeamsPage = () => {
             }
         };
 
-        if (userRole === "editor" || userRole === "admin") {
+        if (userRole === "editor" || userRole === "admin" || userRole === "superadmin") {
             fetchTeams();
         } else {
             setLoading(false);
         }
     }, [userRole]);
 
-    // Check if user can create teams (editor or admin)
-    const canCreateTeam = userRole === "editor" || userRole === "admin";
+    // Check if user can create teams (editor, admin, or superadmin)
+    const canCreateTeam = userRole === "editor" || userRole === "admin" || userRole === "superadmin";
 
     const handleTeamCreated = (newTeam) => {
         setTeams(prev => [newTeam, ...prev]);
@@ -80,7 +80,7 @@ const TeamsPage = () => {
                             <UsersIcon className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">Teams Access Restricted</h3>
                             <p className="text-gray-500">
-                                You need editor or admin privileges to access teams functionality.
+                                You need editor, admin, or superadmin privileges to access teams functionality.
                             </p>
                         </div>
                     </div>
@@ -151,7 +151,7 @@ const TeamsPage = () => {
                     )}
 
                     {/* Admin Link */}
-                    {userRole === "admin" && (
+                    {(userRole === "admin" || userRole === "superadmin") && (
                         <div className="mt-8 text-center">
                             <Link
                                 to="/admin/teams"

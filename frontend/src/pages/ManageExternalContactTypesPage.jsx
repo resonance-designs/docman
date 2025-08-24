@@ -53,7 +53,7 @@ const ManageExternalContactTypesPage = () => {
     }, []);
 
     // Check if user can manage contact types (admin only)
-    const canManageContactTypes = userRole === "admin";
+    const canManageContactTypes = userRole === "admin" || userRole === "superadmin";
 
     // Handle form input changes
     const handleInputChange = (e) => {

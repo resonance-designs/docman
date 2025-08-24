@@ -21,15 +21,15 @@ import { getAllCategories, createCategory, updateCategory, deleteCategory } from
 const router = express.Router();
 
 // GET /api/categories - Get all document categories (all authenticated users can view categories)
-router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin"), getAllCategories);
+router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getAllCategories);
 
-// POST /api/categories - Create a new document category (only admins can create categories)
-router.post("/", verifyAccessToken, requireRole("admin"), createCategory);
+// POST /api/categories - Create a new document category (only admins and superadmins can create categories)
+router.post("/", verifyAccessToken, requireRole("admin", "superadmin"), createCategory);
 
-// PUT /api/categories/:id - Update a document category (only admins can update categories)
-router.put("/:id", verifyAccessToken, requireRole("admin"), updateCategory);
+// PUT /api/categories/:id - Update a document category (only admins and superadmins can update categories)
+router.put("/:id", verifyAccessToken, requireRole("admin", "superadmin"), updateCategory);
 
-// DELETE /api/categories/:id - Delete a document category (only admins can delete categories)
-router.delete("/:id", verifyAccessToken, requireRole("admin"), deleteCategory);
+// DELETE /api/categories/:id - Delete a document category (only admins and superadmins can delete categories)
+router.delete("/:id", verifyAccessToken, requireRole("admin", "superadmin"), deleteCategory);
 
 export default router;

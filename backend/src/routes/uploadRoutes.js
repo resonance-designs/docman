@@ -20,7 +20,7 @@ const router = express.Router();
  */
 router.post("/",
     verifyAccessToken, // Require authentication
-    requireRole("editor", "admin"), // Only editors and admins can upload files
+    requireRole("editor", "admin", "superadmin"), // Only editors, admins, and superadmins can upload files
     (req, res, next) => {
         uploadMid.single("file")(req, res, (err) => {
             if (err) {

@@ -87,7 +87,7 @@ const MyProfilePage = () => {
                 console.log("Decoded JWT:", decoded); // Debug log
                 console.log("User ID from JWT:", currentUserId); // Debug log
                 setCurrentUser(decoded);
-                setIsAdmin(decoded?.role === "admin");
+                setIsAdmin(decoded?.role === "admin" || decoded?.role === "superadmin");
                 setIsEditingOther(userId && userId !== currentUserId);
             } catch (error) {
                 console.error("Invalid token:", error);

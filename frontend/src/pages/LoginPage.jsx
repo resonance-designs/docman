@@ -69,13 +69,13 @@ function LoginPage() {
                             <form onSubmit={handleSubmit}>
                                 <div className="form-control mb-4">
                                     <label className="label" htmlFor="email">
-                                        <span className="label-text">Email</span>
+                                        <span className="label-text">Email or Username</span>
                                     </label>
                                     <input
                                         id="email"
-                                        type="email"
+                                        type="text"
                                         name="email"
-                                        placeholder="Your Email"
+                                        placeholder="Your Email or Username"
                                         className="input input-bordered"
                                         value={form.email}
                                         onChange={handleChange}

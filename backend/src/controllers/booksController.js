@@ -203,7 +203,7 @@ export async function updateBook(req, res) {
         console.log("📚 UpdateBook: Using user ID:", userId);
         console.log("📚 UpdateBook: Is owner?", book.isOwner(userId));
         
-        if (!book.isOwner(userId) && req.user.role !== 'admin') {
+        if (!book.isOwner(userId) && req.user.role !== 'superadmin') {
             console.log("📚 UpdateBook: Permission denied");
             return res.status(403).json({ message: "Not authorized to update this book" });
         }
@@ -290,7 +290,7 @@ export async function deleteBook(req, res) {
 
         // Check if user has permission to delete (owner or admin)
         const userId = req.user.id || req.user._id;
-        if (!book.isOwner(userId) && req.user.role !== 'admin') {
+        if (!book.isOwner(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Not authorized to delete this book" });
         }
 
@@ -319,7 +319,7 @@ export async function addDocumentToBook(req, res) {
 
         // Check if user has permission to modify (owner or admin)
         const userId = req.user.id || req.user._id;
-        if (!book.isOwner(userId) && req.user.role !== 'admin') {
+        if (!book.isOwner(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Not authorized to modify this book" });
         }
 
@@ -351,7 +351,7 @@ export async function removeDocumentFromBook(req, res) {
 
         // Check if user has permission to modify (owner or admin)
         const userId = req.user.id || req.user._id;
-        if (!book.isOwner(userId) && req.user.role !== 'admin') {
+        if (!book.isOwner(userId) && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Not authorized to modify this book" });
         }
 

@@ -124,7 +124,7 @@ export const validateCategoryDescription = (description) => {
 };
 
 export const validateRole = (role) => {
-    const validRoles = ['viewer', 'editor', 'admin'];
+    const validRoles = ['viewer', 'editor', 'admin', 'superadmin'];
     if (!role) return { isValid: false, error: "Role is required" };
     if (typeof role !== 'string') return { isValid: false, error: "Role must be a string" };
     if (!validRoles.includes(role)) return { isValid: false, error: "Please select a valid role" };

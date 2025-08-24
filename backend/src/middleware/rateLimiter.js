@@ -9,6 +9,11 @@
  */
 import ratelimit from "../config/upstash.js";
 
+// Show rate limiting status for development
+if (process.env.NODE_ENV === 'development') {
+    console.log("🚀 Development environment: General rate limiting disabled");
+}
+
 /**
  * Get client identifier for rate limiting
  * Uses IP address and user ID if available
@@ -96,6 +101,12 @@ function getRateLimitConfig(path, method) {
  */
 const rateLimiter = async (req, res, next) => {
     try {
+        // Skip rate limiting in development environment
+        if (process.env.NODE_ENV === 'development') {
+            console.log("🚀 Development mode: Skipping general rate limiting for", req.path);
+            return next();
+        }
+        
         const clientId = getClientId(req);
         const config = getRateLimitConfig(req.path, req.method);
         const rateLimitKey = `${config.identifier}:${clientId}`;
@@ -133,6 +144,12 @@ const rateLimiter = async (req, res, next) => {
 export const createStrictRateLimiter = (limit = 5, window = '15m', message = 'Rate limit exceeded') => {
     return async (req, res, next) => {
         try {
+            // Skip rate limiting in development environment
+            if (process.env.NODE_ENV === 'development') {
+                console.log("🚀 Development mode: Skipping strict rate limiting for", req.path);
+                return next();
+            }
+            
             const clientId = getClientId(req);
             const rateLimitKey = `strict:${req.path}:${clientId}`;
 

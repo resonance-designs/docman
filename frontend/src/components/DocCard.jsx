@@ -72,7 +72,7 @@ const DocCard = ({ doc, setDocs }) => {
     const needsReview = new Date(doc.reviewDate) <= new Date();
 
     // Check if user is admin
-    const isAdmin = userRole === "admin";
+    const isAdmin = userRole === "admin" || userRole === "superadmin";
 
     return (
         <Link

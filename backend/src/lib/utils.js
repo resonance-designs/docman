@@ -80,3 +80,78 @@ export function logError(context, error, additionalInfo = {}) {
 
     console.error(`[${context}]`, logData);
 }
+
+/**
+ * Check if user has super admin privileges
+ * @param {Object} user - User object with role property
+ * @returns {boolean} True if user is super admin
+ */
+export function isSuperAdmin(user) {
+    return user && user.role === 'superadmin';
+}
+
+/**
+ * Check if user has admin privileges (admin or super admin)
+ * @param {Object} user - User object with role property
+ * @returns {boolean} True if user is admin or super admin
+ */
+export function isAdminOrAbove(user) {
+    return user && (user.role === 'admin' || user.role === 'superadmin');
+}
+
+/**
+ * Check if user can manage all resources (super admin only)
+ * @param {Object} user - User object with role property
+ * @returns {boolean} True if user can manage all resources
+ */
+export function canManageAll(user) {
+    return isSuperAdmin(user);
+}
+
+/**
+ * Check if user can edit a resource based on ownership/authorship
+ * @param {Object} user - User object with id and role
+ * @param {Object} resource - Resource object with ownership/authorship fields
+ * @returns {boolean} True if user can edit the resource
+ */
+export function canEditResource(user, resource) {
+    if (!user || !resource) return false;
+    
+    // Super admins can edit anything
+    if (isSuperAdmin(user)) return true;
+    
+    const userId = user._id?.toString() || user.id?.toString();
+    
+    // Check if user is owner
+    if (resource.owner && resource.owner.toString() === userId) return true;
+    
+    // Check if user is author
+    if (resource.author && resource.author.toString() === userId) return true;
+    
+    // Check if user is in authors array
+    if (resource.authors && Array.isArray(resource.authors)) {
+        if (resource.authors.some(author => author.toString() === userId)) return true;
+    }
+    
+    // Check if user is contributor/collaborator
+    if (resource.contributors && Array.isArray(resource.contributors)) {
+        if (resource.contributors.some(contributor => contributor.toString() === userId)) return true;
+    }
+    
+    if (resource.collaborators && Array.isArray(resource.collaborators)) {
+        if (resource.collaborators.some(collaborator => collaborator.toString() === userId)) return true;
+    }
+    
+    // Check if user is manager (for projects/teams)
+    if (resource.managers && Array.isArray(resource.managers)) {
+        if (resource.managers.some(manager => manager.toString() === userId)) return true;
+    }
+    
+    // Check if resource has isManager method (for projects)
+    if (typeof resource.isManager === 'function' && resource.isManager(userId)) return true;
+    
+    // Check if resource has isMember method and user is member (for teams)
+    if (typeof resource.isMember === 'function' && resource.isMember(userId)) return true;
+    
+    return false;
+}

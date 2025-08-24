@@ -13,10 +13,12 @@ import toast from "react-hot-toast";
 import api from "../lib/axios";
 import LoadingSpinner from "../components/LoadingSpinner";
 import DangerZone from "../components/system/DangerZone";
+import { useUserRole } from "../hooks";
 
 const SystemInfoPage = () => {
     const [systemInfo, setSystemInfo] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { isSuperAdmin } = useUserRole();
 
     // Helper function to format memory usage object
     const formatMemoryUsage = (memUsage) => {
@@ -176,8 +178,8 @@ const SystemInfoPage = () => {
                             </div>
                         </div>
                     )}
-                    {/* Danger Zone Section */}
-                    <DangerZone />
+                    {/* Danger Zone Section - Only for Super Admins */}
+                    {isSuperAdmin && <DangerZone />}
                 </div>
             </div>
         </div>

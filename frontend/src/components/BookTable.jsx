@@ -87,9 +87,9 @@ const BookTable = ({ book, setBooks }) => {
         return 'Uncategorized';
     };
 
-    // Check if user is admin or editor
-    const isAdmin = userRole === "admin";
-    const canEdit = userRole === "admin" || userRole === "editor";
+    // Check if user is admin, editor, or superadmin
+    const isAdmin = userRole === "admin" || userRole === "superadmin";
+    const canEdit = userRole === "admin" || userRole === "editor" || userRole === "superadmin";
 
     return (
         <tr className="bg-base-100 p-4 border-b border-resdes-orange text-base-content text-sm antialiased font-normal leading-normal">

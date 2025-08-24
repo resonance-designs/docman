@@ -124,16 +124,37 @@ A list of features I plan on implementing into the application.
     4. Stakeholders and review assignees can only view/download the documents they are assigned to unless they are also marked as an author or owner of the document as well.
     5. Super Admins can do everything we just stripped away from admins above. They have access to absolutely everything the API provides.
     6. Make sure to update the role of the user with resonance.designs.com@gmail.com to superadmin.
-27. Document security levels
-28. Develop a short-code system to embed custom charts built with CustomChartsPage.
-29. Make sure header comments and JSDoc comments are added to all files.
-30. Cleanup and compartmentalize the code as much as possible.
-31. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-32. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to a temp_collection(s). And all files are moved to temp_uploads_archive.
-33. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
-34. Create another fork with docker and kubernetes for cloud use
-35. Create another fork with a mobile app for iOS and Android
-36. Create another fork for the purpose of refactoring into a Recipes MERN app
+27. Clean up the whole "review date" thing. Right now there are multiple review date fields and it's confusing.
+    1.  Ditch the "Review Date" field.
+    2.  Change the "Opens For Review" field so that the date-picker can not go to the past.
+    3.  Under the "Opens For Review" field, add a new field called "Review Interval" that is a dropdown of options in periods of time (monthly, quarterly, semiannually, and annually) and also a custom interval option that exposes a number input field. This field should be in days and excepts a number of days. This field should take the value of the "Opens For Review" field and then add the interval to it. So if someone sets the "Opens For Review" field to today and selects monthly, the "Review Interval" field will automatically calculate what the next review date should be.
+    4.  When creating a new document, the default value for the "Review Interval" field should be quarterly.
+    5.  When editing a document, the default value for the "Review Interval" field should be whatever is currently set in the DB.
+    6.  When viewing a document, the "Review Interval" field should be disabled and read-only.
+    7.  Under the "Review Interval" field, add a new field called "Review Period" that sets the time-frame (one week, two weeks, three weeks, and a month) that review assignees have to review the document. When the review date comes around, the review assignee will receive a notification and an email with a link to the document, a calendar event attachment with the review date and the due-date (calculated by the "Review Period" field) for completing the review.
+    8.  Under the "Review Period" field, add a new field called "Last Reviewed On" that is disabled and read-only. This field should be populated with the date the review was completed.
+    9.  Under the "Last Reviewed" field, add a new field called "Next Review Due On" that is disabled and read-only. This field should be populated with the calculated date from the "Review Interval" field.
+    10. When creating a new document, the default value for the "Last Reviewed On" field should be null.
+    11. When viewing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.
+    13. When editing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.
+    14. When creating a new document, the default value for the "Next Review Due On" field should be null.
+    12. When a review is marked as completed, the next review date should be calculated by the "Review Interval" field against the date the review was completed.
+28. Make a user registration page that is open to the public but it has no option to select a role. The role anyone registers with on this public page will be a viewer.
+29. Document security levels
+    1.  Public
+    2.  Private
+    3.  Restricted
+    4.  Confidential
+    5.  Top Secret
+30. Develop a short-code system to embed custom charts built with CustomChartsPage.
+31. Make sure header comments and JSDoc comments are added to all files.
+32. Cleanup and compartmentalize the code as much as possible.
+33. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+34. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to a temp_collection(s). And all files are moved to temp_uploads_archive.
+35. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
+36. Create another fork with docker and kubernetes for cloud use
+37. Create another fork with a mobile app for iOS and Android
+38. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 
