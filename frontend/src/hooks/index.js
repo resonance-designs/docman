@@ -23,6 +23,7 @@ export { useFileUpload } from "./useFileUpload";
 
 // Document Management
 export { useDocument } from "./useDocument";
+export { useReviewAssignments } from "./useReviewAssignments";
 
 // API & Data Management
 export { useApi } from "./useApi";

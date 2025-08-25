@@ -11,6 +11,7 @@ import mongoose from "mongoose";
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
 import { sanitizeErrorMessage, logError } from "../lib/utils.js";
+import { resetReviewAssignmentsForNewCycle, cleanupDuplicateReviewAssignments, cleanupOrphanedReviewAssignments } from "../controllers/reviewController.js";
 
 /**
  * Check if user has permission to access a document
@@ -545,6 +546,58 @@ export async function updateDocument(documentId, updateData, file, user) {
             lastUpdatedBy: user.id,
             lastUpdatedAt: new Date()
         };
+
+        // Reset review completion status if opensForReview is updated to a future date
+        if (updateData.opensForReview) {
+            const newReviewDate = new Date(updateData.opensForReview);
+            const existingReviewDate = new Date(existingDoc.opensForReview);
+            
+            // If the new review date is different and in the future, reset review completion
+            if (newReviewDate.getTime() !== existingReviewDate.getTime() && newReviewDate > new Date()) {
+                update.reviewCompleted = false;
+                update.reviewCompletedAt = null;
+                update.reviewCompletedBy = null;
+                update.lastReviewedOn = null;
+                
+                // Calculate next review due date based on review interval
+                if (updateData.reviewInterval || existingDoc.reviewInterval) {
+                    const interval = updateData.reviewInterval || existingDoc.reviewInterval;
+                    const intervalDays = updateData.reviewIntervalDays || existingDoc.reviewIntervalDays;
+                    
+                    let nextReviewDate = new Date(newReviewDate);
+                    
+                    switch (interval) {
+                        case 'monthly':
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 1);
+                            break;
+                        case 'quarterly':
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+                            break;
+                        case 'semiannually':
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 6);
+                            break;
+                        case 'annually':
+                            nextReviewDate.setFullYear(nextReviewDate.getFullYear() + 1);
+                            break;
+                        case 'custom':
+                            if (intervalDays && intervalDays > 0) {
+                                nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
+                            }
+                            break;
+                        default:
+                            // Default to quarterly
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+                    }
+                    
+                    update.nextReviewDueOn = nextReviewDate;
+                }
+                
+                // Clean up any orphaned and duplicate assignments, then reset for the new cycle
+                await cleanupOrphanedReviewAssignments(documentId);
+                await cleanupDuplicateReviewAssignments(documentId);
+                await resetReviewAssignmentsForNewCycle(documentId);
+            }
+        }
 
         // Add file information if provided
         if (file) {

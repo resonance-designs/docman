@@ -85,6 +85,20 @@ export function useDocument(documentId, {
     }, []);
 
     /**
+     * Refresh document data from server
+     */
+    const refreshDocument = useCallback(async () => {
+        if (!documentId) return;
+        
+        try {
+            const response = await api.get(`/docs/${documentId}`);
+            setDocument(response.data);
+        } catch (error) {
+            console.error("Error refreshing document:", error);
+        }
+    }, [documentId]);
+
+    /**
      * Add file to document
      * @param {Object} file - File to add
      */
@@ -153,6 +167,20 @@ export function useDocument(documentId, {
     }, [document]);
 
     /**
+     * Check if user is review assignee
+     * @param {string} userId - User ID to check
+     */
+    const isReviewAssignee = useCallback((userId) => {
+        if (!document || !userId) return false;
+        
+        const reviewAssignees = document.reviewAssignees || [];
+        return reviewAssignees.some(assignee => {
+            const assigneeId = typeof assignee === 'object' ? assignee._id : assignee;
+            return assigneeId === userId;
+        });
+    }, [document]);
+
+    /**
      * Get document status
      */
     const getStatus = useCallback(() => {
@@ -187,6 +215,7 @@ export function useDocument(documentId, {
         // Actions
         loadDocument,
         updateDocument,
+        refreshDocument,
         addFile,
         removeFile,
         addVersion,
@@ -194,6 +223,7 @@ export function useDocument(documentId, {
         // Checks
         isOwner,
         isAuthor,
-        isStakeholder
+        isStakeholder,
+        isReviewAssignee
     };
 }

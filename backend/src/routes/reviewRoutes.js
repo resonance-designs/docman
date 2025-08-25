@@ -15,7 +15,8 @@ import {
     getDocumentReviewAssignments,
     getUserReviewAssignments,
     updateReviewAssignment,
-    getOverdueReviewAssignments
+    getOverdueReviewAssignments,
+    cleanupDocumentReviewAssignments
 } from "../controllers/reviewController.js";
 
 /**
@@ -40,5 +41,8 @@ router.put("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin", "
 
 // GET /api/reviews/overdue - Get overdue review assignments (only admins and superadmins can view overdue reviews)
 router.get("/overdue", verifyAccessToken, requireRole("admin", "superadmin"), getOverdueReviewAssignments);
+
+// POST /api/reviews/document/:documentId/cleanup - Clean up duplicate review assignments (only admins and superadmins can cleanup)
+router.post("/document/:documentId/cleanup", verifyAccessToken, requireRole("admin", "superadmin"), cleanupDocumentReviewAssignments);
 
 export default router;

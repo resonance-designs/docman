@@ -13,6 +13,7 @@ import User from "../models/User.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 import { sendDocumentAssignedNotification } from "./notificationsController.js";
 import * as documentService from "../services/documentService.js";
+import { resetReviewAssignmentsForNewCycle, markAllReviewAssignmentsCompleted } from "./reviewController.js";
 
 /**
  * Helper function to send document assigned notifications
@@ -271,6 +272,11 @@ export async function markDocAsReviewed(req, res) {
         // Validate input
         if (typeof reviewCompleted !== 'boolean') {
             return res.status(400).json({ message: "reviewCompleted must be a boolean value" });
+        }
+
+        // If manually marking as completed, also mark all review assignments as completed
+        if (reviewCompleted) {
+            await markAllReviewAssignmentsCompleted(id, req.user?.id);
         }
 
         // Update the document

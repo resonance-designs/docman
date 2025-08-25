@@ -12,15 +12,25 @@ import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, Use
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { formatDate } from "../lib/utils";
-import { useDocument, useUserRole, useFormData } from "../hooks";
+import { useDocument, useUserRole, useFormData, useReviewAssignments } from "../hooks";
+import ReviewCompletionToggle from "../components/ReviewCompletionToggle";
+import ReviewStatusSummary from "../components/ReviewStatusSummary";
 
 const ViewDocPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
     // Use custom hooks for data management
-    const { document: doc, files, versionHistory, loading, isOwner, isAuthor, isStakeholder } = useDocument(id);
+    const { document: doc, files, versionHistory, loading, isOwner, isAuthor, isStakeholder, isReviewAssignee, refreshDocument } = useDocument(id);
     const { userRole, userId, canEdit } = useUserRole();
+    const { 
+        assignments, 
+        loading: assignmentsLoading, 
+        currentUserAssignment, 
+        allCompleted, 
+        completionStatus, 
+        updateAssignmentStatus 
+    } = useReviewAssignments(id, userId, refreshDocument);
     const { getFullName } = useFormData({
         loadUsers: true,
         loadCategories: false,
@@ -280,36 +290,82 @@ const ViewDocPage = () => {
                                 )}
                             </div>
 
-                            {/* Review Assignees */}
+                            {/* Review Assignees and Status */}
                             {doc.reviewAssignees && doc.reviewAssignees.length > 0 && (
-                                <div className="mb-6 p-4 bg-base-300 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <ClipboardCheckIcon className="text-resdes-blue" size={20} />
-                                        <h3 className="text-lg font-semibold">Review Assignees</h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {doc.reviewAssignees.map((assignee) => (
-                                            <div key={assignee._id} className="badge badge-info">
-                                                {getFullName(assignee)}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {doc.reviewNotes && (
-                                        <div className="mt-3 p-3 bg-base-200 rounded-lg">
-                                            <p className="text-sm text-gray-600 mb-1">Review Notes:</p>
-                                            <p className="text-sm">{doc.reviewNotes}</p>
-                                        </div>
-                                    )}
-                                    {doc.reviewDueDate && (
-                                        <div className="mt-2">
-                                            <p className="text-sm text-gray-600">
-                                                Review Due: <span className="font-medium text-blue-600">
-                                                    {formatDate(new Date(doc.reviewDueDate))}
-                                                </span>
+                                <>
+                                    {/* Overall Document Review Status */}
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <div className={`w-4 h-4 rounded-full ${
+                                            doc.reviewCompleted ? 'bg-green-600' : 'bg-yellow-500'
+                                        }`}></div>
+                                        <div>
+                                            <p className="text-sm text-gray-600">Document Review Status</p>
+                                            <p className={`font-medium ${
+                                                doc.reviewCompleted ? 'text-green-600' : 'text-yellow-600'
+                                            }`}>
+                                                {doc.reviewCompleted ? 'Review Completed' : 'Review In Progress'}
                                             </p>
+                                            {doc.reviewCompletedAt && (
+                                                <p className="text-xs text-gray-500">
+                                                    Completed on {formatDate(new Date(doc.reviewCompletedAt))}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Review Status Summary */}
+                                    <ReviewStatusSummary
+                                        assignments={assignments}
+                                        completionStatus={completionStatus}
+                                        allCompleted={allCompleted}
+                                        getFullName={getFullName}
+                                    />
+
+                                    {/* Review Completion Toggle for Current User */}
+                                    {needsReview && isReviewAssignee(userId) && currentUserAssignment && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                                <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                                Your Review
+                                            </h3>
+                                            <ReviewCompletionToggle
+                                                assignment={currentUserAssignment}
+                                                onToggle={updateAssignmentStatus}
+                                                loading={assignmentsLoading}
+                                            />
                                         </div>
                                     )}
-                                </div>
+
+                                    {/* Traditional Review Assignees Display */}
+                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                            <h3 className="text-lg font-semibold">Review Assignees</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {doc.reviewAssignees.map((assignee) => (
+                                                <div key={assignee._id} className="badge badge-info">
+                                                    {getFullName(assignee)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {doc.reviewNotes && (
+                                            <div className="mt-3 p-3 bg-base-200 rounded-lg">
+                                                <p className="text-sm text-gray-600 mb-1">Review Notes:</p>
+                                                <p className="text-sm">{doc.reviewNotes}</p>
+                                            </div>
+                                        )}
+                                        {doc.reviewDueDate && (
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-600">
+                                                    Review Due: <span className="font-medium text-blue-600">
+                                                        {formatDate(new Date(doc.reviewDueDate))}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
                             )}
 
                             {/* External Contacts */}
