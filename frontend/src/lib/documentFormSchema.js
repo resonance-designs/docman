@@ -53,12 +53,21 @@ const baseDocumentSchema = {
     author: z.string().min(1, { message: "Author is required" }),
     description: z.string().min(1, { message: "Description is required" }),
     category: z.string().min(1, { message: "Category is required" }),
-    reviewDate: z.date({ required_error: "Review date is required" }),
+    opensForReview: z.date({ required_error: "Opens for review date is required" }),
+    reviewInterval: z.enum(['monthly', 'quarterly', 'semiannually', 'annually', 'custom'], {
+        required_error: "Review interval is required"
+    }),
+    reviewIntervalDays: z.number().min(1, "Custom interval must be at least 1 day").nullable().optional(),
+    reviewPeriod: z.enum(['1week', '2weeks', '3weeks', '1month'], {
+        required_error: "Review period is required"
+    }),
+    lastReviewedOn: z.date().nullable().optional(),
+    nextReviewDueOn: z.date().nullable().optional(),
     stakeholders: z.array(z.string()).optional(),
     owners: z.array(z.string()).optional(),
     // Review assignments
     reviewAssignees: z.array(z.string()).optional(),
-    reviewDueDate: z.date().optional(),
+    reviewDueDate: z.date().nullable().optional(),
     reviewNotes: z.string().optional(),
 };
 
@@ -80,12 +89,30 @@ export const createDocumentSchema = z.object({
             (f) => f && f[0] && f[0].size <= MAX_FILE_SIZE,
             "File too large. Maximum size is 10MB."
         ),
+}).refine((data) => {
+    // If reviewInterval is 'custom', reviewIntervalDays must be provided
+    if (data.reviewInterval === 'custom' && (!data.reviewIntervalDays || data.reviewIntervalDays < 1)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Custom interval days is required when review interval is set to custom",
+    path: ["reviewIntervalDays"]
 });
 
 // Edit document schema (file is optional)
 export const editDocumentSchema = z.object({
     ...baseDocumentSchema,
     file: fileValidation,
+}).refine((data) => {
+    // If reviewInterval is 'custom', reviewIntervalDays must be provided
+    if (data.reviewInterval === 'custom' && (!data.reviewIntervalDays || data.reviewIntervalDays < 1)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Custom interval days is required when review interval is set to custom",
+    path: ["reviewIntervalDays"]
 });
 
 // Default form values
@@ -94,7 +121,12 @@ export const defaultFormValues = {
     author: "",
     description: "",
     category: "",
-    reviewDate: null,
+    opensForReview: null,
+    reviewInterval: "quarterly",
+    reviewIntervalDays: null,
+    reviewPeriod: "2weeks",
+    lastReviewedOn: null,
+    nextReviewDueOn: null,
     stakeholders: [],
     owners: [],
     reviewAssignees: [],
@@ -116,11 +148,52 @@ export const formFieldConfig = {
         required: true,
         placeholder: "Enter document description"
     },
-    reviewDate: {
-        label: "Review Date",
+    opensForReview: {
+        label: "Opens For Review",
         type: "date",
         required: true,
-        placeholder: "Select review date"
+        placeholder: "Select when document opens for review"
+    },
+    reviewInterval: {
+        label: "Review Interval",
+        type: "select",
+        required: true,
+        options: [
+            { value: "monthly", label: "Monthly" },
+            { value: "quarterly", label: "Quarterly" },
+            { value: "semiannually", label: "Semiannually" },
+            { value: "annually", label: "Annually" },
+            { value: "custom", label: "Custom" }
+        ]
+    },
+    reviewIntervalDays: {
+        label: "Custom Interval (Days)",
+        type: "number",
+        required: false,
+        placeholder: "Enter number of days"
+    },
+    reviewPeriod: {
+        label: "Review Period",
+        type: "select",
+        required: true,
+        options: [
+            { value: "1week", label: "1 Week" },
+            { value: "2weeks", label: "2 Weeks" },
+            { value: "3weeks", label: "3 Weeks" },
+            { value: "1month", label: "1 Month" }
+        ]
+    },
+    lastReviewedOn: {
+        label: "Last Reviewed On",
+        type: "date",
+        required: false,
+        disabled: true
+    },
+    nextReviewDueOn: {
+        label: "Next Review Due On",
+        type: "date",
+        required: false,
+        disabled: true
     },
     author: {
         label: "Author",

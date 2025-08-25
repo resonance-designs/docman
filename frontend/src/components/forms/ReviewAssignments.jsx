@@ -11,6 +11,7 @@ import { Controller } from "react-hook-form";
 import DatePicker from "react-datepicker";
 import { X } from "lucide-react";
 import { ensureArray } from "../../lib/safeUtils";
+import { useEffect } from "react";
 import "react-datepicker/dist/react-datepicker.css";
 
 /**
@@ -24,18 +25,51 @@ const getFullName = (user) => {
 };
 
 /**
+ * Calculate review due date based on opens for review date and review period
+ * @param {Date} opensForReview - Date when document opens for review
+ * @param {string} reviewPeriod - Review period (1week, 2weeks, 3weeks, 1month)
+ * @returns {Date|null} Calculated review due date
+ */
+const calculateReviewDueDate = (opensForReview, reviewPeriod) => {
+    if (!opensForReview || !reviewPeriod) return null;
+    
+    const date = new Date(opensForReview);
+    
+    switch (reviewPeriod) {
+        case '1week':
+            date.setDate(date.getDate() + 7);
+            break;
+        case '2weeks':
+            date.setDate(date.getDate() + 14);
+            break;
+        case '3weeks':
+            date.setDate(date.getDate() + 21);
+            break;
+        case '1month':
+            date.setMonth(date.getMonth() + 1);
+            break;
+        default:
+            return null;
+    }
+    
+    return date;
+};
+
+/**
  * ReviewAssignments component for managing document review scheduling
  * @param {Object} props - Component props
  * @param {Object} props.control - React Hook Form control object
  * @param {Array} props.users - Array of available users
  * @param {Array} props.reviewAssignees - Array of selected review assignee IDs
- * @param {Date} props.reviewDueDate - Review due date
+ * @param {Date} props.reviewDueDate - Review due date (calculated, read-only)
  * @param {string} props.reviewNotes - Review notes
  * @param {Function} props.onAssigneeAdd - Function to add review assignee
  * @param {Function} props.onAssigneeRemove - Function to remove review assignee
- * @param {Function} props.onDueDateChange - Function to handle due date change
+ * @param {Function} props.onDueDateChange - Function to handle due date change (for calculated date)
  * @param {Function} props.onNotesChange - Function to handle notes change
  * @param {string} props.validationError - Validation error message
+ * @param {Date} props.opensForReview - Date when document opens for review
+ * @param {string} props.reviewPeriod - Review period for calculating due date
  * @returns {JSX.Element} ReviewAssignments component
  */
 export default function ReviewAssignments({
@@ -48,7 +82,9 @@ export default function ReviewAssignments({
     onAssigneeRemove,
     onDueDateChange,
     onNotesChange,
-    validationError
+    validationError,
+    opensForReview,
+    reviewPeriod
 }) {
     // Get user object by ID
     const getUserById = (userId) => {
@@ -64,6 +100,14 @@ export default function ReviewAssignments({
         !safeReviewAssignees.includes(user._id)
     );
 
+    // Calculate and update review due date when opensForReview or reviewPeriod changes
+    useEffect(() => {
+        const calculatedDueDate = calculateReviewDueDate(opensForReview, reviewPeriod);
+        if (calculatedDueDate && onDueDateChange) {
+            onDueDateChange(calculatedDueDate);
+        }
+    }, [opensForReview, reviewPeriod, onDueDateChange]);
+
     return (
         <div className="form-control mb-6">
             <label className="label">
@@ -73,7 +117,7 @@ export default function ReviewAssignments({
                 Schedule reviewers for this document with due dates and notes
             </p>
             
-            {/* Review Due Date */}
+            {/* Review Due Date - Calculated and Read-only */}
             <div className="form-control mb-4">
                 <label className="label" htmlFor="reviewDueDate">
                     <span className="label-text">Review Due Date</span>
@@ -83,18 +127,20 @@ export default function ReviewAssignments({
                     control={control}
                     render={({ field }) => (
                         <DatePicker
-                            placeholderText="Select review due date"
+                            placeholderText="Calculated based on review period"
                             selected={field.value}
-                            onChange={(date) => {
-                                field.onChange(date);
-                                onDueDateChange(date);
-                            }}
+                            onChange={field.onChange}
                             className="input input-bordered w-full"
                             dateFormat="yyyy-MM-dd"
-                            minDate={new Date()}
+                            disabled={true} // Always disabled - calculated automatically
                         />
                     )}
                 />
+                <div className="label">
+                    <span className="label-text-alt">
+                        Automatically calculated based on "Opens For Review" date + "Review Period"
+                    </span>
+                </div>
             </div>
 
             {/* Review Assignee Selection */}

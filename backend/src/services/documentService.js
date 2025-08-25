@@ -11,6 +11,7 @@ import mongoose from "mongoose";
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
 import { sanitizeErrorMessage, logError } from "../lib/utils.js";
+import { resetReviewAssignmentsForNewCycle, cleanupDuplicateReviewAssignments, cleanupOrphanedReviewAssignments } from "../controllers/reviewController.js";
 
 /**
  * Check if user has permission to access a document
@@ -31,6 +32,9 @@ export function hasDocumentAccess(doc, userId, userRole) {
     
     // Check if user is an owner
     if (doc.owners?.some(owner => owner.toString() === userId)) return true;
+    
+    // Check if user is a review assignee
+    if (doc.reviewAssignees?.some(assignee => assignee.toString() === userId)) return true;
     
     return false;
 }
@@ -92,18 +96,28 @@ export function buildDocumentFilter(queryParams) {
     // Overdue filter (from frontend) - validate enum values
     if (overdue && typeof overdue === 'string') {
         if (overdue === 'true') {
-            // Overdue: reviewDate has passed AND document is not yet reviewed
+            // Overdue: opensForReview has passed AND document is not yet reviewed
             conditions.push({ 
                 $and: [
-                    { reviewDate: { $lt: new Date() } },
+                    { 
+                        $or: [
+                            { opensForReview: { $lt: new Date() } },
+                            { reviewDate: { $lt: new Date() } } // Migration fallback
+                        ]
+                    },
                     { reviewCompleted: { $ne: true } }
                 ]
             });
         } else if (overdue === 'false') {
-            // Not overdue: either reviewDate hasn't passed OR document is already reviewed
+            // Not overdue: either opensForReview hasn't passed OR document is already reviewed
             conditions.push({
                 $or: [
-                    { reviewDate: { $gte: new Date() } },
+                    { 
+                        $or: [
+                            { opensForReview: { $gte: new Date() } },
+                            { reviewDate: { $gte: new Date() } } // Migration fallback
+                        ]
+                    },
                     { reviewCompleted: true }
                 ]
             });
@@ -153,7 +167,7 @@ export function buildDocumentFilter(queryParams) {
  * @returns {Object} Sort object
  */
 export function buildDocumentSort(sortBy = 'createdAt', sortOrder = 'desc') {
-    const allowedSortFields = ['title', 'createdAt', 'reviewDate', 'author', 'category'];
+    const allowedSortFields = ['title', 'createdAt', 'opensForReview', 'reviewDate', 'author', 'category'];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortOrder === 'asc' ? 1 : -1;
     return { [sortField]: sortDirection };
@@ -165,7 +179,7 @@ export function buildDocumentSort(sortBy = 'createdAt', sortOrder = 'desc') {
  * @returns {Object} Parsed and validated data
  */
 export function parseDocumentFields(requestBody) {
-    const { stakeholders, owners, externalContacts } = requestBody;
+    const { stakeholders, owners, externalContacts, reviewAssignees } = requestBody;
     const parsed = {};
 
     // Parse stakeholders
@@ -210,6 +224,20 @@ export function parseDocumentFields(requestBody) {
         }
     }
 
+    // Parse review assignees
+    if (reviewAssignees) {
+        try {
+            const parsedAssignees = JSON.parse(reviewAssignees);
+            if (Array.isArray(parsedAssignees)) {
+                parsed.reviewAssignees = parsedAssignees.filter(id => 
+                    typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)
+                );
+            }
+        } catch (error) {
+            throw new Error("Invalid review assignees format");
+        }
+    }
+
     return parsed;
 }
 
@@ -231,13 +259,14 @@ export async function getDocuments(queryParams, user) {
         console.log('📄 Built filter before user access:', JSON.stringify(filter, null, 2));
         
         // Add user-based filtering for non-admins
-        if (user.role !== 'admin') {
+        if (user.role !== 'admin' && user.role !== 'superadmin') {
             const userId = new mongoose.Types.ObjectId(user.id);
             const userAccessFilter = {
                 $or: [
                     { author: userId },
                     { stakeholders: userId },
-                    { owners: userId }
+                    { owners: userId },
+                    { reviewAssignees: userId }
                 ]
             };
             
@@ -308,6 +337,15 @@ export async function getDocuments(queryParams, user) {
                     localField: 'owners',
                     foreignField: '_id',
                     as: 'owners',
+                    pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'reviewAssignees',
+                    foreignField: '_id',
+                    as: 'reviewAssignees',
                     pipeline: [{ $project: { firstname: 1, lastname: 1, email: 1, username: 1 } }]
                 }
             },
@@ -385,6 +423,7 @@ export async function getDocumentById(documentId, user) {
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email username')
             .populate('owners', 'firstname lastname email username')
+            .populate('reviewAssignees', 'firstname lastname email username')
             .populate('reviewCompletedBy', 'firstname lastname email username')
             .populate('lastUpdatedBy', 'firstname lastname email username')
             .populate('externalContacts.type');
@@ -421,7 +460,14 @@ export async function createDocument(documentData, file, user) {
             description: documentData.description,
             author: documentData.author,
             category: documentData.category,
-            reviewDate: documentData.reviewDate,
+            opensForReview: documentData.opensForReview || documentData.reviewDate, // Migration fallback
+            reviewInterval: documentData.reviewInterval || 'quarterly',
+            reviewIntervalDays: documentData.reviewIntervalDays,
+            reviewPeriod: documentData.reviewPeriod || '2weeks',
+            lastReviewedOn: documentData.lastReviewedOn,
+            nextReviewDueOn: documentData.nextReviewDueOn,
+            reviewDueDate: documentData.reviewDueDate,
+            reviewNotes: documentData.reviewNotes,
             ...parsedFields,
             createdBy: user._id || user.id,
             lastUpdatedBy: user._id || user.id
@@ -466,6 +512,7 @@ export async function createDocument(documentData, file, user) {
             { path: 'category', select: 'name' },
             { path: 'stakeholders', select: 'firstname lastname email' },
             { path: 'owners', select: 'firstname lastname email' },
+            { path: 'reviewAssignees', select: 'firstname lastname email' },
             { path: 'externalContacts.type' }
         ]);
 
@@ -499,6 +546,58 @@ export async function updateDocument(documentId, updateData, file, user) {
             lastUpdatedBy: user.id,
             lastUpdatedAt: new Date()
         };
+
+        // Reset review completion status if opensForReview is updated to a future date
+        if (updateData.opensForReview) {
+            const newReviewDate = new Date(updateData.opensForReview);
+            const existingReviewDate = new Date(existingDoc.opensForReview);
+            
+            // If the new review date is different and in the future, reset review completion
+            if (newReviewDate.getTime() !== existingReviewDate.getTime() && newReviewDate > new Date()) {
+                update.reviewCompleted = false;
+                update.reviewCompletedAt = null;
+                update.reviewCompletedBy = null;
+                update.lastReviewedOn = null;
+                
+                // Calculate next review due date based on review interval
+                if (updateData.reviewInterval || existingDoc.reviewInterval) {
+                    const interval = updateData.reviewInterval || existingDoc.reviewInterval;
+                    const intervalDays = updateData.reviewIntervalDays || existingDoc.reviewIntervalDays;
+                    
+                    let nextReviewDate = new Date(newReviewDate);
+                    
+                    switch (interval) {
+                        case 'monthly':
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 1);
+                            break;
+                        case 'quarterly':
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+                            break;
+                        case 'semiannually':
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 6);
+                            break;
+                        case 'annually':
+                            nextReviewDate.setFullYear(nextReviewDate.getFullYear() + 1);
+                            break;
+                        case 'custom':
+                            if (intervalDays && intervalDays > 0) {
+                                nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
+                            }
+                            break;
+                        default:
+                            // Default to quarterly
+                            nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+                    }
+                    
+                    update.nextReviewDueOn = nextReviewDate;
+                }
+                
+                // Clean up any orphaned and duplicate assignments, then reset for the new cycle
+                await cleanupOrphanedReviewAssignments(documentId);
+                await cleanupDuplicateReviewAssignments(documentId);
+                await resetReviewAssignmentsForNewCycle(documentId);
+            }
+        }
 
         // Add file information if provided
         if (file) {
@@ -536,6 +635,7 @@ export async function updateDocument(documentId, updateData, file, user) {
             { path: 'category', select: 'name' },
             { path: 'stakeholders', select: 'firstname lastname email' },
             { path: 'owners', select: 'firstname lastname email' },
+            { path: 'reviewAssignees', select: 'firstname lastname email' },
             { path: 'reviewCompletedBy', select: 'firstname lastname email' },
             { path: 'lastUpdatedBy', select: 'firstname lastname email' },
             { path: 'externalContacts.type' }

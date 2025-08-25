@@ -67,8 +67,8 @@ const DocTable = ({ doc, setDocs }) => {
         return 'Unknown Author'; // Fallback
     };
 
-    // Check if document needs review (review date is today or in the past)
-    const needsReview = new Date(doc.reviewDate) <= new Date();
+    // Check if document needs review (opens for review date is today or in the past)
+    const needsReview = new Date(doc.opensForReview || doc.reviewDate) <= new Date();
 
     // Check if user is admin
     const isAdmin = userRole === "admin" || userRole === "superadmin";
@@ -92,7 +92,7 @@ const DocTable = ({ doc, setDocs }) => {
             </td>
             <td className="p-4">
                 <p className={`block ${needsReview ? 'text-resdes-red font-semibold' : ''}`}>
-                    {formatDate(new Date(doc.reviewDate))}
+                    {formatDate(new Date(doc.opensForReview || doc.reviewDate))}
                     {needsReview && <span className="ml-2 text-xs bg-red-100 text-resdes-red px-1 py-0.5 rounded">OVERDUE</span>}
                 </p>
             </td>

@@ -13,18 +13,20 @@ import User from "../models/User.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 import { sendDocumentAssignedNotification } from "./notificationsController.js";
 import * as documentService from "../services/documentService.js";
+import { resetReviewAssignmentsForNewCycle, markAllReviewAssignmentsCompleted } from "./reviewController.js";
 
 /**
  * Helper function to send document assigned notifications
  * @param {string} docId - Document ID
  * @param {Array} stakeholders - Array of stakeholder user IDs
  * @param {Array} owners - Array of owner user IDs
+ * @param {Array} reviewAssignees - Array of review assignee user IDs
  * @param {string} senderId - ID of the user sending the notifications
  */
-async function sendDocumentNotifications(docId, stakeholders, owners, senderId) {
+async function sendDocumentNotifications(docId, stakeholders, owners, reviewAssignees, senderId) {
     try {
-        // Combine stakeholders and owners into a single array
-        const recipients = [...(stakeholders || []), ...(owners || [])];
+        // Combine stakeholders, owners, and review assignees into a single array
+        const recipients = [...(stakeholders || []), ...(owners || []), ...(reviewAssignees || [])];
         
         // Remove duplicates
         const uniqueRecipients = [...new Set(recipients.map(id => id.toString()))];
@@ -68,8 +70,8 @@ export async function getAllDocs(req, res) {
  * @returns {boolean} True if user has access
  */
 function hasDocumentAccess(doc, userId, userRole) {
-    // Admins have access to all documents
-    if (userRole === 'admin') return true;
+    // Admins and superadmins have access to all documents
+    if (userRole === 'admin' || userRole === 'superadmin') return true;
 
     // Check if user is the author
     if (doc.author && doc.author._id && doc.author._id.toString() === userId) return true;
@@ -85,6 +87,12 @@ function hasDocumentAccess(doc, userId, userRole) {
     if (doc.owners && doc.owners.some(owner => {
         const ownerId = owner._id ? owner._id.toString() : owner.toString();
         return ownerId === userId;
+    })) return true;
+
+    // Check if user is a review assignee
+    if (doc.reviewAssignees && doc.reviewAssignees.some(assignee => {
+        const assigneeId = assignee._id ? assignee._id.toString() : assignee.toString();
+        return assigneeId === userId;
     })) return true;
 
     return false;
@@ -118,25 +126,27 @@ export async function getDocById(req, res) {
  */
 export async function createDoc(req, res) {
     try {
-        const { title, description, reviewDate, author, category } = req.body;
+        const { title, description, opensForReview, reviewDate, author, category } = req.body;
 
-        // Validate required fields
-        if (!title || !description || !reviewDate || !author || !category) {
+        // Validate required fields - support both new and old field names for migration
+        const reviewDateField = opensForReview || reviewDate;
+        if (!title || !description || !reviewDateField || !author || !category) {
             return res.status(400).json({
-                message: "Title, description, reviewDate, author, and category are required."
+                message: "Title, description, opensForReview (or reviewDate), author, and category are required."
             });
         }
 
         // Create document using service
         const doc = await documentService.createDocument(req.body, req.file, req.user);
 
-        // Send notifications to stakeholders and owners
+        // Send notifications to stakeholders, owners, and review assignees
         const parsedFields = documentService.parseDocumentFields(req.body);
-        if (parsedFields.stakeholders || parsedFields.owners) {
+        if (parsedFields.stakeholders || parsedFields.owners || parsedFields.reviewAssignees) {
             await sendDocumentNotifications(
                 doc._id,
                 parsedFields.stakeholders || [],
                 parsedFields.owners || [],
+                parsedFields.reviewAssignees || [],
                 req.user?.id || null
             );
         }
@@ -175,14 +185,15 @@ export async function updateDoc(req, res) {
             req.user
         );
 
-        // Send notifications if stakeholders or owners were updated
-        const { stakeholders, owners } = req.body;
-        if (stakeholders || owners) {
+        // Send notifications if stakeholders, owners, or review assignees were updated
+        const { stakeholders, owners, reviewAssignees } = req.body;
+        if (stakeholders || owners || reviewAssignees) {
             const parsedFields = documentService.parseDocumentFields(req.body);
             await sendDocumentNotifications(
                 updatedDoc._id,
                 parsedFields.stakeholders || updatedDoc.stakeholders,
                 parsedFields.owners || updatedDoc.owners,
+                parsedFields.reviewAssignees || updatedDoc.reviewAssignees,
                 req.user?.id || null
             );
         }
@@ -263,6 +274,11 @@ export async function markDocAsReviewed(req, res) {
             return res.status(400).json({ message: "reviewCompleted must be a boolean value" });
         }
 
+        // If manually marking as completed, also mark all review assignments as completed
+        if (reviewCompleted) {
+            await markAllReviewAssignmentsCompleted(id, req.user?.id);
+        }
+
         // Update the document
         const updatedDoc = await Doc.findByIdAndUpdate(
             id,
@@ -278,6 +294,7 @@ export async function markDocAsReviewed(req, res) {
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email')
             .populate('owners', 'firstname lastname email')
+            .populate('reviewAssignees', 'firstname lastname email')
             .populate('reviewCompletedBy', 'firstname lastname email')
             .populate('lastUpdatedBy', 'firstname lastname email')
             .populate('externalContacts.type');

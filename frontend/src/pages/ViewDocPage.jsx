@@ -8,19 +8,29 @@
  * @license UNLICENSED
  */
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon } from "lucide-react";
+import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon, ClipboardCheckIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { formatDate } from "../lib/utils";
-import { useDocument, useUserRole, useFormData } from "../hooks";
+import { useDocument, useUserRole, useFormData, useReviewAssignments } from "../hooks";
+import ReviewCompletionToggle from "../components/ReviewCompletionToggle";
+import ReviewStatusSummary from "../components/ReviewStatusSummary";
 
 const ViewDocPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
     // Use custom hooks for data management
-    const { document: doc, files, versionHistory, loading, isOwner, isAuthor, isStakeholder } = useDocument(id);
+    const { document: doc, files, versionHistory, loading, isOwner, isAuthor, isStakeholder, isReviewAssignee, refreshDocument } = useDocument(id);
     const { userRole, userId, canEdit } = useUserRole();
+    const { 
+        assignments, 
+        loading: assignmentsLoading, 
+        currentUserAssignment, 
+        allCompleted, 
+        completionStatus, 
+        updateAssignmentStatus 
+    } = useReviewAssignments(id, userId, refreshDocument);
     const { getFullName } = useFormData({
         loadUsers: true,
         loadCategories: false,
@@ -58,8 +68,8 @@ const ViewDocPage = () => {
                 'BEGIN:VEVENT',
                 `UID:${doc._id}`,
                 `DTSTAMP:${new Date().toISOString().replace(/-|:|\.\d+/g, '')}`,
-                `DTSTART:${new Date(doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
-                `DTEND:${new Date(doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `DTSTART:${new Date(doc.opensForReview || doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
+                `DTEND:${new Date(doc.opensForReview || doc.reviewDate).toISOString().replace(/-|:|\.\d+/g, '')}`,
                 `SUMMARY:Review Document: ${doc.title}`,
                 `DESCRIPTION:Review document "${doc.title}" for category ${doc.category?.name || 'Uncategorized'}`,
                 'END:VEVENT',
@@ -83,8 +93,8 @@ const ViewDocPage = () => {
     };
 
 
-    // Check if document needs review (review date is today or in the past)
-    const needsReview = doc && new Date(doc.reviewDate) <= new Date();
+    // Check if document needs review (opens for review date is today or in the past)
+    const needsReview = doc && new Date(doc.opensForReview || doc.reviewDate) <= new Date();
 
     if (loading) {
         return (
@@ -160,13 +170,13 @@ const ViewDocPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Review Date */}
+                                {/* Opens For Review */}
                                 <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
                                     <CalendarIcon className={needsReview ? "text-red-600" : "text-resdes-orange"} size={20} />
                                     <div>
-                                        <p className="text-sm text-gray-600">Review Date</p>
+                                        <p className="text-sm text-gray-600">Opens For Review</p>
                                         <p className={`font-medium ${needsReview ? "text-red-600 font-bold" : ""}`}>
-                                        {formatDate(new Date(doc.reviewDate))}
+                                        {formatDate(new Date(doc.opensForReview || doc.reviewDate))}
                                         {needsReview && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">OVERDUE</span>}
                                         </p>
                                         <button
@@ -179,6 +189,61 @@ const ViewDocPage = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Review Interval */}
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                    <CalendarIcon className="text-resdes-blue" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Review Interval</p>
+                                        <p className="font-medium">
+                                            {doc.reviewInterval === 'custom' 
+                                                ? `Every ${doc.reviewIntervalDays} days`
+                                                : doc.reviewInterval?.charAt(0).toUpperCase() + doc.reviewInterval?.slice(1) || 'Quarterly'
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Review Period */}
+                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                    <CalendarIcon className="text-resdes-green" size={20} />
+                                    <div>
+                                        <p className="text-sm text-gray-600">Review Period</p>
+                                        <p className="font-medium">
+                                            {doc.reviewPeriod === '1week' && '1 Week'}
+                                            {doc.reviewPeriod === '2weeks' && '2 Weeks'}
+                                            {doc.reviewPeriod === '3weeks' && '3 Weeks'}
+                                            {doc.reviewPeriod === '1month' && '1 Month'}
+                                            {!doc.reviewPeriod && '2 Weeks'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Last Reviewed On */}
+                                {doc.lastReviewedOn && (
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <CalendarIcon className="text-green-600" size={20} />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Last Reviewed On</p>
+                                            <p className="font-medium text-green-600">
+                                                {formatDate(new Date(doc.lastReviewedOn))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Next Review Due On */}
+                                {doc.nextReviewDueOn && (
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <CalendarIcon className="text-blue-600" size={20} />
+                                        <div>
+                                            <p className="text-sm text-gray-600">Next Review Due On</p>
+                                            <p className="font-medium text-blue-600">
+                                                {formatDate(new Date(doc.nextReviewDueOn))}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Description */}
@@ -224,6 +289,85 @@ const ViewDocPage = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Review Assignees and Status */}
+                            {doc.reviewAssignees && doc.reviewAssignees.length > 0 && (
+                                <>
+                                    {/* Overall Document Review Status */}
+                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
+                                        <div className={`w-4 h-4 rounded-full ${
+                                            doc.reviewCompleted ? 'bg-green-600' : 'bg-yellow-500'
+                                        }`}></div>
+                                        <div>
+                                            <p className="text-sm text-gray-600">Document Review Status</p>
+                                            <p className={`font-medium ${
+                                                doc.reviewCompleted ? 'text-green-600' : 'text-yellow-600'
+                                            }`}>
+                                                {doc.reviewCompleted ? 'Review Completed' : 'Review In Progress'}
+                                            </p>
+                                            {doc.reviewCompletedAt && (
+                                                <p className="text-xs text-gray-500">
+                                                    Completed on {formatDate(new Date(doc.reviewCompletedAt))}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Review Status Summary */}
+                                    <ReviewStatusSummary
+                                        assignments={assignments}
+                                        completionStatus={completionStatus}
+                                        allCompleted={allCompleted}
+                                        getFullName={getFullName}
+                                    />
+
+                                    {/* Review Completion Toggle for Current User */}
+                                    {needsReview && isReviewAssignee(userId) && currentUserAssignment && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                                                <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                                Your Review
+                                            </h3>
+                                            <ReviewCompletionToggle
+                                                assignment={currentUserAssignment}
+                                                onToggle={updateAssignmentStatus}
+                                                loading={assignmentsLoading}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Traditional Review Assignees Display */}
+                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                            <h3 className="text-lg font-semibold">Review Assignees</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {doc.reviewAssignees.map((assignee) => (
+                                                <div key={assignee._id} className="badge badge-info">
+                                                    {getFullName(assignee)}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {doc.reviewNotes && (
+                                            <div className="mt-3 p-3 bg-base-200 rounded-lg">
+                                                <p className="text-sm text-gray-600 mb-1">Review Notes:</p>
+                                                <p className="text-sm">{doc.reviewNotes}</p>
+                                            </div>
+                                        )}
+                                        {doc.reviewDueDate && (
+                                            <div className="mt-2">
+                                                <p className="text-sm text-gray-600">
+                                                    Review Due: <span className="font-medium text-blue-600">
+                                                        {formatDate(new Date(doc.reviewDueDate))}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
                             {/* External Contacts */}
                             {doc.externalContacts && doc.externalContacts.length > 0 && (
                                 <div className="grid grid-cols-4 gap-4">

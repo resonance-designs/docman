@@ -112,23 +112,19 @@ export function useReviewManagement(
      * @returns {boolean} True if valid
      */
     const isReviewAssignmentValid = useCallback(() => {
-        // If there are assignees, there must be a due date
-        if (reviewAssignees.length > 0 && !reviewDueDate) {
-            return false;
-        }
+        // Review assignments are valid as long as assignees are selected
+        // Due date is now automatically calculated, so no manual validation needed
         return true;
-    }, [reviewAssignees, reviewDueDate]);
+    }, []);
 
     /**
      * Get validation error message
      * @returns {string|null} Error message or null if valid
      */
     const getReviewValidationError = useCallback(() => {
-        if (reviewAssignees.length > 0 && !reviewDueDate) {
-            return "Review due date is required when assignees are selected";
-        }
+        // No validation errors since due date is automatically calculated
         return null;
-    }, [reviewAssignees, reviewDueDate]);
+    }, []);
 
     return {
         // State
