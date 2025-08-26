@@ -71,8 +71,12 @@ const AdminProjectsPage = () => {
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
                 const res = await api.get("/projects", { headers });
-                setProjects(res.data);
-                setFilteredProjects(res.data);
+                // Backend returns { projects: [...], total } for /projects
+                // Normalize to an array for UI consumption
+                const data = res?.data;
+                const list = Array.isArray(data) ? data : (Array.isArray(data?.projects) ? data.projects : []);
+                setProjects(list);
+                setFilteredProjects(list);
             } catch (error) {
                 console.error("Error fetching projects:", error);
                 toast.error("Failed to load projects");
@@ -182,7 +186,8 @@ const AdminProjectsPage = () => {
         }
     };
 
-    if (userRole !== "admin") {
+    // While determining role, show spinner; allow both admin and superadmin
+    if (userRole === null) {
         return (
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-8">
