@@ -12,7 +12,6 @@ import { ArrowLeftIcon, FilePlus2 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -31,10 +30,6 @@ import ExternalContactsManager from "../components/forms/ExternalContactsManager
 import ReviewAssignments from "../components/forms/ReviewAssignments";
 import InlineLoader from "../components/InlineLoader";
 
-
-
-
-
 /**
  * Page component for creating new documents with file upload and metadata
  * @returns {JSX.Element} The create document page component
@@ -50,20 +45,20 @@ const CreateDocPage = () => {
 
     // Custom hooks for complex state management
     const formDataResult = useFormData();
-    const { 
-        users: rawUsers = [], 
-        categories: rawCategories = [], 
-        externalContactTypes: rawExternalContactTypes = [], 
-        loading: formDataLoading 
+    const {
+        users: rawUsers = [],
+        categories: rawCategories = [],
+        externalContactTypes: rawExternalContactTypes = [],
+        loading: formDataLoading
     } = formDataResult || {};
-    
+
     // Ensure arrays are always arrays to prevent .map() errors
     const users = Array.isArray(rawUsers) ? rawUsers : [];
     const allCategories = Array.isArray(rawCategories) ? rawCategories : [];
     // Filter categories to only show Document type
     const categories = allCategories.filter(cat => cat.type === 'Document');
     const externalContactTypes = Array.isArray(rawExternalContactTypes) ? rawExternalContactTypes : [];
-    
+
     const stakeholderManagement = useStakeholderManagement(setValue);
     const externalContactsManagement = useExternalContacts();
     const reviewManagement = useReviewManagement(setValue);
@@ -82,12 +77,6 @@ const CreateDocPage = () => {
         }
     });
 
-
-
-
-
-
-
     /**
      * Handle form submission using fileUpload hook
      * @param {Object} data - Form data from react-hook-form
@@ -104,7 +93,7 @@ const CreateDocPage = () => {
             if (data.opensForReview) {
                 formData.append("opensForReview", data.opensForReview.toISOString());
             }
-            
+
             // Add new review fields
             formData.append("reviewInterval", data.reviewInterval);
             if (data.reviewIntervalDays) {
@@ -199,7 +188,7 @@ const CreateDocPage = () => {
             <div className="container mx-auto px-4 py-4">
                 <div className="max-w-screen-xl mx-auto">
                     {/* Header */}
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center justify-between mb-6">
                         <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
                             <FilePlus2 className="size-8 text-resdes-orange" />
                             Create Document
@@ -239,8 +228,6 @@ const CreateDocPage = () => {
                                     onOwnerRemove={stakeholderManagement.handleOwnerRemove}
                                 />
 
-
-
                                 {/* Review Assignments - Replaced with shared component */}
                                 <ReviewAssignments
                                     control={control}
@@ -256,7 +243,7 @@ const CreateDocPage = () => {
                                     opensForReview={watch("opensForReview")}
                                     reviewPeriod={watch("reviewPeriod")}
                                 />
-                                
+
                                 {/* External Contacts - Replaced with shared component */}
                                 <ExternalContactsManager
                                     externalContactTypes={externalContactTypes}

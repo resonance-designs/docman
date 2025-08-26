@@ -301,20 +301,21 @@ const EditDocPage = () => {
 
     return (
         <div className="min-h-screen">
-            <div className="container mx-auto px-4 py-8">
+            <div className="container mx-auto px-4 py-4">
                 <div className="max-w-screen-xl mx-auto">
+                    {/* Header */}
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
+                            <FilePenLine className="size-8 text-resdes-orange" />
+                            Edit Document
+                        </h1>
+                    </div>
                     <Link to={`/doc/${id}`} className="btn btn-ghost mb-4">
                         <ArrowLeftIcon />
                         Back To Document
                     </Link>
-
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
-                            <div className="flex items-center gap-2 mb-4">
-                                <FilePenLine className="text-resdes-orange" size={28} />
-                                <h1 className="card-title text-3xl text-base-content">Edit Document: {watch("title") || ""}</h1>
-                            </div>
-
                             <form onSubmit={handleSubmit(onSubmit, (errors) => {
                                 console.log("Form validation errors:", errors);
                                 toast.error("Please fix the form errors before submitting");

@@ -161,7 +161,7 @@ const ViewBooksPage = () => {
                 <div className="max-w-screen-xl mx-auto">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-4xl font-bold flex items-center gap-2">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
                             <BookOpen className="size-8 text-resdes-orange" />
                             Books
                         </h1>
@@ -172,7 +172,9 @@ const ViewBooksPage = () => {
                             </Link>
                         )}
                     </div>
+
                     
+
                     {/* Loading State */}
                     {loading && <LoadingSpinner message="Loading books..." size="lg" color="teal" />}
 
