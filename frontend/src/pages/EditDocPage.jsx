@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, FilePenLine } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 
@@ -27,6 +27,7 @@ import EnhancedDocumentFields from "../components/forms/EnhancedDocumentFields";
 import StakeholderSelection from "../components/forms/StakeholderSelection";
 import ExternalContactsManager from "../components/forms/ExternalContactsManager";
 import ReviewAssignments from "../components/forms/ReviewAssignments";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 /**
  * Get full name from user object
@@ -84,10 +85,13 @@ const EditDocPage = () => {
                     api.get("/external-contacts/types"),
                 ]);
                 const doc = docRes.data;
-                
+
                 // Extract data from nested response structure
                 setUsers(usersRes.data?.users || usersRes.data || []);
-                setCategories(catsRes.data?.categories || catsRes.data || []);
+                // Filter categories to only include Document type
+                const rawCats = catsRes.data?.categories || catsRes.data || [];
+                const docCategories = Array.isArray(rawCats) ? rawCats.filter(c => c.type === 'Document') : [];
+                setCategories(docCategories);
                 setExternalContactTypes(typesRes.data || []);
 
                 // Normalize incoming values - extract _id from populated objects
@@ -146,19 +150,19 @@ const EditDocPage = () => {
             formData.append("file", file);
             formData.append("versionLabel", versionLabel || "");
             formData.append("changelog", changelog || "");
-            
+
             const res = await api.post(`/docs/${id}/upload`, formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
-            
+
             toast.success("New version uploaded successfully");
-            
+
             // Reset version fields
             setVersionLabel("");
             setChangelog("");
-            
+
             // Refresh the document data to show the new version
             // This would typically involve refetching the document or updating state
         } catch (err) {
@@ -176,7 +180,7 @@ const EditDocPage = () => {
             // Handle version upload first if there's a version file
             // Note: In a real implementation, you might want to handle this separately
             // from the main document update
-            
+
             const formData = new FormData();
 
             // Minimal send: only changed fields (nice-to-have)
@@ -198,7 +202,7 @@ const EditDocPage = () => {
             if (data.opensForReview) {
                 formData.append("opensForReview", data.opensForReview.toISOString());
             }
-            
+
             // Add new review fields
             maybeAppend("reviewInterval", data.reviewInterval);
             if (data.reviewIntervalDays) {
@@ -239,11 +243,15 @@ const EditDocPage = () => {
                 formData.append("reviewNotes", data.reviewNotes);
             }
 
+            // External contacts (managed via hook state, not RHF dirty tracking)
+            // Always send current list so backend can update or clear as needed
+            formData.append("externalContacts", JSON.stringify(externalContactsManagement.selectedExternalContacts || []));
+
             // Optional file replace
             if (data.file && data.file.length) {
                 formData.append("file", data.file[0]);
             }
-            
+
             // Debug
             // for (const [k, v] of formData.entries()) console.log("PUT fd", k, v);
 
@@ -287,31 +295,30 @@ const EditDocPage = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen">
-                <div className="container mx-auto px-4 py-8">
-                <p className="text-center text-resdes-teal">Loading document…</p>
-                </div>
-            </div>
+            <LoadingSpinner message="Loading document..." size="lg" color="teal" fullScreen />
         );
     }
 
     return (
         <div className="min-h-screen">
             <div className="container mx-auto px-4 py-8">
-                <div className="max-w-screen-lg mx-auto">
-                    <Link to="/" className="btn btn-ghost mb-4">
+                <div className="max-w-screen-xl mx-auto">
+                    <Link to={`/doc/${id}`} className="btn btn-ghost mb-4">
                         <ArrowLeftIcon />
-                        Back To Documents
+                        Back To Document
                     </Link>
 
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
-                            <h2 className="card-title text-2xl mb-4">Edit Document</h2>
+                            <div className="flex items-center gap-2 mb-4">
+                                <FilePenLine className="text-resdes-orange" size={28} />
+                                <h1 className="card-title text-3xl text-base-content">Edit Document: {watch("title") || ""}</h1>
+                            </div>
 
                             <form onSubmit={handleSubmit(onSubmit, (errors) => {
-                console.log("Form validation errors:", errors);
-                toast.error("Please fix the form errors before submitting");
-            })}>
+                                console.log("Form validation errors:", errors);
+                                toast.error("Please fix the form errors before submitting");
+                            })}>
                                 {/* Enhanced Document Fields - Replaced with new component */}
                                 <EnhancedDocumentFields
                                     register={register}
@@ -338,8 +345,6 @@ const EditDocPage = () => {
                                     onOwnerRemove={stakeholderManagement.handleOwnerRemove}
                                 />
 
-
-
                                 {/* Review Assignments - Replaced with shared component */}
                                 <ReviewAssignments
                                     control={control}
@@ -355,6 +360,7 @@ const EditDocPage = () => {
                                     opensForReview={watch("opensForReview")}
                                     reviewPeriod={watch("reviewPeriod")}
                                 />
+
                                 {/* External Contacts - Replaced with shared component */}
                                 <ExternalContactsManager
                                     externalContactTypes={externalContactTypes}
@@ -377,12 +383,12 @@ const EditDocPage = () => {
                                     <input id="file" type="file" {...register("file")} className="file-input" />
                                     {errors.file && <p className="text-red-500 mt-1">{errors.file.message}</p>}
                                 </div>
-                                
+
                                 {/* Version Upload Section */}
                                 <div className="form-control mb-4">
                                     <label className="label font-semibold">Upload New Version</label>
                                     <p className="text-sm text-gray-600 mb-2">Upload a new version of this document</p>
-                                    
+
                                     {/* Version Label */}
                                     <div className="form-control mb-4">
                                         <label className="label" htmlFor="versionLabel">Version Label (optional)</label>
@@ -395,7 +401,7 @@ const EditDocPage = () => {
                                             placeholder="e.g., Version 2.1, Updated Requirements, etc."
                                         />
                                     </div>
-                                    
+
                                     {/* Changelog */}
                                     <div className="form-control mb-4">
                                         <label className="label" htmlFor="changelog">Changelog (optional)</label>
@@ -408,7 +414,7 @@ const EditDocPage = () => {
                                             placeholder="Describe what changes were made in this version..."
                                         />
                                     </div>
-                                    
+
                                     {/* Version File Upload */}
                                     <div className="form-control mb-4">
                                         <label className="label" htmlFor="versionFile">Upload New Version File</label>
@@ -426,7 +432,7 @@ const EditDocPage = () => {
                                         <p className="text-sm text-gray-500 mt-1">Upload a new version of the document file</p>
                                     </div>
                                 </div>
-                                
+
                                 {/* Submit */}
                                 <div className="form-control mt-4">
                                     <button

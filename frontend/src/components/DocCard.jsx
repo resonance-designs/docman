@@ -35,7 +35,7 @@ const DocCard = ({ doc, setDocs }) => {
      */
     const handleDelete = async (e, id) => {
         e.preventDefault(); // get rid of the navigation behavior
-        
+
         confirm({
             title: "Delete Document",
             message: `Are you sure you want to delete "${doc.title}"?`,
@@ -68,8 +68,9 @@ const DocCard = ({ doc, setDocs }) => {
         return 'Unknown Author'; // Fallback
     };
 
-    // Check if document needs review (review date is today or in the past)
-    const needsReview = new Date(doc.reviewDate) <= new Date();
+    // Check if document needs review (opens for review date is today or in the past)
+    const reviewOpenDate = doc.opensForReview || doc.reviewDate;
+    const needsReview = reviewOpenDate ? new Date(reviewOpenDate) <= new Date() : false;
 
     // Check if user is admin
     const isAdmin = userRole === "admin" || userRole === "superadmin";
@@ -86,8 +87,8 @@ const DocCard = ({ doc, setDocs }) => {
                     By <i>{getAuthorName(doc.author)}</i>
                 </p>
                 <p className="text-base-content/70 line-clamp-3">{truncate(doc.description, 120)}</p>
-                <p className={`line-clamp-3 ${needsReview ? 'text-resdes-red font-semibold' : 'text-base-content/70'}`}>
-                    Review: {formatDate(new Date(doc.reviewDate))}
+                <p className="text-base-content/70 font-semibold">
+                    Review Opens: <span className={`${needsReview ? 'text-resdes-red font-semibold' : 'text-base-content/70'}`}>{reviewOpenDate ? formatDate(new Date(reviewOpenDate)) : 'N/A'}</span>
                     {needsReview && <span className="ml-2 text-xs bg-red-100 text-resdes-red px-1 py-0.5 rounded">OVERDUE</span>}
                 </p>
                 <div className="card-actions justify-between items-center mt-4">

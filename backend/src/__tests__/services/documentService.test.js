@@ -81,6 +81,63 @@ describe('DocumentService', () => {
             const result = hasDocumentAccess(doc, userId, 'viewer');
             expect(result).toBe(false);
         });
+
+        test('should allow access for populated stakeholders', () => {
+            const doc = { 
+                author: 'other-user-id',
+                stakeholders: [
+                    { _id: userId, firstname: 'Test', lastname: 'User' },
+                    { _id: 'another-user-id', firstname: 'Other', lastname: 'User' }
+                ]
+            };
+            const result = hasDocumentAccess(doc, userId, 'editor');
+            expect(result).toBe(true);
+        });
+
+        test('should allow access for populated owners', () => {
+            const doc = { 
+                author: 'other-user-id',
+                owners: [
+                    { _id: userId, firstname: 'Test', lastname: 'User' }
+                ]
+            };
+            const result = hasDocumentAccess(doc, userId, 'viewer');
+            expect(result).toBe(true);
+        });
+
+        test('should allow access for populated reviewAssignees', () => {
+            const doc = { 
+                author: 'other-user-id',
+                reviewAssignees: [
+                    { _id: userId, firstname: 'Test', lastname: 'User' },
+                    { _id: 'another-user-id', firstname: 'Other', lastname: 'User' }
+                ]
+            };
+            const result = hasDocumentAccess(doc, userId, 'editor');
+            expect(result).toBe(true);
+        });
+
+        test('should allow access for populated author', () => {
+            const doc = { 
+                author: { _id: userId, firstname: 'Test', lastname: 'User' }
+            };
+            const result = hasDocumentAccess(doc, userId, 'editor');
+            expect(result).toBe(true);
+        });
+
+        test('should deny access for populated document when user is not in any field', () => {
+            const doc = { 
+                author: { _id: 'other-user-id', firstname: 'Other', lastname: 'User' },
+                stakeholders: [
+                    { _id: 'another-user-id', firstname: 'Another', lastname: 'User' }
+                ],
+                owners: [
+                    { _id: 'yet-another-user-id', firstname: 'Yet Another', lastname: 'User' }
+                ]
+            };
+            const result = hasDocumentAccess(doc, userId, 'viewer');
+            expect(result).toBe(false);
+        });
     });
 
     describe('buildDocumentFilter', () => {

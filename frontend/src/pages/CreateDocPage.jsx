@@ -59,7 +59,9 @@ const CreateDocPage = () => {
     
     // Ensure arrays are always arrays to prevent .map() errors
     const users = Array.isArray(rawUsers) ? rawUsers : [];
-    const categories = Array.isArray(rawCategories) ? rawCategories : [];
+    const allCategories = Array.isArray(rawCategories) ? rawCategories : [];
+    // Filter categories to only show Document type
+    const categories = allCategories.filter(cat => cat.type === 'Document');
     const externalContactTypes = Array.isArray(rawExternalContactTypes) ? rawExternalContactTypes : [];
     
     const stakeholderManagement = useStakeholderManagement(setValue);
