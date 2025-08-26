@@ -117,7 +117,8 @@ const AdminTeamsPage = () => {
         }
     };
 
-    if (userRole !== "admin") {
+    // While determining role, show spinner; allow both admin and superadmin
+    if (userRole === null) {
         return (
             <div className="min-h-screen">
                 <div className="container mx-auto px-4 py-8">
@@ -133,6 +134,9 @@ const AdminTeamsPage = () => {
                 </div>
             </div>
         );
+    }
+    if (userRole !== "admin" && userRole !== "superadmin") {
+        return null; // navigate() already redirected in effect
     }
 
     return (

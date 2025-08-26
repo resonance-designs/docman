@@ -77,7 +77,13 @@ const DateRangeFilter = ({
             )}
 
             {!showInputs && hasDateRange && (
-                <div className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-sm w-full">
+                <div
+                    className="flex items-center px-3 py-2 border border-gray-300 rounded-md bg-white text-sm w-full cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setShowInputs(true)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowInputs(true); }}
+                >
                     <CalendarIcon className="h-4 w-4 mr-2 text-gray-400" />
                     <span className="flex-1 text-gray-900">
                         {startDate && formatDate(startDate)}
@@ -88,8 +94,10 @@ const DateRangeFilter = ({
                     </span>
                     <button
                         type="button"
-                        onClick={handleClear}
+                        onClick={(e) => { e.stopPropagation(); handleClear(); }}
                         className="text-gray-400 hover:text-gray-600 focus:outline-none ml-2"
+                        aria-label="Clear date range"
+                        title="Clear date range"
                     >
                         <XIcon className="h-4 w-4" />
                     </button>

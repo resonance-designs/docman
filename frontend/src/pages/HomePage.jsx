@@ -413,49 +413,51 @@ const HomePage = () => {
                                 </h1>
                             </div>
                             {/* Filter Bar */}
-                            <FilterBar
-                                searchValue={searchValue}
-                                onSearchChange={setSearchValue}
-                                filters={[
-                                    {
-                                        key: "category",
-                                        value: categoryFilter,
-                                        onChange: setCategoryFilter,
-                                        options: createSafeArray(categories).map(cat => ({ value: cat._id, label: cat.name })),
-                                        placeholder: "All Categories",
-                                        label: "Category"
-                                    },
-                                    {
-                                        key: "author",
-                                        value: authorFilter,
-                                        onChange: setAuthorFilter,
-                                        options: createSafeArray(users).map(user => ({ value: user._id, label: `${user.firstname} ${user.lastname}` })),
-                                        placeholder: "All Authors",
-                                        label: "Author"
-                                    },
-                                    {
-                                        key: "overdue",
-                                        value: overdueFilter,
-                                        onChange: setOverdueFilter,
-                                        options: [
-                                            { value: "true", label: "Overdue Only" },
-                                            { value: "false", label: "Not Overdue" }
-                                        ],
-                                        placeholder: "All Documents",
-                                        label: "Review Status"
-                                    }
-                                ]}
-                                dateRange={dateRange}
-                                onDateRangeChange={setDateRange}
-                                onClearAll={() => {
-                                    setSearchValue("");
-                                    setCategoryFilter("");
-                                    setAuthorFilter("");
-                                    setOverdueFilter("");
-                                    setDateRange({ startDate: "", endDate: "" });
-                                    setSortConfig({ key: "createdAt", direction: "desc" });
-                                }}
-                            />
+                            {!loading && (
+                                <FilterBar
+                                    searchValue={searchValue}
+                                    onSearchChange={setSearchValue}
+                                    filters={[
+                                        {
+                                            key: "category",
+                                            value: categoryFilter,
+                                            onChange: setCategoryFilter,
+                                            options: createSafeArray(categories).map(cat => ({ value: cat._id, label: cat.name })),
+                                            placeholder: "All Categories",
+                                            label: "Category"
+                                        },
+                                        {
+                                            key: "author",
+                                            value: authorFilter,
+                                            onChange: setAuthorFilter,
+                                            options: createSafeArray(users).map(user => ({ value: user._id, label: `${user.firstname} ${user.lastname}` })),
+                                            placeholder: "All Authors",
+                                            label: "Author"
+                                        },
+                                        {
+                                            key: "overdue",
+                                            value: overdueFilter,
+                                            onChange: setOverdueFilter,
+                                            options: [
+                                                { value: "true", label: "Overdue Only" },
+                                                { value: "false", label: "Not Overdue" }
+                                            ],
+                                            placeholder: "All Documents",
+                                            label: "Review Status"
+                                        }
+                                    ]}
+                                    dateRange={dateRange}
+                                    onDateRangeChange={setDateRange}
+                                    onClearAll={() => {
+                                        setSearchValue("");
+                                        setCategoryFilter("");
+                                        setAuthorFilter("");
+                                        setOverdueFilter("");
+                                        setDateRange({ startDate: "", endDate: "" });
+                                        setSortConfig({ key: "createdAt", direction: "desc" });
+                                    }}
+                                />
+                            )}
 
                             {/* All Documents Table */}
                             <PaginatedDocTable
