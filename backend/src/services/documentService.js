@@ -23,19 +23,29 @@ import { resetReviewAssignmentsForNewCycle, cleanupDuplicateReviewAssignments, c
 export function hasDocumentAccess(doc, userId, userRole) {
     // Admins and superadmins have access to all documents
     if (userRole === 'admin' || userRole === 'superadmin') return true;
-    
-    // Check if user is the author
-    if (doc.author?.toString() === userId) return true;
-    
-    // Check if user is a stakeholder
-    if (doc.stakeholders?.some(stakeholder => stakeholder.toString() === userId)) return true;
-    
-    // Check if user is an owner
-    if (doc.owners?.some(owner => owner.toString() === userId)) return true;
-    
-    // Check if user is a review assignee
-    if (doc.reviewAssignees?.some(assignee => assignee.toString() === userId)) return true;
-    
+
+    // Check if user is the author (handle both populated and unpopulated)
+    if (doc.author && doc.author._id && doc.author._id.toString() === userId) return true;
+    if (doc.author && doc.author.toString() === userId) return true;
+
+    // Check if user is a stakeholder (handle both populated and unpopulated)
+    if (doc.stakeholders && doc.stakeholders.some(stakeholder => {
+        const stakeholderId = stakeholder._id ? stakeholder._id.toString() : stakeholder.toString();
+        return stakeholderId === userId;
+    })) return true;
+
+    // Check if user is an owner (handle both populated and unpopulated)
+    if (doc.owners && doc.owners.some(owner => {
+        const ownerId = owner._id ? owner._id.toString() : owner.toString();
+        return ownerId === userId;
+    })) return true;
+
+    // Check if user is a review assignee (handle both populated and unpopulated)
+    if (doc.reviewAssignees && doc.reviewAssignees.some(assignee => {
+        const assigneeId = assignee._id ? assignee._id.toString() : assignee.toString();
+        return assigneeId === userId;
+    })) return true;
+
     return false;
 }
 

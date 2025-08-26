@@ -8,7 +8,7 @@
  * @license UNLICENSED
  */
 import { useState } from "react";
-import { CheckCircleIcon, XCircleIcon } from "lucide-react";
+import { CheckCircleIcon, XCircleIcon, ClipboardCheckIcon } from "lucide-react";
 
 /**
  * ReviewCompletionToggle component for marking individual reviews as complete
@@ -19,19 +19,19 @@ import { CheckCircleIcon, XCircleIcon } from "lucide-react";
  * @param {boolean} props.loading - Whether the toggle is in loading state
  * @returns {JSX.Element} ReviewCompletionToggle component
  */
-const ReviewCompletionToggle = ({ 
-    assignment, 
-    onToggle, 
-    disabled = false, 
-    loading = false 
+const ReviewCompletionToggle = ({
+    assignment,
+    onToggle,
+    disabled = false,
+    loading = false
 }) => {
     const [isUpdating, setIsUpdating] = useState(false);
-    
+
     const isCompleted = assignment?.status === 'completed';
-    
+
     const handleToggle = async () => {
         if (disabled || loading || isUpdating) return;
-        
+
         setIsUpdating(true);
         try {
             const newStatus = isCompleted ? 'pending' : 'completed';
@@ -57,9 +57,9 @@ const ReviewCompletionToggle = ({
                     Mark Review as Complete
                 </span>
             </div>
-            
+
             <div className="flex-1"></div>
-            
+
             <div className="form-control">
                 <label className="label cursor-pointer gap-3">
                     <span className="label-text font-medium">
@@ -74,7 +74,7 @@ const ReviewCompletionToggle = ({
                     />
                 </label>
             </div>
-            
+
             {(loading || isUpdating) && (
                 <div className="loading loading-spinner loading-sm"></div>
             )}

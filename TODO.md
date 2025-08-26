@@ -147,14 +147,19 @@ A list of features I plan on implementing into the application.
     4.  Confidential
     5.  Top Secret
 30. Develop a short-code system to embed custom charts built with CustomChartsPage.
-31. Make sure header comments and JSDoc comments are added to all files.
-32. Cleanup and compartmentalize the code as much as possible.
-33. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-34. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to a temp_collection(s). And all files are moved to temp_uploads_archive.
-35. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
-36. Create another fork with docker and kubernetes for cloud use
-37. Create another fork with a mobile app for iOS and Android
-38. Create another fork for the purpose of refactoring into a Recipes MERN app
+31. Add search/filters to ViewCatsPage.
+    1.  ViewCatsPage should be searchable by name and type.
+    2.  ViewCatsPage should be filterable by type.
+    3.  ViewCatsPage should have be able to sort by name, type, and created in the PaginatedCatTable component.
+32. Work on the switchable UI themes.
+33. Make sure header comments and JSDoc comments are added to all files.
+34. Cleanup and compartmentalize the code as much as possible.
+35. Code audit and security review. Check against OWASP Top 10 and other security best practices.
+36. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to a temp_collection(s). And all files are moved to temp_uploads_archive.
+37. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
+38. Create another fork with docker and kubernetes for cloud use
+39. Create another fork with a mobile app for iOS and Android
+40. Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Authentication System Suggestions & Improvements
 

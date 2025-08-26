@@ -31,9 +31,9 @@ const getFullName = (user) => {
  */
 const calculateNextReviewDate = (baseDate, reviewInterval, reviewIntervalDays) => {
     if (!baseDate) return null;
-    
+
     const date = new Date(baseDate);
-    
+
     switch (reviewInterval) {
         case 'monthly':
             date.setMonth(date.getMonth() + 1);
@@ -55,7 +55,7 @@ const calculateNextReviewDate = (baseDate, reviewInterval, reviewIntervalDays) =
         default:
             return null;
     }
-    
+
     return date;
 };
 
@@ -67,9 +67,9 @@ const calculateNextReviewDate = (baseDate, reviewInterval, reviewIntervalDays) =
  */
 const calculateReviewDueDate = (opensForReview, reviewPeriod) => {
     if (!opensForReview || !reviewPeriod) return null;
-    
+
     const date = new Date(opensForReview);
-    
+
     switch (reviewPeriod) {
         case '1week':
             date.setDate(date.getDate() + 7);
@@ -86,7 +86,7 @@ const calculateReviewDueDate = (opensForReview, reviewPeriod) => {
         default:
             return null;
     }
-    
+
     return date;
 };
 
@@ -122,25 +122,25 @@ export default function EnhancedDocumentFields({
     showNextReviewDate = true
 }) {
     const [showCustomInterval, setShowCustomInterval] = useState(false);
-    
+
     // Watch form values for calculations
     const opensForReview = watch("opensForReview");
     const reviewInterval = watch("reviewInterval");
     const reviewIntervalDays = watch("reviewIntervalDays");
     const reviewPeriod = watch("reviewPeriod");
     const lastReviewedOn = watch("lastReviewedOn");
-    
+
     // Handle review interval change
     useEffect(() => {
         setShowCustomInterval(reviewInterval === 'custom');
     }, [reviewInterval]);
-    
+
     // Calculate next review date based on the new logic
     useEffect(() => {
         if (!showNextReviewDate) return;
-        
+
         let nextDate = null;
-        
+
         if (lastReviewedOn && reviewInterval) {
             // If a review has been completed, calculate from lastReviewedOn + reviewInterval
             nextDate = calculateNextReviewDate(lastReviewedOn, reviewInterval, reviewIntervalDays);
@@ -148,7 +148,7 @@ export default function EnhancedDocumentFields({
             // If no review completed yet, use opensForReview + reviewPeriod (same as review due date)
             nextDate = calculateReviewDueDate(opensForReview, reviewPeriod);
         }
-        
+
         if (nextDate) {
             setValue("nextReviewDueOn", nextDate);
         }
@@ -158,13 +158,13 @@ export default function EnhancedDocumentFields({
         <>
             {/* Title */}
             <div className="form-control mb-4">
-                <label className="label" htmlFor="title">
+                <label className="label pt-0" htmlFor="title">
                     <span className="label-text">Title *</span>
                 </label>
-                <input 
-                    id="title" 
-                    {...register("title")} 
-                    className="input input-bordered" 
+                <input
+                    id="title"
+                    {...register("title")}
+                    className="input input-bordered"
                     placeholder="Enter document title"
                     disabled={isViewMode}
                 />
@@ -178,10 +178,10 @@ export default function EnhancedDocumentFields({
                 <label className="label" htmlFor="description">
                     <span className="label-text">Description *</span>
                 </label>
-                <textarea 
-                    id="description" 
-                    {...register("description")} 
-                    className="textarea textarea-bordered h-24" 
+                <textarea
+                    id="description"
+                    {...register("description")}
+                    className="textarea textarea-bordered h-24"
                     placeholder="Enter document description"
                     disabled={isViewMode}
                 />
@@ -195,9 +195,9 @@ export default function EnhancedDocumentFields({
                 <label className="label" htmlFor="author">
                     <span className="label-text">Author *</span>
                 </label>
-                <select 
-                    id="author" 
-                    {...register("author")} 
+                <select
+                    id="author"
+                    {...register("author")}
                     className="select select-bordered"
                     disabled={isViewMode}
                 >
@@ -218,9 +218,9 @@ export default function EnhancedDocumentFields({
                 <label className="label" htmlFor="category">
                     <span className="label-text">Category *</span>
                 </label>
-                <select 
-                    id="category" 
-                    {...register("category")} 
+                <select
+                    id="category"
+                    {...register("category")}
                     className="select select-bordered"
                     disabled={isViewMode}
                 >
@@ -266,9 +266,9 @@ export default function EnhancedDocumentFields({
                 <label className="label" htmlFor="reviewInterval">
                     <span className="label-text">Review Interval *</span>
                 </label>
-                <select 
-                    id="reviewInterval" 
-                    {...register("reviewInterval")} 
+                <select
+                    id="reviewInterval"
+                    {...register("reviewInterval")}
                     className="select select-bordered"
                     disabled={isViewMode}
                 >
@@ -289,14 +289,14 @@ export default function EnhancedDocumentFields({
                     <label className="label" htmlFor="reviewIntervalDays">
                         <span className="label-text">Custom Interval (Days) *</span>
                     </label>
-                    <input 
-                        id="reviewIntervalDays" 
+                    <input
+                        id="reviewIntervalDays"
                         type="number"
                         min="1"
-                        {...register("reviewIntervalDays", { 
-                            setValueAs: (value) => value === "" ? null : Number(value) 
-                        })} 
-                        className="input input-bordered" 
+                        {...register("reviewIntervalDays", {
+                            setValueAs: (value) => value === "" ? null : Number(value)
+                        })}
+                        className="input input-bordered"
                         placeholder="Enter number of days"
                         disabled={isViewMode}
                     />
@@ -311,9 +311,9 @@ export default function EnhancedDocumentFields({
                 <label className="label" htmlFor="reviewPeriod">
                     <span className="label-text">Review Period *</span>
                 </label>
-                <select 
-                    id="reviewPeriod" 
-                    {...register("reviewPeriod")} 
+                <select
+                    id="reviewPeriod"
+                    {...register("reviewPeriod")}
                     className="select select-bordered"
                     disabled={isViewMode}
                 >
@@ -381,7 +381,7 @@ export default function EnhancedDocumentFields({
                     )}
                     <div className="label">
                         <span className="label-text-alt">
-                            {lastReviewedOn 
+                            {lastReviewedOn
                                 ? "Calculated from last review date + review interval"
                                 : "Calculated from opens for review date + review period (no reviews completed yet)"
                             }
@@ -399,9 +399,9 @@ export default function EnhancedDocumentFields({
                         </span>
                     </label>
                     <input 
-                        id="file" 
-                        type="file" 
-                        {...register("file")} 
+                        id="file"
+                        type="file"
+                        {...register("file")}
                         className="file-input file-input-bordered w-full"
                         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.svg"
                         disabled={isViewMode}

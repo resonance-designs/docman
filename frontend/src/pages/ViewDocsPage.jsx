@@ -63,7 +63,7 @@ const ViewDocsPage = () => {
                 const params = new URLSearchParams();
                 params.append('page', 1);
                 params.append('limit', pageSize);
-                
+
                 const [docsRes, categoriesRes, usersRes] = await Promise.all([
                     api.get(`/docs?${params.toString()}`),
                     api.get("/categories?type=Document"),
@@ -81,7 +81,7 @@ const ViewDocsPage = () => {
                 } else {
                     console.warn("📄 ViewDocsPage: Unexpected docs response structure:", docsRes.data);
                 }
-                
+
                 setDocs(ensureArray(docsArray));
                 setCategories(ensureArray(categoriesRes.data.categories || categoriesRes.data));
                 setUsers(ensureArray(usersRes.data.users || usersRes.data));
@@ -134,7 +134,7 @@ const ViewDocsPage = () => {
                 } else {
                     console.warn("📄 ViewDocsPage: Unexpected filtered docs response structure:", res.data);
                 }
-                
+
                 setFilteredDocs(ensureArray(docsArray));
                 setPagination(res.data.pagination || null);
             } catch (error) {
@@ -242,7 +242,7 @@ const ViewDocsPage = () => {
             } else {
                 console.warn("📄 ViewDocsPage: Unexpected filtered docs response structure:", res.data);
             }
-            
+
             setFilteredDocs(ensureArray(docsArray));
             setPagination(res.data.pagination || null);
         } catch (error) {
@@ -284,13 +284,13 @@ const ViewDocsPage = () => {
                             </Link>
                         )}
                     </div>
-                    
+
                     {/* Loading State */}
                     {loading && (
-                        <LoadingSpinner 
-                            message="Loading documents..." 
-                            size="lg" 
-                            color="teal" 
+                        <LoadingSpinner
+                            message="Loading documents..."
+                            size="lg"
+                            color="teal"
                         />
                     )}
 

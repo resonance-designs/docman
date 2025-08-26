@@ -14,6 +14,8 @@ import toast from "react-hot-toast";
 import DocCard from "../components/DocCard";
 import PaginatedDocTable from "../components/PaginatedDocTable";
 import LoadingSpinner from "../components/LoadingSpinner";
+import FilterBar from "../components/filters/FilterBar";
+import { ensureArray, createSafeArray } from "../lib/safeUtils";
 import { useUserRole } from "../hooks";
 
 import { Link } from "react-router";
@@ -29,10 +31,24 @@ const HomePage = () => {
     const { isAuthenticated } = useUserRole();
     const [isRateLimited, setIsRateLimited] = useState(false);
     const [docs, setDocs] = useState([]); // Always initialize as empty array
+    const [filteredDocs, setFilteredDocs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [form, setForm] = useState({ email: "", password: "" });
     const [pagination, setPagination] = useState(null);
     const [pageSize, setPageSize] = useState(10);
+    const [docsNeedingReview, setDocsNeedingReview] = useState([]); // Fetched from API with overdue filter
+
+    // Filter state (mirror ViewDocsPage minimal set)
+    const [searchValue, setSearchValue] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
+    const [authorFilter, setAuthorFilter] = useState("");
+    const [overdueFilter, setOverdueFilter] = useState("");
+    const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
+    const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
+
+    // Supporting data for filters
+    const [categories, setCategories] = useState([]);
+    const [users, setUsers] = useState([]);
 
     console.log("🏠 HomePage render:", {
         isAuthenticated,
@@ -46,20 +62,10 @@ const HomePage = () => {
     // Auto logout functionality moved to Navbar component to avoid conflicts
 
     /**
-     * Filter documents that need review (for DocCard section)
-     * Get the 6 most recent documents that became overdue
-     * Sort by review date descending (most recently overdue first)
+     * Fetch documents that need review directly from API using overdue=true
+     * Limits to 6 and sorts by opensForReview desc server-side
      */
-    const docsNeedingReview = (Array.isArray(docs) ? docs : [])
-        .filter(doc => {
-            const needsReview = new Date(doc.reviewDate) <= new Date();
-            return needsReview;
-        })
-        .sort((a, b) => {
-            // Sort by review date descending (most recently overdue first)
-            return new Date(b.reviewDate) - new Date(a.reviewDate);
-        })
-        .slice(0, 6); // Limit to 6 results
+    // Note: replaced local computation with server-fetched state
 
     /**
      * Handle form input changes
@@ -130,17 +136,24 @@ const HomePage = () => {
         }
     };
 
-    // Handle page change
+    // Handle page change (respects active filters)
     const handlePageChange = async (page) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
+            if (searchValue) params.append('search', searchValue);
+            if (categoryFilter) params.append('category', categoryFilter);
+            if (authorFilter) params.append('author', authorFilter);
+            if (overdueFilter) params.append('overdue', overdueFilter);
+            if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+            if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+            if (sortConfig.key) params.append('sortBy', sortConfig.key);
+            if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
             params.append('page', page);
             params.append('limit', pageSize);
             
             const res = await api.get(`/docs?${params.toString()}`);
             
-            // Handle different response structures
             let docsArray = [];
             if (Array.isArray(res.data)) {
                 docsArray = res.data;
@@ -148,11 +161,9 @@ const HomePage = () => {
                 docsArray = res.data.docs;
             } else if (res.data && Array.isArray(res.data.documents)) {
                 docsArray = res.data.documents;
-            } else {
-                console.warn("🏠 HomePage: Unexpected response structure:", res.data);
             }
             
-            setDocs(docsArray);
+            setFilteredDocs(ensureArray(docsArray));
             setPagination(res.data.pagination || null);
             setIsRateLimited(false);
         } catch (error) {
@@ -160,8 +171,7 @@ const HomePage = () => {
             if (error.response?.status === 429) {
                 setIsRateLimited(true);
             }
-            // Don't crash on error, just show empty state
-            setDocs([]);
+            setFilteredDocs([]);
         } finally {
             setLoading(false);
         }
@@ -172,6 +182,47 @@ const HomePage = () => {
         setPageSize(newPageSize);
         // This will trigger the useEffect to refetch data with new page size
     };
+
+    // Fetch filtered docs when filter params change
+    useEffect(() => {
+        const fetchFilteredDocs = async () => {
+            try {
+                const params = new URLSearchParams();
+                if (searchValue) params.append('search', searchValue);
+                if (categoryFilter) params.append('category', categoryFilter);
+                if (authorFilter) params.append('author', authorFilter);
+                if (overdueFilter) params.append('overdue', overdueFilter);
+                if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+                if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+                if (sortConfig.key) params.append('sortBy', sortConfig.key);
+                if (sortConfig.direction) params.append('sortOrder', sortConfig.direction);
+                params.append('page', 1);
+                params.append('limit', pageSize);
+
+                const url = `/docs?${params.toString()}`;
+                const res = await api.get(url);
+
+                let docsArray = [];
+                if (Array.isArray(res.data)) {
+                    docsArray = res.data;
+                } else if (res.data && Array.isArray(res.data.documents)) {
+                    docsArray = res.data.documents;
+                } else if (res.data && Array.isArray(res.data.docs)) {
+                    docsArray = res.data.docs;
+                }
+
+                setFilteredDocs(ensureArray(docsArray));
+                setPagination(res.data.pagination || null);
+            } catch (error) {
+                console.error("🏠 HomePage: Error fetching filtered documents:", error);
+                toast.error("Failed to filter documents");
+            }
+        };
+
+        if (isAuthenticated) {
+            fetchFilteredDocs();
+        }
+    }, [searchValue, categoryFilter, authorFilter, overdueFilter, dateRange, sortConfig, pageSize, isAuthenticated]);
 
     /**
      * Listen for auth state changes (like logout from Navbar)
@@ -193,6 +244,7 @@ const HomePage = () => {
             console.log("🏠 HomePage: User not authenticated, skipping document fetch");
             setLoading(false);
             setDocs([]);
+            setFilteredDocs([]);
             return;
         }
 
@@ -200,16 +252,14 @@ const HomePage = () => {
             console.log("🏠 HomePage: Fetching documents...");
             setLoading(true); // Set loading when starting to fetch
             try {
+                // Fetch paginated list for table
                 const params = new URLSearchParams();
                 params.append('page', 1);
                 params.append('limit', pageSize);
-                
+                params.append('sortBy', sortConfig.key);
+                params.append('sortOrder', sortConfig.direction);
                 const res = await api.get(`/docs?${params.toString()}`);
-                console.log("🏠 HomePage: Raw API response:", res);
-                console.log("🏠 HomePage: Response data:", res.data);
-                console.log("🏠 HomePage: Response data type:", typeof res.data, "isArray:", Array.isArray(res.data));
 
-                // Handle different response structures
                 let docsArray = [];
                 if (Array.isArray(res.data)) {
                     docsArray = res.data;
@@ -217,15 +267,40 @@ const HomePage = () => {
                     docsArray = res.data.docs;
                 } else if (res.data && Array.isArray(res.data.documents)) {
                     docsArray = res.data.documents;
-                } else {
-                    console.warn("🏠 HomePage: Unexpected response structure:", res.data);
                 }
 
-                console.log("🏠 HomePage: Final docs array:", docsArray.length, "documents");
-                console.log("🏠 HomePage: Sample doc:", docsArray[0]);
-                setDocs(docsArray);
+                setDocs(ensureArray(docsArray));
+                setFilteredDocs(ensureArray(docsArray));
                 setPagination(res.data.pagination || null);
                 setIsRateLimited(false);
+
+                // Fetch categories and users for filter dropdowns
+                const [categoriesRes, usersRes] = await Promise.all([
+                    api.get("/categories?type=Document"),
+                    api.get("/users")
+                ]);
+                setCategories(ensureArray(categoriesRes.data.categories || categoriesRes.data));
+                setUsers(ensureArray(usersRes.data.users || usersRes.data));
+
+                // Separately fetch the top 6 overdue documents
+                const overdueParams = new URLSearchParams();
+                overdueParams.append('overdue', 'true');
+                overdueParams.append('limit', 6);
+                overdueParams.append('sortBy', 'opensForReview');
+                overdueParams.append('sortOrder', 'desc');
+                overdueParams.append('_ts', Date.now().toString()); // cache-buster to bypass server cache
+                const overdueRes = await api.get(`/docs?${overdueParams.toString()}`);
+
+                let overdueArray = [];
+                if (Array.isArray(overdueRes.data)) {
+                    overdueArray = overdueRes.data;
+                } else if (overdueRes.data && Array.isArray(overdueRes.data.documents)) {
+                    overdueArray = overdueRes.data.documents;
+                } else if (overdueRes.data && Array.isArray(overdueRes.data.docs)) {
+                    overdueArray = overdueRes.data.docs;
+                }
+
+                setDocsNeedingReview(ensureArray(overdueArray));
             } catch (error) {
                 console.error("🏠 HomePage: Error fetching documents:", error);
                 if (error.response?.status === 429) {
@@ -233,6 +308,8 @@ const HomePage = () => {
                 }
                 // Don't crash on error, just show empty state
                 setDocs([]);
+                setFilteredDocs([]);
+                setDocsNeedingReview([]);
             } finally {
                 setLoading(false);
             }
@@ -335,18 +412,61 @@ const HomePage = () => {
                                     All Documents
                                 </h1>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Debug: Passing {Array.isArray(docs) ? docs.length : 'non-array'} docs to table
-                                </p>
-                                <PaginatedDocTable
-                                    docs={docs}
-                                    setDocs={setDocs}
-                                    pagination={pagination}
-                                    onPageChange={handlePageChange}
-                                    onPageSizeChange={handlePageSizeChange}
-                                />
-                            </div>
+                            {/* Filter Bar */}
+                            <FilterBar
+                                searchValue={searchValue}
+                                onSearchChange={setSearchValue}
+                                filters={[
+                                    {
+                                        key: "category",
+                                        value: categoryFilter,
+                                        onChange: setCategoryFilter,
+                                        options: createSafeArray(categories).map(cat => ({ value: cat._id, label: cat.name })),
+                                        placeholder: "All Categories",
+                                        label: "Category"
+                                    },
+                                    {
+                                        key: "author",
+                                        value: authorFilter,
+                                        onChange: setAuthorFilter,
+                                        options: createSafeArray(users).map(user => ({ value: user._id, label: `${user.firstname} ${user.lastname}` })),
+                                        placeholder: "All Authors",
+                                        label: "Author"
+                                    },
+                                    {
+                                        key: "overdue",
+                                        value: overdueFilter,
+                                        onChange: setOverdueFilter,
+                                        options: [
+                                            { value: "true", label: "Overdue Only" },
+                                            { value: "false", label: "Not Overdue" }
+                                        ],
+                                        placeholder: "All Documents",
+                                        label: "Review Status"
+                                    }
+                                ]}
+                                dateRange={dateRange}
+                                onDateRangeChange={setDateRange}
+                                onClearAll={() => {
+                                    setSearchValue("");
+                                    setCategoryFilter("");
+                                    setAuthorFilter("");
+                                    setOverdueFilter("");
+                                    setDateRange({ startDate: "", endDate: "" });
+                                    setSortConfig({ key: "createdAt", direction: "desc" });
+                                }}
+                            />
+
+                            {/* All Documents Table */}
+                            <PaginatedDocTable
+                                docs={filteredDocs}
+                                setDocs={setFilteredDocs}
+                                sortConfig={sortConfig}
+                                onSort={setSortConfig}
+                                pagination={pagination}
+                                onPageChange={handlePageChange}
+                                onPageSizeChange={handlePageSizeChange}
+                            />
                             {loading && <LoadingSpinner message="Loading documents..." size="md" color="teal" />}
                         </>
                     )}

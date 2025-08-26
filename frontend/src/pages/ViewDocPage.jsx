@@ -8,13 +8,15 @@
  * @license UNLICENSED
  */
 import { Link, useNavigate, useParams } from "react-router";
-import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, GitCompareIcon, ClipboardCheckIcon } from "lucide-react";
+import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, UserIcon, TagIcon, UsersIcon, CrownIcon, Text, ClipboardCheckIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { formatDate } from "../lib/utils";
 import { useDocument, useUserRole, useFormData, useReviewAssignments } from "../hooks";
 import ReviewCompletionToggle from "../components/ReviewCompletionToggle";
 import ReviewStatusSummary from "../components/ReviewStatusSummary";
+import PaginatedFileVersionTable from "../components/PaginatedFileVersionTable";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const ViewDocPage = () => {
     const { id } = useParams();
@@ -23,13 +25,13 @@ const ViewDocPage = () => {
     // Use custom hooks for data management
     const { document: doc, files, versionHistory, loading, isOwner, isAuthor, isStakeholder, isReviewAssignee, refreshDocument } = useDocument(id);
     const { userRole, userId, canEdit } = useUserRole();
-    const { 
-        assignments, 
-        loading: assignmentsLoading, 
-        currentUserAssignment, 
-        allCompleted, 
-        completionStatus, 
-        updateAssignmentStatus 
+    const {
+        assignments,
+        loading: assignmentsLoading,
+        currentUserAssignment,
+        allCompleted,
+        completionStatus,
+        updateAssignmentStatus
     } = useReviewAssignments(id, userId, refreshDocument);
     const { getFullName } = useFormData({
         loadUsers: true,
@@ -98,11 +100,7 @@ const ViewDocPage = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen">
-                <div className="container mx-auto px-4 py-8">
-                    <p className="text-center text-resdes-teal">Loading document…</p>
-                </div>
-            </div>
+            <LoadingSpinner message="Loading document..." size="lg" color="teal" fullScreen />
         );
     }
 
@@ -140,24 +138,24 @@ const ViewDocPage = () => {
                         <div className="card-body">
                             {/* Title */}
                             <h1 className="card-title text-3xl mb-4 text-base-content">{doc.title}</h1>
-
-                            {/* Metadata Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <h2 className="text-2xl mb-4">Metadata</h2>
+                            {/* Metadata Grid - Row 1: Author, Category, Created, Updated */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                                 {/* Author */}
                                 <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
                                     <UserIcon className="text-resdes-orange" size={20} />
                                     <div>
                                         <p className="text-sm text-gray-600">Author</p>
-                                        <p className="font-medium">{getFullName(doc.author)}</p>
+
                                         {doc.author?.username && (
-                                            <Link 
-                                                to={`/profile/${doc.author?._id}`} 
-                                                className="text-sm text-resdes-teal hover:text-resdes-teal/80 hover:underline"
+                                            <Link
+                                                to={`/profile/${doc.author?._id}`}
+                                                className="font-medium text-resdes-teal hover:text-resdes-teal/80 hover:underline"
                                             >
-                                                @{doc.author.username}
+                                                {getFullName(doc.author)}
                                             </Link>
                                         )}
-                                        <p>{doc.author?.userRole}</p>
+
                                     </div>
                                 </div>
 
@@ -170,243 +168,223 @@ const ViewDocPage = () => {
                                     </div>
                                 </div>
 
-                                {/* Opens For Review */}
+                                {/* Created */}
                                 <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                    <CalendarIcon className={needsReview ? "text-red-600" : "text-resdes-orange"} size={20} />
+                                    <CalendarIcon className="text-resdes-orange" size={20} />
                                     <div>
-                                        <p className="text-sm text-gray-600">Opens For Review</p>
-                                        <p className={`font-medium ${needsReview ? "text-red-600 font-bold" : ""}`}>
-                                        {formatDate(new Date(doc.opensForReview || doc.reviewDate))}
-                                        {needsReview && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">OVERDUE</span>}
-                                        </p>
-                                        <button
-                                            onClick={() => downloadCalendarEvent(doc)}
-                                            className="btn btn-xs mt-2"
-                                            title="Download calendar event for review date"
-                                        >
-                                            <CalendarIcon size={12} className="mr-1" />
-                                            Add to Calendar
-                                        </button>
+                                        <p className="text-sm text-gray-600">Created</p>
+                                        <p className="font-medium">{formatDate(new Date(doc.createdAt))}</p>
                                     </div>
                                 </div>
 
-                                {/* Review Interval */}
+                                {/* Updated */}
                                 <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                    <CalendarIcon className="text-resdes-blue" size={20} />
+                                    <CalendarIcon className="text-resdes-orange" size={20} />
                                     <div>
-                                        <p className="text-sm text-gray-600">Review Interval</p>
-                                        <p className="font-medium">
-                                            {doc.reviewInterval === 'custom' 
-                                                ? `Every ${doc.reviewIntervalDays} days`
-                                                : doc.reviewInterval?.charAt(0).toUpperCase() + doc.reviewInterval?.slice(1) || 'Quarterly'
-                                            }
-                                        </p>
+                                        <p className="text-sm text-gray-600">Updated</p>
+                                        <p className="font-medium">{formatDate(new Date(doc.updatedAt))}</p>
                                     </div>
                                 </div>
-
-                                {/* Review Period */}
-                                <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                    <CalendarIcon className="text-resdes-green" size={20} />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Review Period</p>
-                                        <p className="font-medium">
-                                            {doc.reviewPeriod === '1week' && '1 Week'}
-                                            {doc.reviewPeriod === '2weeks' && '2 Weeks'}
-                                            {doc.reviewPeriod === '3weeks' && '3 Weeks'}
-                                            {doc.reviewPeriod === '1month' && '1 Month'}
-                                            {!doc.reviewPeriod && '2 Weeks'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Last Reviewed On */}
-                                {doc.lastReviewedOn && (
-                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                        <CalendarIcon className="text-green-600" size={20} />
-                                        <div>
-                                            <p className="text-sm text-gray-600">Last Reviewed On</p>
-                                            <p className="font-medium text-green-600">
-                                                {formatDate(new Date(doc.lastReviewedOn))}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Next Review Due On */}
-                                {doc.nextReviewDueOn && (
-                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                        <CalendarIcon className="text-blue-600" size={20} />
-                                        <div>
-                                            <p className="text-sm text-gray-600">Next Review Due On</p>
-                                            <p className="font-medium text-blue-600">
-                                                {formatDate(new Date(doc.nextReviewDueOn))}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Description */}
-                            <div className="mb-6">
-                                <h3 className="text-lg font-semibold mb-2">Description</h3>
-                                <div className="p-4 bg-base-300 rounded-lg">
-                                    <p className="text-base-content/80 leading-relaxed">{doc.description}</p>
+                            <div className="mb-6 p-4 bg-base-300 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Text className="text-resdes-orange" size={20} />
+                                    <h3 className="text-lg font-semibold">Description</h3>
+                                </div>
+                                <div className="p-4 bg-base-200 rounded-lg">
+                                    <p className="text-base-content leading-relaxed">{doc.description}</p>
                                 </div>
                             </div>
 
-                            {/* Stakeholders */}
-                            <div className="grid grid-cols-2 gap-4">
-                                {doc.stakeholders && doc.stakeholders.length > 0 && (
-                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <UsersIcon className="text-resdes-orange" size={20} />
-                                            <h3 className="text-lg font-semibold">Stakeholders</h3>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {doc.stakeholders.map((stakeholder) => (
-                                                <div key={stakeholder._id} className="badge badge-primary">
-                                                    {getFullName(stakeholder)}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
+                            {/* Role Assignment */}
+                            <h2 className="text-2xl mb-4">Role Assignments</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 {/* Owners */}
-                                {doc.owners && doc.owners.length > 0 && (
-                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <CrownIcon className="text-resdes-orange" size={20} />
-                                            <h3 className="text-lg font-semibold">Owners</h3>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {doc.owners.map((owner) => (
+                                <div className="p-4 bg-base-300 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <CrownIcon className="text-resdes-orange" size={20} />
+                                        <h3 className="text-lg font-semibold">Owners</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.owners && doc.owners.length > 0 ? (
+                                            doc.owners.map((owner) => (
                                                 <div key={owner._id} className="badge badge-secondary">
                                                     {getFullName(owner)}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            ))
+                                        ) : (
+                                            <div className="badge bg-base-200 text-base-content/60">None</div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Stakeholders */}
+                                <div className="p-4 bg-base-300 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UsersIcon className="text-resdes-orange" size={20} />
+                                        <h3 className="text-lg font-semibold">Stakeholders</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.stakeholders && doc.stakeholders.length > 0 ? (
+                                            doc.stakeholders.map((stakeholder) => (
+                                                <div key={stakeholder._id} className="badge badge-primary">
+                                                    {getFullName(stakeholder)}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="badge bg-base-200 text-base-content/60">None</div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* External Contacts */}
+                                <div className="p-4 bg-base-300 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UsersIcon className="text-resdes-orange" size={20} />
+                                        <h3 className="text-lg font-semibold">External Contacts</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.externalContacts && doc.externalContacts.length > 0 ? (
+                                            doc.externalContacts.map((contact, index) => (
+                                                <a
+                                                    key={index}
+                                                    href={`mailto:${contact.email}`}
+                                                    className="badge pb-3 bg-resdes-orange p-2 text-slate-950 hover:opacity-80 hover:underline"
+                                                    title={`Email ${contact.name}`}
+                                                >
+                                                    {contact.name} ({contact?.type?.name || "Contact"})
+                                                    {contact.phoneNumber && ` - ${contact.phoneNumber}`}
+                                                </a>
+                                            ))
+                                        ) : (
+                                            <div className="badge bg-base-200 text-base-content/60">None</div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Review Assignees and Status */}
-                            {doc.reviewAssignees && doc.reviewAssignees.length > 0 && (
-                                <>
-                                    {/* Overall Document Review Status */}
-                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                        <div className={`w-4 h-4 rounded-full ${
-                                            doc.reviewCompleted ? 'bg-green-600' : 'bg-yellow-500'
-                                        }`}></div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">Document Review Status</p>
-                                            <p className={`font-medium ${
-                                                doc.reviewCompleted ? 'text-green-600' : 'text-yellow-600'
-                                            }`}>
-                                                {doc.reviewCompleted ? 'Review Completed' : 'Review In Progress'}
-                                            </p>
-                                            {doc.reviewCompletedAt && (
-                                                <p className="text-xs text-gray-500">
-                                                    Completed on {formatDate(new Date(doc.reviewCompletedAt))}
-                                                </p>
-                                            )}
-                                        </div>
+                            {/* Review Details */}
+                            <h2 className="text-2xl mb-4">Review Details</h2>
+
+                            {/* Row: Review Assignees and Opens For Review */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                {/* Review Assignees */}
+                                <div className="p-4 bg-base-300 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                        <h3 className="text-lg font-semibold">Review Assignees</h3>
                                     </div>
-
-                                    {/* Review Status Summary */}
-                                    <ReviewStatusSummary
-                                        assignments={assignments}
-                                        completionStatus={completionStatus}
-                                        allCompleted={allCompleted}
-                                        getFullName={getFullName}
-                                    />
-
-                                    {/* Review Completion Toggle for Current User */}
-                                    {needsReview && isReviewAssignee(userId) && currentUserAssignment && (
-                                        <div className="mb-6">
-                                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                                <ClipboardCheckIcon className="text-resdes-blue" size={20} />
-                                                Your Review
-                                            </h3>
-                                            <ReviewCompletionToggle
-                                                assignment={currentUserAssignment}
-                                                onToggle={updateAssignmentStatus}
-                                                loading={assignmentsLoading}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Traditional Review Assignees Display */}
-                                    <div className="mb-6 p-4 bg-base-300 rounded-lg">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <ClipboardCheckIcon className="text-resdes-blue" size={20} />
-                                            <h3 className="text-lg font-semibold">Review Assignees</h3>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {doc.reviewAssignees.map((assignee) => (
+                                    <div className="flex flex-wrap gap-2">
+                                        {doc.reviewAssignees && doc.reviewAssignees.length > 0 ? (
+                                            doc.reviewAssignees.map((assignee) => (
                                                 <div key={assignee._id} className="badge badge-info">
                                                     {getFullName(assignee)}
                                                 </div>
-                                            ))}
-                                        </div>
-                                        {doc.reviewNotes && (
-                                            <div className="mt-3 p-3 bg-base-200 rounded-lg">
-                                                <p className="text-sm text-gray-600 mb-1">Review Notes:</p>
-                                                <p className="text-sm">{doc.reviewNotes}</p>
-                                            </div>
-                                        )}
-                                        {doc.reviewDueDate && (
-                                            <div className="mt-2">
-                                                <p className="text-sm text-gray-600">
-                                                    Review Due: <span className="font-medium text-blue-600">
-                                                        {formatDate(new Date(doc.reviewDueDate))}
-                                                    </span>
-                                                </p>
-                                            </div>
+                                            ))
+                                        ) : (
+                                            <div className="badge bg-base-200 text-base-content/60">None</div>
                                         )}
                                     </div>
-                                </>
-                            )}
+                                    {doc.reviewNotes && (
+                                        <div className="mt-3 p-3 bg-base-200 rounded-lg">
+                                            <p className="text-sm text-gray-600 mb-1">Review Notes:</p>
+                                            <p className="text-sm">{doc.reviewNotes}</p>
+                                        </div>
+                                    )}
+                                    {doc.reviewDueDate && (
+                                        <div className="mt-2">
+                                            <p className="text-sm text-gray-600">
+                                                Review Due: <span className="font-medium text-blue-600">
+                                                    {formatDate(new Date(doc.reviewDueDate))}
+                                                </span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
 
-                            {/* External Contacts */}
-                            {doc.externalContacts && doc.externalContacts.length > 0 && (
-                                <div className="grid grid-cols-4 gap-4">
-                                    <div className="col-span-2 p-4 bg-base-300 rounded-lg">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <UsersIcon className="text-resdes-orange" size={20} />
-                                            <h3 className="text-lg font-semibold">External Contacts</h3>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {doc.externalContacts.map((contact, index) => (
-                                                <div key={index} className="badge pb-3 bg-resdes-orange p-2 text-slate-950">
-                                                    {contact.name} ({contact.email})
-                                                    {contact.phoneNumber && ` - ${contact.phoneNumber}`}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    {/* Created Date */}
-                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                        <CalendarIcon className="text-resdes-orange" size={20} />
+                                {/* Opens For Review */}
+                                <div className="p-4 bg-base-300 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <CalendarIcon className={needsReview ? "text-red-600" : "text-resdes-orange"} size={20} />
                                         <div>
-                                            <p className="text-sm text-gray-600">Created</p>
-                                            <p className="font-medium">{formatDate(new Date(doc.createdAt))}</p>
-                                        </div>
-                                    </div>
-                                    {/* Created Date */}
-                                    <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md">
-                                        <CalendarIcon className="text-resdes-orange" size={20} />
-                                        <div>
-                                            <p className="text-sm text-gray-600">Updated</p>
-                                            <p className="font-medium">{formatDate(new Date(doc.updatedAt))}</p>
+                                            <p className="text-sm text-gray-600">Opens For Review</p>
+                                            <p className={`font-medium ${needsReview ? "text-red-600 font-bold" : ""}`}>
+                                                {formatDate(new Date(doc.opensForReview || doc.reviewDate))}
+                                                {needsReview && <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded">OVERDUE</span>}
+                                            </p>
+                                            <button
+                                                onClick={() => downloadCalendarEvent(doc)}
+                                                className="btn btn-xs mt-2"
+                                                title="Download calendar event for review date"
+                                            >
+                                                <CalendarIcon size={12} className="mr-1" />
+                                                Add to Calendar
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Row: Document Review Status */}
+                            <div className="flex items-center bg-base-300 rounded-lg gap-3 p-4 hover:shadow-md mb-6">
+                                <div className={`w-4 h-4 rounded-full ${
+                                    doc.reviewCompleted ? 'bg-green-600' : 'bg-yellow-500'
+                                }`}></div>
+                                <div>
+                                    <p className="text-sm text-gray-600">Document Review Status</p>
+                                    <p className={`font-medium ${
+                                        doc.reviewCompleted ? 'text-green-600' : 'text-yellow-600'
+                                    }`}>
+                                        {doc.reviewCompleted ? 'Review Completed' : 'Review In Progress'}
+                                    </p>
+                                    {doc.reviewCompletedAt && (
+                                        <p className="text-xs text-gray-500">
+                                            Completed on {formatDate(new Date(doc.reviewCompletedAt))}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Row: Review Progress */}
+                            <ReviewStatusSummary
+                                assignments={assignments}
+                                completionStatus={completionStatus}
+                                allCompleted={allCompleted}
+                                getFullName={getFullName}
+                            />
+
+                            {/* Row: Your Review */}
+                            {needsReview && isReviewAssignee(userId) && currentUserAssignment && (
+                                <div className="p-4 mb-6 bg-base-300 rounded-lg">
+                                    <div className="mb-4 flex items-center gap-2">
+                                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                                            <ClipboardCheckIcon className="text-resdes-blue" size={20} />
+                                            Your Review
+                                        </h3>
+                                    </div>
+                                    <ReviewCompletionToggle
+                                        assignment={currentUserAssignment}
+                                        onToggle={updateAssignmentStatus}
+                                        loading={assignmentsLoading}
+                                    />
+                                </div>
                             )}
+                            {/* Version History Section */}
+                            <h2 className="text-2xl mb-4">Document File Version History</h2>
+                            <PaginatedFileVersionTable
+                                versions={versionHistory}
+                                files={files}
+                                getFullName={getFullName}
+                                onCompare={(v1, v2) => compareVersions(v1, v2)}
+                                itemsPerPage={10}
+                            />
                         </div>
                     </div>
 
                     {/* Files Section */}
+                    {/*
                     <div className="card bg-base-100 shadow-lg">
                         <div className="card-body">
                             <h3 className="card-title text-xl mb-4">Attached Files</h3>
@@ -441,62 +419,7 @@ const ViewDocPage = () => {
                             )}
                         </div>
                     </div>
-
-                    {/* Version History Section */}
-                    {versionHistory.length > 0 && (
-                        <div className="card bg-base-100 shadow-lg mt-6">
-                            <div className="card-body">
-                                <h3 className="card-title text-xl mb-4">Version History</h3>
-                                <div className="overflow-x-auto">
-                                    <table className="table table-zebra">
-                                        <thead>
-                                            <tr>
-                                                <th>Version</th>
-                                                <th>Label</th>
-                                                <th>Uploaded</th>
-                                                <th>By</th>
-                                                <th>Changes</th>
-                                                <th className="float-right">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {versionHistory.map((version) => (
-                                                <tr key={version.version}>
-                                                    <td>{version.version}</td>
-                                                    <td>{version.label}</td>
-                                                    <td>{formatDate(new Date(version.uploadedAt))}</td>
-                                                    <td>{version.uploadedBy ? getFullName(version.uploadedBy) : "Unknown"}</td>
-                                                    <td>{version.changelog || "No changes documented"}</td>
-                                                    <td className="float-right">
-                                                        <div className="flex gap-2">
-                                                            <a
-                                                                href={`/uploads/${files.find(f => f.version === version.version)?.filename}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="btn btn-xs bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
-                                                                disabled={!files.find(f => f.version === version.version)}
-                                                            >
-                                                                <DownloadIcon size={12} />
-                                                                Download
-                                                            </a>
-                                                            {version.version > 1 && (
-                                                                <button
-                                                                    className="btn btn-xs btn-outline"
-                                                                    onClick={() => compareVersions(version.version - 1, version.version)}
-                                                                >
-                                                                    Compare
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    */}
                 </div>
             </div>
         </div>

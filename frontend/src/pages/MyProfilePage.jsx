@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router";
-import { UserIcon, SaveIcon, EyeIcon, EyeOffIcon, CameraIcon, TrashIcon } from "lucide-react";
+import { UserIcon, SaveIcon, EyeIcon, EyeOffIcon, CameraIcon, TrashIcon, FilePlus2, ArrowLeftIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { decodeJWT } from "../lib/utils";
@@ -409,7 +409,7 @@ const MyProfilePage = () => {
      * Delete profile picture from the server
      */
     const { confirm } = useConfirmationContext();
-    
+
     const handleProfilePictureDelete = async () => {
         confirm({
             title: "Delete Profile Picture",
@@ -711,6 +711,7 @@ const MyProfilePage = () => {
                             </Link>
                         )}
                     </div>
+
 
                     {/* Profile Form */}
                     <div className="bg-base-100 rounded-xl shadow-md p-6">

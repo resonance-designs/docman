@@ -25,3 +25,5 @@ backend/src/controllers/authController.js.bak
 backend/src/lib/secretToken.js.bak
 
 node_modules/
+
+.zencoder/

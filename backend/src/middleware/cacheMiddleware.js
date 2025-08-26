@@ -18,8 +18,21 @@ const cache = new Map();
  */
 export function cacheResponse(ttl = 300) {
     return (req, res, next) => {
-        // Create cache key from request URL and query parameters
-        const cacheKey = `${req.originalUrl || req.url}:${JSON.stringify(req.query)}`;
+        // Respect explicit cache-bypass signals
+        const noCacheHeader = (req.headers['cache-control'] || '').includes('no-cache') ||
+                              (req.headers['cache-control'] || '').includes('no-store') ||
+                              (req.headers['pragma'] || '').includes('no-cache');
+        const hasCacheBuster = typeof req.query?._ts !== 'undefined';
+        const isOverdueQuery = req.query?.overdue === 'true'; // frequently changing, user-specific
+        
+        // If any bypass condition is true, skip caching entirely
+        if (noCacheHeader || hasCacheBuster || isOverdueQuery) {
+            return next();
+        }
+
+        // Create cache key from request URL, query parameters, and user identity (to avoid cross-user leakage)
+        const userKey = req.user ? `${req.user.id || req.user._id || 'anon'}:${req.user.role || 'role'}` : 'anon';
+        const cacheKey = `${req.method}:${req.originalUrl || req.url}:${JSON.stringify(req.query)}:user=${userKey}`;
         
         // Check if response is cached
         const cached = cache.get(cacheKey);
