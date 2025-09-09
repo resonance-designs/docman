@@ -4,7 +4,7 @@
  * @controller usersController
  * @description User management controller for CRUD operations, profile updates, and user administration
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import bcrypt from "bcrypt";

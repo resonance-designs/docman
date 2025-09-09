@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyNotifications.js
  * @description Script to create dummy notifications in the database
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

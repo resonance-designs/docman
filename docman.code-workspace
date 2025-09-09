@@ -10,7 +10,9 @@
             "atlasprod",
             "atlasstart",
             "chartjs",
-            "daisyui"
+            "daisyui",
+            "devatlas",
+            "superadmin"
         ]
     }
 }

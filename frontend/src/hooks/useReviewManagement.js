@@ -4,7 +4,7 @@
  * @hook useReviewManagement
  * @description Custom hook for managing document review assignments and scheduling
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";

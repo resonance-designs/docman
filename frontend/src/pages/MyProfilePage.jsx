@@ -4,7 +4,7 @@
  * @page MyProfilePage
  * @description User profile management page for updating personal information and preferences
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
@@ -694,11 +694,11 @@ const MyProfilePage = () => {
             <div className="container mx-auto px-4 py-4">
                 <div className="max-w-screen-xl mx-auto">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-4xl font-bold mb-4 flex items-center gap-2">
                             <UserIcon className="size-8 text-resdes-orange" />
-                            <h1 className="text-4xl font-bold text-base-content">{pageTitle}</h1>
-                        </div>
+                            {pageTitle}
+                        </h1>
 
                         {/* View My Profile Button - Only for self-editing */}
                         {!isEditingOther && currentUser && (

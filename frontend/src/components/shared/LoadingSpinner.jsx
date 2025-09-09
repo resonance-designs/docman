@@ -4,7 +4,7 @@
  * @component LoadingSpinner
  * @description Reusable loading spinner component with various sizes and styles
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import PropTypes from "prop-types";

@@ -4,7 +4,7 @@
  * @module secretToken
  * @description JWT token utilities for creating, verifying, and blacklisting authentication tokens
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import dotenv from "dotenv";

@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";

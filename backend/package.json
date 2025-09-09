@@ -1,7 +1,7 @@
 {
   "name": "rd-docman-backend",
   "private": true,
-  "version": "2.1.10",
+  "version": "2.1.22",
   "description": "DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
     "Document Management",
@@ -30,6 +30,7 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "ATLAS=no NODE_ENV=development nodemon -L src/server.js",
+    "devatlas": "ATLAS=yes NODE_ENV=development nodemon -L src/server.js",
     "prod": "ATLAS=no NODE_ENV=production node src/server.js",
     "start": "ATLAS=no NODE_ENV=render node src/server.js",
     "atlasdev": "ATLAS=yes NODE_ENV=production nodemon -L src/server.js",

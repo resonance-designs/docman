@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/context/ConfirmationContext.jsx
  * @context ConfirmationContext
  * @description Context provider for confirmation modals
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { createContext, useContext } from 'react';

@@ -4,7 +4,7 @@
  * @component ProjectBooksTable
  * @description Specialized table component for managing books in projects with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 

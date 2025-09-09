@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearTeams.js
  * @description Script to clear all teams from the database
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

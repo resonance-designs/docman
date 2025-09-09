@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/modals/ConfirmationModal.jsx
  * @component ConfirmationModal
  * @description A reusable confirmation modal component for confirming user actions
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import React from 'react';
