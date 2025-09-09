@@ -4,7 +4,7 @@
  * @page ViewCatsPage
  * @description Category management page for viewing, creating, and organizing document categories
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

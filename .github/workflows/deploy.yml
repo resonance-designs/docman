@@ -1,0 +1,42 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - master  # or your production branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18'  # or your preferred Node.js version
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build frontend
+      run: npm run build
+
+    - name: Deploy to server
+      env:
+        PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
+        HOST: ${{ secrets.SERVER_HOST }}
+        USER: ${{ secrets.SERVER_USER }}
+      run: |
+        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+        rsync -avz -e "ssh -i private_key -o StrictHostKeyChecking=no" \
+          --exclude '.env.prod' --exclude 'node_modules' \
+          ./ ${USER}@${HOST}:/var/www/docman/
+        ssh -i private_key -o StrictHostKeyChecking=no ${USER}@${HOST} '
+          cd /var/www/docman &&
+          npm ci &&
+          npm run build &&
+          sudo rsync -a /var/www/docman/frontend/dist/ /var/www/html/docman.resonancedesigns.dev/public_html/ &&
+          sudo systemctl restart docman-backend
+        '

@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearCustomCharts.js
  * @description Script to clear all custom charts from the database
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

@@ -27,3 +27,5 @@ backend/src/lib/secretToken.js.bak
 node_modules/
 
 .zencoder/
+
+docman.users.json

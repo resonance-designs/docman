@@ -4,7 +4,7 @@
  * @routes systemRoutes
  * @description System information routes for health checks, status monitoring, and diagnostics
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import express from "express";

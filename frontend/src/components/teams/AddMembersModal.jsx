@@ -4,7 +4,7 @@
  * @component AddMembersModal
  * @description Modal component for adding existing users to a team
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

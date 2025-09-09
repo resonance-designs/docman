@@ -4,7 +4,7 @@
  * @hook useApi
  * @description Custom hook for managing API operations with loading states and error handling
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";

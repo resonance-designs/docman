@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/services/documentService.test.js
  * @description Unit tests for document service business logic
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { jest } from '@jest/globals';

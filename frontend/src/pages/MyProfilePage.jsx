@@ -4,7 +4,7 @@
  * @page MyProfilePage
  * @description User profile management page for updating personal information and preferences
  * @author Richard Bakos
- * @version 2.1.10
+ * @version 2.1.22
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";
