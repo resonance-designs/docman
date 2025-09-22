@@ -28,18 +28,25 @@ async function createBookCategories() {
     try {
         // Determine which database to connect to based on ATLAS environment variable
         let mongoUri;
-        
-        if (process.env.ATLAS === 'no') {
+
+        if (process.env.ATLAS === 'no' && process.env.ENV === 'Development') {
             // Connect to local MongoDB
             mongoUri = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`;
-            console.log('🔗 Connecting to LOCAL MongoDB...');
+            console.log('🔗 Connecting to DEVELOPMENT MongoDB...');
+            console.log('Host:', process.env.MONGO_HOST);
+            console.log('Port:', process.env.MONGO_PORT);
+            console.log('Database:', process.env.MONGO_DB);
+        } else if (process.env.ATLAS === 'no' && process.env.ENV === 'Production') {
+            // Connect to local MongoDB
+            mongoUri = `mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}&tls=${process.env.MONGO_TLS}&tlsCAFile=${process.env.MONGO_CA_FILE}&tlsCertificateKeyFile=${process.env.MONGO_CERT_FILE}`;
+            console.log('🔗 Connecting to PRODUCTION MongoDB...');
             console.log('Host:', process.env.MONGO_HOST);
             console.log('Port:', process.env.MONGO_PORT);
             console.log('Database:', process.env.MONGO_DB);
         } else if (process.env.ATLAS === 'yes') {
             // Connect to MongoDB Atlas
-            mongoUri = process.env.MONGO_ATLAS_URI;
-            console.log('🔗 Connecting to MongoDB ATLAS...');
+            mongoUri = `mongodb+srv://${process.env.MONGO_ATLAS_USER}:${process.env.MONGO_ATLAS_PASSWORD}@${process.env.MONGO_ATLAS_HOST}/${process.env.MONGO_ATLAS_DB}?retryWrites=true&w=majority&appName=${process.env.MONGO_ATLAS_APP}`;
+            console.log('🔗 Connecting to PRODUCTION MongoDB ATLAS...');
         } else {
             console.error('❌ ATLAS environment variable must be set to "yes" or "no"');
             console.log('Current ATLAS value:', process.env.ATLAS);
