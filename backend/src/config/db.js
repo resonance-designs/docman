@@ -26,11 +26,19 @@ export const connectDB = async () => {
             console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
             console.log("Server is ready to accept requests.");
         } else if (process.env.ATLAS === 'no' && process.env.ENV === 'Production') {
-            await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}&tls=${process.env.MONGO_TLS}&tlsCAFile=${process.env.MONGO_CA_FILE}&tlsCertificateKeyFile=${process.env.MONGO_CERT_FILE}`);
-            console.log('MongoDB established connection with host:', process.env.MONGO_HOST);
-            console.log('MongoDB is running on port:', process.env.MONGO_PORT);
-            console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
-            console.log("Server is ready to accept requests.");
+            if (process.env.MONGO_TLS === 'false') {
+                await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`);
+                console.log('MongoDB established connection with host:', process.env.MONGO_HOST);
+                console.log('MongoDB is running on port:', process.env.MONGO_PORT);
+                console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
+                console.log("Server is ready to accept requests.");
+            } else if (process.env.MONGO_TLS === 'true') {
+                await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}&tls=${process.env.MONGO_TLS}&tlsCAFile=${process.env.MONGO_CA_FILE}&tlsCertificateKeyFile=${process.env.MONGO_CERT_FILE}`);
+                console.log('MongoDB established connection with host:', process.env.MONGO_HOST);
+                console.log('MongoDB is running on port:', process.env.MONGO_PORT);
+                console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
+                console.log("Server is ready to accept requests.");
+            }
         } else if (process.env.ATLAS === 'yes') {
             // Connect to MongoDB Atlas using the connection string
             await mongoose.connect(`mongodb+srv://${process.env.MONGO_ATLAS_USER}:${process.env.MONGO_ATLAS_PASSWORD}@${process.env.MONGO_ATLAS_HOST}/${process.env.MONGO_ATLAS_DB}?retryWrites=true&w=majority&appName=${process.env.MONGO_ATLAS_APP}`);

@@ -38,9 +38,15 @@ async function connectDB() {
             await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`);
             console.log('[migrateReviewFields] Connected to MongoDB host:', process.env.MONGO_HOST);
         } else if (process.env.ATLAS === 'no' && process.env.ENV === 'Production') {
-            // Connect to MongoDB using the provided credentials and host
-            await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}&tls=${process.env.MONGO_TLS}&tlsCAFile=${process.env.MONGO_CA_FILE}&tlsCertificateKeyFile=${process.env.MONGO_CERT_FILE}`);
-            console.log('[migrateReviewFields] Connected to MongoDB host:', process.env.MONGO_HOST);
+            if (process.env.MONGO_TLS === 'false') {
+                // Connect to MongoDB using the provided credentials and host
+                await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}`);
+                console.log('[migrateReviewFields] Connected to MongoDB host:', process.env.MONGO_HOST);
+            } else if (process.env.MONGO_TLS === 'true') {
+                // Connect to MongoDB using the provided credentials and host
+                await mongoose.connect(`mongodb://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_HOST}:${process.env.MONGO_PORT}/${process.env.MONGO_DB}?authSource=${process.env.MONGO_AUTH_SOURCE}&tls=${process.env.MONGO_TLS}&tlsCAFile=${process.env.MONGO_CA_FILE}&tlsCertificateKeyFile=${process.env.MONGO_CERT_FILE}`);
+                console.log('[migrateReviewFields] Connected to MongoDB host:', process.env.MONGO_HOST);
+            }
         } else if (process.env.ATLAS === 'yes') {
             // Connect to MongoDB Atlas using the connection string
             await mongoose.connect(`mongodb+srv://${process.env.MONGO_ATLAS_USER}:${process.env.MONGO_ATLAS_PASSWORD}@${process.env.MONGO_ATLAS_HOST}/${process.env.MONGO_ATLAS_DB}?retryWrites=true&w=majority&appName=${process.env.MONGO_ATLAS_APP}`);

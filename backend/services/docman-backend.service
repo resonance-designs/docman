@@ -1,0 +1,26 @@
+[Unit]
+Description=DocMan Backend
+After=network.target
+
+[Service]
+WorkingDirectory=/var/www/docman/backend
+Environment=NODE_ENV=production
+Environment=ATLAS=no
+EnvironmentFile=/var/www/docman/backend/.env.prod
+ExecStart=/usr/bin/npm run prod
+User=root
+Group=www-data
+Restart=always
+RestartSec=3
+# Pre-create uploads with correct ownership/permissions
+ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 775 /var/www/docman/backend/uploads
+
+# Optional hardening
+NoNewPrivileges=true
+AmbientCapabilities=
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/www/docman/backend
+
+[Install]
+WantedBy=multi-user.target
