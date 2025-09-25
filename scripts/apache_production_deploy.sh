@@ -26,7 +26,7 @@ set -e
 #  14. Displays a success message upon completion.
 #
 # Usage:
-#   sudo ./deploy_apache_prod_full.sh
+#   sudo ./apache_production_deploy.sh
 #
 # Note: This script assumes that you have already set up a non-root user with sudo privileges.
 #

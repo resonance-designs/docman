@@ -4,7 +4,7 @@
  * @component PaginatedUserTable
  * @description Paginated table component for displaying users with administrative controls and filtering
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 

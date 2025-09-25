@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/pages/AdminTeamsPage.jsx
  * @page AdminTeamsPage
  * @description Admin page for managing all teams in the system
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

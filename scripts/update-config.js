@@ -10,8 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Paths to files
-const ROOT_PACKAGE_JSON = path.join(__dirname, 'package.json');
-const CONFIG_JSON = path.join(__dirname, 'project-config.json');
+const ROOT_PACKAGE_JSON = path.join(__dirname, '../package.json');
+const CONFIG_JSON = path.join(__dirname, '../project-config.json');
 
 // Read package.json file
 const packageData = JSON.parse(fs.readFileSync(ROOT_PACKAGE_JSON, 'utf8'));

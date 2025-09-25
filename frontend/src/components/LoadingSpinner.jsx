@@ -4,7 +4,7 @@
  * @component LoadingSpinner
  * @description Component for displaying a loading spinner with an optional message. The component can be customized in terms of size, color and whether it should cover the entire screen or not.
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import React from 'react';

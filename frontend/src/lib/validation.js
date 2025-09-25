@@ -4,7 +4,7 @@
  * @module validation
  * @description Form validation utilities with comprehensive validation rules and error handling
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 /**

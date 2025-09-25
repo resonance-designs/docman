@@ -4,7 +4,7 @@
  * @routes booksRoutes
  * @description Book management routes for organizing documents into collections
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import express from "express";

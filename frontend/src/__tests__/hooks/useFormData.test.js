@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/__tests__/hooks/useFormData.test.js
  * @description Unit tests for useFormData custom hook
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import { renderHook, waitFor } from '@testing-library/react';

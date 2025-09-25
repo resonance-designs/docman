@@ -18,6 +18,13 @@ set -e
 #
 # After completion, there is an option to rollback changes if something goes wrong.
 #
+# Usage:
+#   ./apache_production_update.sh
+#
+# Notes:
+# - The script assumes you have already set up your environment variables (.env.prod).
+# - If no backup is found, it creates a new one based on .env.sample
+#
 # Author: Richard Bakos <resonance.designs.com@gmail.com>
 # Organization: Resonance Designs
 # Website: https://resonancedesigns.dev

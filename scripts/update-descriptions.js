@@ -9,8 +9,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const FRONTEND_SRC_DIR = path.join(__dirname, 'frontend', 'src');
-const BACKEND_SRC_DIR = path.join(__dirname, 'backend', 'src');
+const FRONTEND_SRC_DIR = path.join(__dirname, '../frontend', 'src');
+const BACKEND_SRC_DIR = path.join(__dirname, '../backend', 'src');
 
 // Mapping of file patterns to better descriptions
 const descriptionMappings = {
@@ -118,28 +118,28 @@ console.log('Updating descriptions in comment headers...\n');
 // Function to update description in a file
 function updateFileDescription(filePath) {
   if (!filePath.endsWith('.jsx') && !filePath.endsWith('.js')) return;
-  
+
   try {
     const fileName = path.basename(filePath);
     const newDescription = descriptionMappings[fileName];
-    
+
     if (!newDescription) {
       console.log(`⏭️  Skipping ${path.relative(__dirname, filePath)} - No description mapping found`);
       return;
     }
-    
+
     let content = fs.readFileSync(filePath, 'utf8');
-    
+
     // Check if file has a comment header
     if (!content.trim().startsWith('/*')) {
       console.log(`⏭️  Skipping ${path.relative(__dirname, filePath)} - No comment header found`);
       return;
     }
-    
+
     // Update the description line
     const originalContent = content;
     content = content.replace(/(\*\s*@description\s+).*$/m, `$1${newDescription}`);
-    
+
     if (content !== originalContent) {
       fs.writeFileSync(filePath, content, 'utf8');
       console.log(`✅ Updated: ${path.relative(__dirname, filePath)}`);
@@ -147,7 +147,7 @@ function updateFileDescription(filePath) {
     } else {
       console.log(`⏭️  Skipping ${path.relative(__dirname, filePath)} - No @description field found or already updated`);
     }
-    
+
   } catch (error) {
     console.error(`❌ Error updating ${filePath}:`, error.message);
   }
@@ -156,11 +156,11 @@ function updateFileDescription(filePath) {
 // Function to recursively process directory
 function processDirectory(dirPath) {
   const items = fs.readdirSync(dirPath);
-  
+
   items.forEach(item => {
     const itemPath = path.join(dirPath, item);
     const stat = fs.statSync(itemPath);
-    
+
     if (stat.isDirectory()) {
       processDirectory(itemPath);
     } else if (stat.isFile() && (item.endsWith('.jsx') || item.endsWith('.js'))) {

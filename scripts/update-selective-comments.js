@@ -11,9 +11,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configuration
-const CONFIG_FILE = path.join(__dirname, 'project-config.json');
-const FRONTEND_SRC_DIR = path.join(__dirname, 'frontend', 'src');
-const BACKEND_SRC_DIR = path.join(__dirname, 'backend', 'src');
+const CONFIG_FILE = path.join(__dirname, '../project-config.json');
+const FRONTEND_SRC_DIR = path.join(__dirname, '../frontend', 'src');
+const BACKEND_SRC_DIR = path.join(__dirname, '../backend', 'src');
 
 // Read configuration
 const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));

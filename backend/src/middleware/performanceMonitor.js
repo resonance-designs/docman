@@ -4,7 +4,7 @@
  * @middleware performanceMonitor
  * @description Performance monitoring middleware for tracking API response times and database query performance
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 

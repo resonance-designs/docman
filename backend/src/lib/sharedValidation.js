@@ -4,7 +4,7 @@
  * @module sharedValidation
  * @description Shared validation utilities for consistent validation across all services
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import validator from 'validator';
