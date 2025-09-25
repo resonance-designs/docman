@@ -4,6 +4,37 @@ set -e
 # ==================================================
 # === DocMan Production Deployment Script (Full) ===
 # ==================================================
+#
+# This script deploys DocMan to a production server running Apache.
+#
+# It performs the following steps:
+#   1. Checks prerequisites (Node.js, Apache, UFW, Certbot).
+#   2. Clones the repository from GitHub.
+#   3. Installs dependencies and builds the application using npm.
+#   4. Prepares the environment by setting up MongoDB configurations,
+#      including TLS/SSL settings if desired.
+#   5. Configures other essential environment variables such as Node.js port,
+#      Redis, JWT keys, and AWS SES credentials.
+#   6. Provides a summary of the final configuration before proceeding further.
+#   7. Prompts the user to review their configuration before proceeding.
+#   8. Starts the MongoDB service and waits until it's ready.
+#   9. Creates a systemd service unit for DocMan.
+#  10. Enables and starts the DocMan service.
+#  11. Generates letsencrypt SSL/TLS certificates with certbot for HTTPS support.
+#  12. Configures Apache virtual hosts for HTTP and HTTPS redirection.
+#  13. Restarts Apache to apply changes.
+#  14. Displays a success message upon completion.
+#
+# Usage:
+#   sudo ./deploy_apache_prod_full.sh
+#
+# Note: This script assumes that you have already set up a non-root user with sudo privileges.
+#
+# Author: Richard Bakos <resonance.designs.com@gmail.com>
+# Organization: Resonance Designs
+# Website: https://resonancedesigns.dev
+# GitHub: https://github.com/resonance-designs
+# Date: 2025-09-24
 
 # --- Functions ---
 rollback() {
@@ -107,7 +138,25 @@ echo "===================================================="
 echo "=== Deploying DocMan to Apache Production Server ==="
 echo "===================================================="
 echo ""
-echo "This deployment script checks prerequisites (Node 18+, Apache, UFW, Certbot)."
+echo "This script deploys DocMan to a production server running Apache."
+echo ""
+echo "It performs the following steps:"
+echo "  1. Checks prerequisites (Node.js, Apache, UFW, Certbot)."
+echo "  2. Clones the repository from GitHub."
+echo "  3. Installs dependencies and builds the application using npm."
+echo "  4. Prepares the environment by setting up MongoDB configurations,"
+echo "     including TLS/SSL settings if desired."
+echo "  5. Configures other essential environment variables such as Node.js port,"
+echo "     Redis, JWT keys, and AWS SES credentials."
+echo "  6. Provides a summary of the final configuration before proceeding further."
+echo "  7. Prompts the user to review their configuration before proceeding."
+echo "  8. Starts the MongoDB service and waits until it's ready."
+echo "  9. Creates a systemd service unit for DocMan."
+echo " 10. Enables and starts the DocMan service."
+echo " 11. Generates letsencrypt SSL/TLS certificates with certbot for HTTPS support."
+echo " 12. Configures Apache virtual hosts for HTTP and HTTPS redirection."
+echo " 13. Restarts Apache to apply changes."
+echo " 14. Displays a success message upon completion."
 echo ""
 
 # --- Root check ---
@@ -125,7 +174,7 @@ check_prerequisites
 
 # --- 1️⃣ Clone repository ---
 echo ""
-echo "1. Cloning repository..."
+echo "1️⃣ Cloning repository..."
 rm -rf /var/www/docman
 mkdir -p /var/www/docman
 chown -R www-data:www-data /var/www/docman
@@ -134,14 +183,14 @@ echo "✅ Repository cloned."
 
 # --- 2️⃣ Install dependencies & build ---
 echo ""
-echo "2. Installing dependencies & building app..."
+echo "2️⃣ Installing dependencies & building app..."
 cd /var/www/docman
 npm run build
 echo "✅ Build complete."
 
 # --- 3️⃣ Prepare environment ---
 echo ""
-echo "3. Configuring environment..."
+echo "3️⃣ Configuring environment..."
 cd backend
 cp .env.sample .env.prod
 sed -i '/^#/d;/^$/d' .env.prod
@@ -151,7 +200,7 @@ sed -i 's/^NODE_ENV=.*/NODE_ENV=production/' .env.prod
 
 # --- 4️⃣ MongoDB TLS/SSL Setup ---
 echo ""
-echo "MongoDB Setup:"
+echo "4️⃣ MongoDB Setup:"
 echo "1) Private MongoDB server (localhost/own host)"
 echo "2) MongoDB Atlas"
 read -p "Choose your MongoDB type [1/2]: " mongo_choice
@@ -401,7 +450,7 @@ fi
 
 # --- 5️⃣ Configure remaining environment ---
 echo ""
-echo "Configuring Node.js port, Redis, JWT, and AWS SES..."
+echo "5️⃣ Configuring Node.js port, Redis, JWT, and AWS SES..."
 ask "NODE_PORT" "Enter Node.js port" "5001"
 NODE_PORT=$(grep "^NODE_PORT=" .env.prod | cut -d= -f2-)
 
@@ -436,7 +485,7 @@ fi
 critical_fields=("MONGO_USER" "MONGO_PASSWORD" "MONGO_DB" "TOKEN_KEY" "AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY")
 while true; do
     echo ""
-    echo "### Summary of your .env.prod configuration:"
+    echo "6️⃣ Summary of your .env.prod configuration:"
     echo ""
     while read -r line; do
         key=$(echo "$line" | cut -d= -f1)
@@ -471,17 +520,18 @@ while true; do
 done
 echo "✅ Backend environment file created successfully."
 
-# Ensure MongoDB is running before starting backend if using private Mongo
+# --- 7️⃣ Check that MongoDB is running ---
 if [[ "$mongo_choice" == "1" ]]; then
     echo ""
-    echo "Waiting for MongoDB to start..."
+    echo "7️⃣ Waiting for MongoDB to start..."
     systemctl enable mongod
     systemctl start mongod
     until nc -z localhost $MONGO_PORT; do sleep 1; done;
     echo "✅ MongoDB started successfully."
 fi
 
-read -p "Do you want to create a MongoDB admin user automatically? (y/n): " create_admin
+# --- 8️⃣ Create MongoDB Admin User ---
+read -p "8️⃣ Do you want to create a MongoDB admin user automatically? (y/n): " create_admin
 if [[ "$create_admin" =~ ^[Yy]$ ]]; then
     mongo <<EOF
 use admin
@@ -494,11 +544,10 @@ EOF
     echo "✅ MongoDB admin user created."
 fi
 
-
-# --- 7️⃣ Systemd Backend Service ---
+# --- 9️⃣ Systemd Backend Service ---
 SERVICE_FILE=/etc/systemd/system/docman-backend.service
 echo ""
-echo "4. Creating systemd service file at $SERVICE_FILE..."
+echo "9️⃣ Creating systemd service file at $SERVICE_FILE..."
 cat <<EOL > "$SERVICE_FILE"
 [Unit]
 Description=DocMan Backend
@@ -530,9 +579,9 @@ systemctl enable docman-backend.service
 systemctl start docman-backend.service
 echo "✅ DocMan Backend service created and started successfully."
 
-# --- 8️⃣ Apache frontend ---
+# --- 1️⃣0️⃣ Apache frontend ---
 echo ""
-echo "5. Setting up Apache frontend with reverse proxy..."
+echo "1️⃣0️⃣ Setting up Apache frontend with reverse proxy..."
 read -p "Enter folder/domain name for frontend: " frontend_folder
 # Create frontend directory structure
 mkdir -p /var/www/html/$frontend_folder
@@ -595,9 +644,9 @@ a2ensite $site_name
 systemctl reload apache2
 echo "✅ Apache frontend site configured successfully."
 
-# --- 9️⃣ Certbot SSL (Optional) ---
+# --- 1️⃣1️⃣ Certbot SSL (Optional) ---
 echo ""
-echo "6. Use certbot to configure SSL certificate..."
+echo "1️⃣1️⃣ Use certbot to configure SSL certificate..."
 read -p "Do you wish to create an SSL certificate and use https on your domain? (y/n): " use_cert
 if [[ "$use_cert" =~ ^[Yy]$ ]]; then
     missing_packages=()
