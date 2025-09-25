@@ -1,7 +1,7 @@
 {
   "name": "rd-docman",
   "private": true,
-  "version": "2.1.22",
+  "version": "2.2.0",
   "type": "module",
   "description": "DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
@@ -32,7 +32,7 @@
   "scripts": {
     "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
     "start": "npm run atlasprod --prefix backend",
-    "comments": "node update-config.js && node update-descriptions.js && node update-selective-comments.js",
+    "comments": "node scripts/update-config.js && node scripts/update-descriptions.js && node scripts/update-selective-comments.js",
     "security:audit": "node scripts/security-audit.js",
     "security:fix": "npm audit fix --prefix backend && npm audit fix --prefix frontend",
     "security:check": "npm run security:audit && echo 'Security audit completed successfully'",

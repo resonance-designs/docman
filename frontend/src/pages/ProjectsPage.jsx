@@ -4,7 +4,7 @@
  * @page ProjectsPage
  * @description Project management page with filtering, search, and project creation for organizing documents by project
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

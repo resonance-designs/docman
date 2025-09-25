@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/App.jsx
  * @description Main application component that handles routing and authentication state
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import { Route, Routes } from "react-router";

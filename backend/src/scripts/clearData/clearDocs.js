@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearDocs.js
  * @description Script to clear all documents from the database
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

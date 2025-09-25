@@ -4,7 +4,7 @@
  * @component ExternalContactsManager
  * @description Reusable component for managing external contacts with add, edit, and remove functionality
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import { X, Plus, Edit2, Check, XCircle } from "lucide-react";

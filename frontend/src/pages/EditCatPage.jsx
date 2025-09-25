@@ -4,7 +4,7 @@
  * @page EditCatPage
  * @description Category editing page with form for updating existing categories
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

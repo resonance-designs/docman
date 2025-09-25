@@ -72,11 +72,11 @@ function isNpmAuditAvailable() {
  */
 function runNpmAudit(directory) {
     log(`\n🔍 Running npm audit in ${directory}...`, 'blue');
-    
+
     try {
         const auditOutput = runCommand('npm audit --json', { cwd: directory });
         const auditData = JSON.parse(auditOutput);
-        
+
         return {
             success: true,
             vulnerabilities: auditData.vulnerabilities || {},
@@ -96,11 +96,11 @@ function runNpmAudit(directory) {
  */
 function checkOutdatedPackages(directory) {
     log(`\n📦 Checking for outdated packages in ${directory}...`, 'blue');
-    
+
     try {
         const outdatedOutput = runCommand('npm outdated --json', { cwd: directory });
         const outdatedData = outdatedOutput ? JSON.parse(outdatedOutput) : {};
-        
+
         return {
             success: true,
             packages: outdatedData
@@ -117,7 +117,7 @@ function checkOutdatedPackages(directory) {
  */
 function analyzePackageJson(packageJsonPath) {
     log(`\n📋 Analyzing ${packageJsonPath}...`, 'blue');
-    
+
     try {
         const packageData = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
         const issues = [];
@@ -190,7 +190,7 @@ function generateReport(results) {
                 report += `- Low: ${results.frontend.audit.metadata.vulnerabilities?.low || 0}\n`;
             }
         }
-        
+
         const outdatedCount = Object.keys(results.frontend.outdated.packages).length;
         report += `- Outdated packages: ${outdatedCount}\n\n`;
     }
@@ -208,7 +208,7 @@ function generateReport(results) {
                 report += `- Low: ${results.backend.audit.metadata.vulnerabilities?.low || 0}\n`;
             }
         }
-        
+
         const outdatedCount = Object.keys(results.backend.outdated.packages).length;
         report += `- Outdated packages: ${outdatedCount}\n\n`;
     }
@@ -240,7 +240,7 @@ function generateReport(results) {
  */
 async function runSecurityAudit() {
     log('🔒 Starting Security Audit...', 'cyan');
-    
+
     const results = {};
 
     // Check if npm audit is available
@@ -287,7 +287,7 @@ async function runSecurityAudit() {
     fs.writeFileSync(reportPath, report);
 
     log(`\n📊 Security audit complete! Report saved to ${reportPath}`, 'green');
-    
+
     // Summary
     let totalVulnerabilities = 0;
     let totalOutdated = 0;

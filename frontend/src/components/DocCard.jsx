@@ -4,7 +4,7 @@
  * @component DocCard
  * @description Component for displaying a document card with title, author, description, and review date.
  * @author Richard Bakos
- * @version 2.1.22
+ * @version 2.2.0
  * @license UNLICENSED
  */
 
