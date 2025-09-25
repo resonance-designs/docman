@@ -91,6 +91,97 @@ ATLAS=no
 ```env
 VITE_API_URL=http://localhost:5001/api
 ```
+## ⚙️ Production Deployment & Update Scripts
+
+DocMan includes three scripts to manage deployment and updates on a production Apache server.
+
+These scripts are designed to work seamlessly with an Apache web server and leverage Let's Encrypt for SSL/TLS encryption. They automate the process of updating both the backend and frontend applications while ensuring that no downtime occurs during the transition period.
+
+You can find these scripts in this repositories latest release: [https://github.com/resonance-designs/docman/releases/tag/latest](https://github.com/resonance-designs/docman/releases/tag/latest)
+
+Download them and then upload them somewhere on your server, like your users home directory (Eg, `/home/user/scripts/`)
+
+### Available Scripts
+
+| Script | Purpose | Notes |
+|--------|---------|------|
+| [`apache_production_deploy.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_deploy.sh) | Initial deployment of DocMan to a fresh server | Use this for first-time setup. Installs backend, frontend, and environment variables. |
+| [`apache_production_update.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update.sh) | Standard interactive update | Updates an existing production instance. Prompts for confirmations. Optional SSL update. |
+| [`apache_production_update_ni.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update_ni.sh) | Non-interactive automated update | Fully automated update without prompts. Supports optional SSL and `--dry-run` for testing. Automatically rolls back on errors. |
+
+### Setting Executable Permissions
+
+Before running any script, ensure it is executable:
+
+```bash
+chmod +x /path/to/scripts/apache_production_deploy.sh
+chmod +x /path/to/scripts/apache_production_update.sh
+chmod +x /path/to/scripts/apache_production_update_ni.sh
+```
+
+Replace `/path/to/docman/scripts/` with the path where you cloned the repository (Eg, `/var/www/docman/scripts/`).
+
+### Usage
+
+#### 1️⃣ Initial Deployment
+
+```bash
+sudo ./apache_production_deploy.sh
+```
+
+* Installs backend and frontend on a fresh server.
+* Sets up environment variables (`.env.prod`) from `.env.sample.`
+* Optionally sets up SSL certificates.
+
+#### 2️⃣ Standard Interactive Update
+
+```bash
+sudo ./apache_production_update.sh
+```
+
+* Updates DocMan in an interactive mode.
+* Prompts for confirmation before critical steps.
+
+#### 3️⃣ Non-Interactive Update
+
+```bash
+sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
+```
+
+* Performs a fully automated, non-interactive update.
+* `--ssl` – Updates SSL certificates.
+* `--dry-run` – Simulates the update without making any changes.
+* Automatically rolls back changes if any command fails.
+* Backs up `.env.prod` and frontend files at `/tmp/docman_env_backup/`.
+
+### Recommended Workflow
+
+1. For a **fresh server**, use `apache_production_deploy.sh`.
+2. For **routine updates**, test with dry-run first:
+   
+   ```bash
+   sudo ./apache_production_update_ni.sh --dry-run
+   ```
+3. Then run the actual non-interactive update:
+   
+   ```bash
+   sudo ./apache_production_update_ni.sh --ssl
+   ```
+   
+   or
+   
+   ```bash
+   sudo ./apache_production_update_ni.sh
+   ```
+   
+   Depending on whether you need SSL updated or not.
+
+### Notes
+
+* **Backups**: All scripts back up .env.prod and frontend files to /tmp/docman_env_backup/.
+* **Rollback**: Scripts automatically restore previous state if a command fails.
+* **Root Privileges**: Scripts must be run as root or via sudo.
+* **Dry-Run Logs**: Non-interactive script logs simulated commands for review without applying changes.
 
 ## 🏗️ Architecture
 
@@ -133,96 +224,6 @@ frontend/
 - **Custom Hooks**: Reusable state logic across components
 - **Shared Components**: Consistent UI patterns with accessibility
 - **Database Optimization**: Strategic indexing and query optimization
-
-## ⚙️ Production Deployment & Update Scripts
-
-DocMan includes three scripts to manage deployment and production updates on an Apache server.
-
-These scripts are designed to work seamlessly with an Apache web server and leverage Let's Encrypt for SSL/TLS encryption. They automate the process of updating both the backend and frontend applications while ensuring that no downtime occurs during the transition period.
-
-You can find these scripts in the root directory of the application, located at `/docman/scripts/`
-
-### Available Scripts
-
-| Script | Purpose | Notes |
-|--------|---------|------|
-| `apache_production_deploy.sh` | Initial deployment of DocMan to a fresh server | Use this for first-time setup. Installs backend, frontend, and environment variables. |
-| `apache_production_update.sh` | Standard interactive update | Updates an existing production instance. Prompts for confirmations. Optional SSL update. |
-| `apache_production_update_ni.sh` | Non-interactive automated update | Fully automated update without prompts. Supports optional SSL and `--dry-run` for testing. Automatically rolls back on errors. |
-
-### Setting Executable Permissions
-
-Before running any script, ensure it is executable:
-
-```bash
-chmod +x /path/to/docman/scripts/apache_production_deploy.sh
-chmod +x /path/to/docman/scripts/apache_production_update.sh
-chmod +x /path/to/docman/scripts/apache_production_update_ni.sh
-```
-
-Replace `/path/to/docman/scripts/` with the path where you cloned the repository (Eg, `/var/www/docman/scripts/`).
-
-### Usage
-
-#### 1️⃣ Initial Deployment
-
-```bash
-sudo ./apache_production_deploy.sh
-```
-
-* Installs backend and frontend on a fresh server.
-* Sets up environment variables (`.env.prod`) from `.env.sample.`
-* Optionally sets up SSL certificates.
-
-#### 2️⃣ Standard Interactive Update
-
-```bash
-sudo ./apache_production_update.sh
-```
-
-* Updates DocMan in an interactive mode.
-* Prompts for confirmation before critical steps.
-
-#### 3️⃣ Non-Interactive Update
-
-```bash
-sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
-```
-
-* Performs a fully automated, non-interactive update.
-* `--ssl` – Updates SSL certificates.
-* `--dry-run` – Simulates the update without making any changes.
-* Automatically rolls back changes if any command fails.
-* Backs up `.env.prod` and frontend files at `/tmp/docman_env_backup/`.
-
-### Recommended Workflow
-
-1. For a **fresh server**, use `apache_production_deploy.sh`.
-2. For **routine updates**, test with dry-run first:
-
-   ```bash
-   sudo ./apache_production_update_ni.sh --dry-run
-   ```
-3. Then run the actual non-interactive update:
-
-   ```bash
-   sudo ./apache_production_update_ni.sh --ssl
-   ```
-
-   or
-
-   ```bash
-   sudo ./apache_production_update_ni.sh
-   ```
-
-   Depending on whether you need SSL updated or not.
-
-### Notes
-
-* **Backups**: All scripts back up .env.prod and frontend files to /tmp/docman_env_backup/.
-* **Rollback**: Scripts automatically restore previous state if a command fails.
-* **Root Privileges**: Scripts must be run as root or via sudo.
-* **Dry-Run Logs**: Non-interactive script logs simulated commands for review without applying changes.
 
 ## 📚 Documentation
 
