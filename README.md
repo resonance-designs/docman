@@ -114,9 +114,9 @@ Download them and then upload them somewhere on your server, like your users hom
 Before running any script, ensure it is executable:
 
 ```bash
-chmod +x /path/to/scripts/apache_production_deploy.sh
-chmod +x /path/to/scripts/apache_production_update.sh
-chmod +x /path/to/scripts/apache_production_update_ni.sh
+chmod +x /path/to/docman/scripts/apache_production_deploy.sh
+chmod +x /path/to/docman/scripts/apache_production_update.sh
+chmod +x /path/to/docman/scripts/apache_production_update_ni.sh
 ```
 
 Replace `/path/to/docman/scripts/` with the path where you uploaded them to on your server (Eg, `/home/user/scripts/`).
