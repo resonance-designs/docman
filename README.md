@@ -4,7 +4,9 @@
 
 ###### Latest Version: v2.2.0
 
-A modern, full-stack document management system built with React, Node.js, and MongoDB. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
+A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
+
+DocMan is also the baseline UI guidepost for the larger Resonance Designs local app ecosystem. New suite-facing UI work should use Vue, Vite, Vuetify, and shared Material-style interaction patterns.
 
 ## ✨ Features
 
@@ -58,6 +60,10 @@ sudo npm install
 cd /path/to/docman/frontend
 sudo npm install
 
+# Install Vue/Vuetify migration frontend dependencies
+cd /path/to/docman/frontend-vue
+sudo npm install
+
 # Set up environment variables
 sudo cp /path/to/docman/backend/.env.sample /path/to/docman/backend/.env.dev
 
@@ -69,9 +75,13 @@ cd /path/to/docman/backend
 npm run dev    # Backend on :5001
 cd /path/to/docman/frontend
 npm run dev    # Frontend on :5173
+cd /path/to/docman/frontend-vue
+npm run dev    # Vue/Vuetify migration frontend on :5174
 ```
 
 Now visit http://localhost:5173 in your browser to check that the application is running locally.
+
+The Vue/Vuetify migration frontend runs at http://localhost:5174 and can run beside the existing React frontend.
 
 ### Environment Configuration
 
@@ -91,6 +101,28 @@ ATLAS=no
 ```env
 VITE_API_URL=http://localhost:5001/api
 ```
+
+The Vue/Vuetify frontend defaults to the current browser hostname on port `5001` during development. This allows both `http://localhost:5174` and `http://127.0.0.1:5174` to call the backend. The backend CORS development allowlist includes both localhost and loopback origins for ports `3000`, `5173`, and `5174`.
+
+## 🧭 Suite UI Migration
+
+DocMan currently has two frontend surfaces:
+
+| Path | Stack | Purpose |
+|------|-------|---------|
+| `frontend/` | React, Vite, Tailwind, DaisyUI | Existing production-capable frontend |
+| `frontend-vue/` | Vue, Vite, Vuetify | Migration foundation and shared suite UI guidepost |
+
+The Vue/Vuetify frontend should be brought to feature parity in phases. The current migration foundation includes:
+
+* Shared Vuetify app shell and Resonance theme.
+* Login/logout flow using the existing DocMan API.
+* Protected routes and role-gated navigation.
+* Read-heavy list pages for documents, books, categories, teams, and projects.
+* Loaded-row search in the shared resource list page.
+* First document detail page at `/documents/:id`.
+
+The existing React frontend should remain intact until the Vue/Vuetify frontend covers the primary workflows.
 ## ⚙️ Production Deployment & Update Scripts
 
 DocMan includes three scripts to manage deployment and updates on a production Apache server.
@@ -158,22 +190,22 @@ sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
 
 1. For a **fresh server**, use `apache_production_deploy.sh`.
 2. For **routine updates**, test with dry-run first:
-   
+
    ```bash
    sudo ./apache_production_update_ni.sh --dry-run
    ```
 3. Then run the actual non-interactive update:
-   
+
    ```bash
    sudo ./apache_production_update_ni.sh --ssl
    ```
-   
+
    or
-   
+
    ```bash
    sudo ./apache_production_update_ni.sh
    ```
-   
+
    Depending on whether you need SSL updated or not.
 
 ### Notes
@@ -202,7 +234,7 @@ backend/
 └── __tests__/          # Test suites
 ```
 
-### Frontend Architecture
+### Existing React Frontend Architecture
 
 ```
 frontend/
@@ -218,11 +250,27 @@ frontend/
 └── __tests__/         # Test suites
 ```
 
+### Vue/Vuetify Migration Frontend Architecture
+
+```
+frontend-vue/
+├── src/
+│   ├── components/     # Shared Vue/Vuetify components
+│   ├── composables/    # Auth, resource loading, and reusable state
+│   ├── plugins/        # Vuetify setup and theme defaults
+│   ├── router/         # Vue Router routes and guards
+│   ├── services/       # API client
+│   └── views/          # Page-level module views
+└── vite.config.js
+```
+
 ### Key Patterns
 
 - **Service Layer Pattern**: Business logic separated from HTTP handling
 - **Custom Hooks**: Reusable state logic across components
+- **Vue Composables**: New migration frontend uses composables for shared state and API loading
 - **Shared Components**: Consistent UI patterns with accessibility
+- **Suite UI Baseline**: Vue/Vuetify views should inform future integrated apps in the local ecosystem
 - **Database Optimization**: Strategic indexing and query optimization
 
 ## 📚 Documentation
@@ -255,6 +303,10 @@ cd frontend
 npm test                # Run all tests
 npm run test:ui         # Interactive test UI
 npm run test:coverage   # Coverage report
+
+# Vue/Vuetify migration frontend
+cd frontend-vue
+npm run build           # Verify the migration frontend builds
 ```
 
 ### Test Coverage
