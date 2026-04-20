@@ -1,8 +1,9 @@
 # DocMan - Document Management System
 
-###### By Resonance Designs
+__by Resonance Designs__
 
-###### Latest Version: v2.2.0
+![Static Badge](https://img.shields.io/badge/Version-2.2.0-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.0-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -98,16 +99,20 @@ ATLAS=no
 
 #### Render + MongoDB Atlas
 
-Set the Render start command to `npm run start` and add these environment variables in Render:
+Set the Render start command to `npm run start` and add these values in Render under **Environment Variables**. Do not use a Secret File for these values; the backend reads them from `process.env`.
 
 ```env
 NODE_ENV=production
 ATLAS=yes
 MONGO_URI=mongodb+srv://<user>:<password>@<cluster-host>/<database>?retryWrites=true&w=majority&appName=<app-name>
 JWT_SECRET=<secure-random-secret>
+UPSTASH_REDIS_REST_URL=<upstash-rest-url>
+UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 ```
 
 Render provides `PORT` automatically. The backend will use `PORT` first, then `NODE_PORT`, then `5001`.
+
+Use `MONGO_URI` or `MONGODB_URI` for a full MongoDB connection string. `MONGO_ATLAS_URI` is not read by the backend.
 
 If you prefer the split Atlas variables instead of `MONGO_URI`, provide all of these:
 
