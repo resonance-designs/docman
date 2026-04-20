@@ -4,7 +4,7 @@
  * @routes notificationsRoutes
  * @description Notification routes for managing user notifications and alerts
  * @author Richard Bakos
- * @version 2.2.0
+ * @version 2.2.1
  * @license UNLICENSED
  */
 import express from "express";

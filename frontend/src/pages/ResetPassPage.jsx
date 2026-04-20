@@ -4,7 +4,7 @@
  * @page ResetPassPage
  * @description Password reset page for updating user passwords with secure token validation
  * @author Richard Bakos
- * @version 2.2.0
+ * @version 2.2.1
  * @license UNLICENSED
  */
 // ResetPasswordForm.jsx

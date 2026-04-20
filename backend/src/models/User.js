@@ -4,7 +4,7 @@
  * @model User
  * @description User model schema for authentication, profile management, and role-based access control
  * @author Richard Bakos
- * @version 2.2.0
+ * @version 2.2.1
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

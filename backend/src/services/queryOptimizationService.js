@@ -4,7 +4,7 @@
  * @service queryOptimizationService
  * @description Optimized database queries with caching and performance monitoring
  * @author Richard Bakos
- * @version 2.2.0
+ * @version 2.2.1
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

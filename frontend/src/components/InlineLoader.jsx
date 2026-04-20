@@ -4,7 +4,7 @@
  * @component InlineLoader
  * @description Component for loading indicators in the UI.
  * @author Richard Bakos
- * @version 2.2.0
+ * @version 2.2.1
  * @license UNLICENSED
  */
 import React from 'react';
