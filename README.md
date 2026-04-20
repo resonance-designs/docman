@@ -96,6 +96,29 @@ REFRESH_TOKEN_SECRET=your-refresh-secret
 ATLAS=no
 ```
 
+#### Render + MongoDB Atlas
+
+Set the Render start command to `npm run start` and add these environment variables in Render:
+
+```env
+NODE_ENV=production
+ATLAS=yes
+MONGO_URI=mongodb+srv://<user>:<password>@<cluster-host>/<database>?retryWrites=true&w=majority&appName=<app-name>
+JWT_SECRET=<secure-random-secret>
+```
+
+Render provides `PORT` automatically. The backend will use `PORT` first, then `NODE_PORT`, then `5001`.
+
+If you prefer the split Atlas variables instead of `MONGO_URI`, provide all of these:
+
+```env
+MONGO_ATLAS_USER=<user>
+MONGO_ATLAS_PASSWORD=<password>
+MONGO_ATLAS_HOST=<cluster-host>
+MONGO_ATLAS_DB=<database>
+MONGO_ATLAS_APP=<app-name>
+```
+
 #### Frontend (.env)
 
 ```env

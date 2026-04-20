@@ -7,35 +7,10 @@
  * @version 2.2.0
  * @license UNLICENSED
  */
-import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import BlacklistedToken from "../models/BlacklistedToken.js";
-
-/**
- * Load environment variables based on NODE_ENV
- */
-if (process.env.NODE_ENV === 'development') {
-    dotenv.config({ path: '.env.dev' });
-} else if (process.env.NODE_ENV === 'production') {
-    dotenv.config({ path: '.env.prod' });
-} else {
-    dotenv.config(); // Loads .env by default
-}
-
-/**
- * JWT token secret key from environment variables
- * Supports multiple environment variable names for compatibility
- * @type {string}
- */
-const TOKEN_KEY = process.env.JWT_SECRET || process.env.TOKEN_KEY || "docman-dev-secret-key-2024";
-
-// Log warning if using default token
-if (TOKEN_KEY === "docman-dev-secret-key-2024") {
-    console.warn("⚠️  WARNING: Using default JWT secret. Set JWT_SECRET or TOKEN_KEY environment variable for security!");
-}
-
-console.log("🔑 JWT Secret configured, length:", TOKEN_KEY.length);
+import { TOKEN_KEY } from "./jwtSecret.js";
 
 /**
  * Create an access token for API authentication

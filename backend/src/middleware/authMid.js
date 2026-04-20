@@ -8,31 +8,7 @@
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-
-/**
- * Load environment variables based on NODE_ENV
- * Supports development, production, and default configurations
- */
-if (process.env.NODE_ENV === 'development') {
-    dotenv.config({ path: '.env.dev' });
-} else if (process.env.NODE_ENV === 'production') {
-    dotenv.config({ path: '.env.prod' });
-} else {
-    dotenv.config(); // Loads .env by default
-}
-
-/**
- * JWT token secret key from environment variables
- * Supports multiple environment variable names for compatibility
- * @type {string}
- */
-const TOKEN_KEY = process.env.JWT_SECRET || process.env.TOKEN_KEY || "docman-dev-secret-key-2024";
-
-// Log warning if using default token
-if (TOKEN_KEY === "docman-dev-secret-key-2024") {
-    console.warn("⚠️  WARNING: Using default JWT secret. Set JWT_SECRET or TOKEN_KEY environment variable for security!");
-}
+import { TOKEN_KEY } from "../lib/jwtSecret.js";
 
 /**
  * Authentication middleware to verify JWT tokens

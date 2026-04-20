@@ -12,6 +12,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 import rateLimiter from "./middleware/rateLimiter.js";
 import { createSecurityMiddleware } from "./middleware/securityHeaders.js";
 import { specs, swaggerUi, swaggerUiOptions } from "./config/swagger.js";
@@ -30,26 +31,31 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import externalContactsRoutes from "./routes/externalContactsRoutes.js";
 import notificationsRoutes from "./routes/notificationsRoutes.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendRoot = path.resolve(__dirname, "..");
+const projectRoot = path.resolve(backendRoot, "..");
+const frontendDistPath = path.join(projectRoot, "frontend", "dist");
+
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
  * - Default to loading .env if NODE_ENV is not set.
  * - Use different .env files for development and production environments.
  */
 if (process.env.NODE_ENV === 'development') {
-    dotenv.config({ path: '.env.dev' });
+    dotenv.config({ path: path.join(backendRoot, '.env.dev') });
 } else if (process.env.NODE_ENV === 'production') {
-    dotenv.config({ path: '.env.prod' });
+    dotenv.config({ path: path.join(backendRoot, '.env.prod') });
 } else {
-    dotenv.config(); // Loads .env by default
+    dotenv.config({ path: path.join(backendRoot, '.env') }); // Loads .env by default
 }
 const activeEnv = process.env.ENV;
-const nodePort = process.env.NODE_PORT;
+const nodePort = process.env.PORT || process.env.NODE_PORT || 5001;
 
 /* * Express Application Setup
  * - Get the current directory name using path.resolve.
  * - Initialize the Express application.
  */
-const __dirname = path.resolve(); // Get the current directory name
 
 /**
  * Express application instance configured with middleware, routes, and static file serving
@@ -96,10 +102,10 @@ app.get("/api-docs.json", (req, res) => {
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
     // Serve static files from the React frontend app in production
-    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+    app.use(express.static(frontendDistPath));
     // Handle any requests that don't match the API routes
     app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+        res.sendFile(path.join(frontendDistPath, 'index.html'));
     });
 }
 
@@ -107,7 +113,7 @@ if(process.env.NODE_ENV === 'production') {
  * - The server listens on the specified port and connects to MongoDB.
  * - Logs the active environment and port number.
  */
-app.listen(5001, () => {
+app.listen(nodePort, () => {
     console.log("Active environment is:", activeEnv);
     console.log("Node server is running on port:", nodePort);
     console.log("Connecting to MongoDB...");
