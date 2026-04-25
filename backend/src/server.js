@@ -3,7 +3,7 @@
  * @file /docman/backend/src/server.js
  * @description Main entry point of the DocMan backend application
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { connectDB } from "./config/db.js";
@@ -35,7 +35,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const backendRoot = path.resolve(__dirname, "..");
 const projectRoot = path.resolve(backendRoot, "..");
-const frontendDistPath = path.join(projectRoot, "frontend", "dist");
+const uiDistFolders = {
+    react: path.join(projectRoot, "frontend", "dist"),
+    legacy: path.join(projectRoot, "frontend", "dist"),
+    vue: path.join(projectRoot, "frontend-vue", "dist"),
+    vuetify: path.join(projectRoot, "frontend-vue", "dist")
+};
 
 /* * Environment Configuration
  * - Load environment variables based on the NODE_ENV variable.
@@ -64,6 +69,8 @@ const nodePort = process.env.PORT || process.env.NODE_PORT || 5001;
  * @type {express.Application}
  */
 const app = express(); // Initialize Express app
+const selectedUi = (process.env.DOCMAN_UI || process.env.UI_FLAVOR || "vue").toLowerCase();
+const frontendDistPath = uiDistFolders[selectedUi] || uiDistFolders.vue;
 
 /* * Middleware Configuration
  * - Security Headers: Comprehensive security headers for protection
@@ -101,7 +108,8 @@ app.get("/api-docs.json", (req, res) => {
 });
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
-    // Serve static files from the React frontend app in production
+    console.log(`Serving ${selectedUi} UI from:`, frontendDistPath);
+    // Serve static files from the selected frontend app in production
     app.use(express.static(frontendDistPath));
     // Handle any requests that don't match the API routes
     app.get('*', (req, res) => {
@@ -118,6 +126,11 @@ const startServer = async () => {
     console.log("Connecting to MongoDB...");
 
     await connectDB();
+
+    if (String(process.env.SEED_ON_DEPLOY || '').toLowerCase() === 'true') {
+        const { runSafeSeed } = await import('./scripts/seedSafe.js');
+        await runSafeSeed({ manageConnection: false });
+    }
 
     app.listen(nodePort, () => {
         console.log("Node server is running on port:", nodePort);

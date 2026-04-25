@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/pages/TeamSettingsPage.jsx
  * @page TeamSettingsPage
  * @description Team settings page for managing team configuration and preferences
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

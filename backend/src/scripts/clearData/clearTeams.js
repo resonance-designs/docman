@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearTeams.js
  * @description Script to clear all teams from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import Team from '../../models/Team.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all teams from the database
@@ -18,6 +19,7 @@ import Team from '../../models/Team.js';
  */
 const clearTeams = async () => {
     try {
+        assertSafeClear('clearTeams');
         await connectDB();
         
         const result = await Team.deleteMany({});

@@ -4,7 +4,7 @@
  * @component DataTable
  * @description Reusable data table component with sorting, pagination, and action buttons
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { useState } from "react";

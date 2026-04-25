@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import Project from "../models/Project.js";

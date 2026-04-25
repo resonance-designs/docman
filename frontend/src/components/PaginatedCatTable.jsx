@@ -4,7 +4,7 @@
  * @component PaginatedCatTable
  * @description Component for displaying categories in a paginated table.
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 
