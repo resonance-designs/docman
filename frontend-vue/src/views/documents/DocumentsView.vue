@@ -11,16 +11,30 @@
     :item-path="(item) => `/documents/${item._id || item.id}`"
     empty-icon="mdi-file-document-outline"
     empty-title="No documents found"
-    empty-text="Create documents in the existing app or seed data from the backend scripts."
-  />
+    empty-text="Create documents directly in the Vue/Vuetify workflow or seed data from backend scripts."
+  >
+    <template #actions>
+      <v-btn
+        v-if="canCreate"
+        color="primary"
+        prepend-icon="mdi-file-plus-outline"
+        to="/documents/create"
+      >
+        Create Document
+      </v-btn>
+    </template>
+  </ResourceListPage>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import ResourceListPage from '@/components/resources/ResourceListPage.vue';
 import { useResourceList } from '@/composables/useResourceList';
+import { useAuth } from '@/composables/useAuth';
 
 const { items, count, loading, error, load } = useResourceList('/docs');
+const { hasRole } = useAuth();
+const canCreate = computed(() => hasRole(['editor', 'admin', 'superadmin']));
 
 const columns = [
   { key: 'title', title: 'Title' },

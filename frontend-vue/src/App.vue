@@ -23,7 +23,7 @@
       <v-app-bar flat border color="surface">
         <v-app-bar-nav-icon @click="drawer = !drawer" />
         <v-app-bar-title class="suite-wordmark">
-          DocMan
+          RDocMan
         </v-app-bar-title>
         <v-spacer />
         <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline">
