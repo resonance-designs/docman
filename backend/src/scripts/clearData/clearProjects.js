@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearProjects.js
  * @description Script to clear all projects from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import Project from '../../models/Project.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all projects from the database
@@ -18,6 +19,7 @@ import Project from '../../models/Project.js';
  */
 const clearProjects = async () => {
     try {
+        assertSafeClear('clearProjects');
         await connectDB();
         
         const result = await Project.deleteMany({});

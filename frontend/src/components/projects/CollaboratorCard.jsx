@@ -4,7 +4,7 @@
  * @component CollaboratorCard
  * @description Card component for displaying project collaborators
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { MoreVerticalIcon, UserIcon, MailIcon, PhoneIcon } from 'lucide-react';

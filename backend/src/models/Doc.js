@@ -4,7 +4,7 @@
  * @model Doc
  * @description Document model schema for managing document metadata, version history, stakeholders, and review workflows
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 // backend/src/models/Doc.js

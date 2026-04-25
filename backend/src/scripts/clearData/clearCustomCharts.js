@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearCustomCharts.js
  * @description Script to clear all custom charts from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import CustomChart from '../../models/CustomChart.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all custom charts from the database
@@ -18,6 +19,7 @@ import CustomChart from '../../models/CustomChart.js';
  */
 const clearCustomCharts = async () => {
     try {
+        assertSafeClear('clearCustomCharts');
         await connectDB();
         
         const result = await CustomChart.deleteMany({});

@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearReviewAssignments.js
  * @description Script to clear all review assignments from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import ReviewAssignment from '../../models/ReviewAssignment.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all review assignments from the database
@@ -18,6 +19,7 @@ import ReviewAssignment from '../../models/ReviewAssignment.js';
  */
 const clearReviewAssignments = async () => {
     try {
+        assertSafeClear('clearReviewAssignments');
         await connectDB();
         
         const result = await ReviewAssignment.deleteMany({});

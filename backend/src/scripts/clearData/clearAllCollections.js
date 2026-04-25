@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearAllCollections.js
  * @description Script to clear all collections from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
@@ -21,6 +21,7 @@ import ExternalContactType from '../../models/ExternalContactType.js';
 import CustomChart from '../../models/CustomChart.js';
 import ReviewAssignment from '../../models/ReviewAssignment.js';
 import BlacklistedToken from '../../models/BlacklistedToken.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all collections from the database
@@ -30,6 +31,7 @@ import BlacklistedToken from '../../models/BlacklistedToken.js';
  */
 const clearAllCollections = async () => {
     try {
+        assertSafeClear('clearAllCollections');
         await connectDB();
         
         console.log('🧹 Starting to clear all collections...\n');

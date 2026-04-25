@@ -4,7 +4,7 @@
  * @component AccountNav
  * @description Account navigation dropdown component with profile, teams, and projects links
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 

@@ -4,7 +4,7 @@
  * @component UserTable
  * @description Component for displaying a user in a table row with actions.
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 

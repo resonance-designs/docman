@@ -1,9 +1,9 @@
 {
-  "name": "rd-docman",
+  "name": "rdocman",
   "private": true,
-  "version": "2.2.1",
+  "version": "2.2.2",
   "type": "module",
-  "description": "DocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
+  "description": "RDocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
     "Document Management",
     "Resonance Designs",
@@ -30,8 +30,12 @@
   "license": "UNLICENSED",
   "main": "index.js",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend",
+    "build": "node scripts/build-selected-ui.js",
+    "build:react": "node scripts/build-selected-ui.js react",
+    "build:vue": "node scripts/build-selected-ui.js vue",
     "start": "npm run atlasprod --prefix backend",
+    "git:release": "node scripts/git-release.js",
+    "version:sync": "node scripts/version-sync.js",
     "comments": "node scripts/update-config.js && node scripts/update-descriptions.js && node scripts/update-selective-comments.js",
     "security:audit": "node scripts/security-audit.js",
     "security:fix": "npm audit fix --prefix backend && npm audit fix --prefix frontend",
@@ -67,7 +71,8 @@
     "dummy:custom-charts": "npm run dummy:custom-charts --prefix backend",
     "dummy:review-assignments": "npm run dummy:review-assignments --prefix backend",
     "dummy:blacklisted-tokens": "npm run dummy:blacklisted-tokens --prefix backend",
-    "dummy:all": "npm run dummy:all --prefix backend"
+    "dummy:all": "npm run dummy:all --prefix backend",
+    "seed:safe": "npm run seed:safe --prefix backend"
   },
   "bugs": {
     "url": "https://github.com/resonance-designs/docman/issues"

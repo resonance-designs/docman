@@ -4,7 +4,7 @@
  * @page ViewUserPage
  * @description User detail page displaying user information and administrative actions
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-2.2.1-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.1-green)
+![Static Badge](https://img.shields.io/badge/Version-2.2.2-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.2-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -106,6 +106,8 @@ NODE_ENV=production
 ATLAS=yes
 MONGO_URI=mongodb+srv://<user>:<password>@<cluster-host>/<database>?retryWrites=true&w=majority&appName=<app-name>
 JWT_SECRET=<secure-random-secret>
+DOCMAN_UI=vue
+SEED_ON_DEPLOY=false
 UPSTASH_REDIS_REST_URL=<upstash-rest-url>
 UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 ```
@@ -113,6 +115,10 @@ UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 Render provides `PORT` automatically. The backend will use `PORT` first, then `NODE_PORT`, then `5001`.
 
 Use `MONGO_URI` or `MONGODB_URI` for a full MongoDB connection string. `MONGO_ATLAS_URI` is not read by the backend.
+
+`DOCMAN_UI` chooses the production UI. Use `vue` for the Vuetify interface or `react` for the legacy React interface. The default is `vue`.
+
+`SEED_ON_DEPLOY=true` runs the safe seed during backend startup. The safe seed never deletes or drops data. It seeds sample data only when the database is empty; if records already exist, it skips seeding. If records exist but the users collection is empty, it creates only the default superadmin account. Set `DOCMAN_DEFAULT_EMAIL`, `DOCMAN_DEFAULT_USERNAME`, and `DOCMAN_DEFAULT_PASSWORD` to control that account.
 
 If you prefer the split Atlas variables instead of `MONGO_URI`, provide all of these:
 

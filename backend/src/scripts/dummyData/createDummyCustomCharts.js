@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyCustomCharts.js
  * @description Script to create dummy custom charts in the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

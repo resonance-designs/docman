@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearDocs.js
  * @description Script to clear all documents from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import Doc from '../../models/Doc.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all documents from the database
@@ -18,6 +19,7 @@ import Doc from '../../models/Doc.js';
  */
 const clearDocs = async () => {
     try {
+        assertSafeClear('clearDocs');
         await connectDB();
         
         const result = await Doc.deleteMany({});

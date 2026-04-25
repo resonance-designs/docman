@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearBlacklistedTokens.js
  * @description Script to clear all blacklisted tokens from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import BlacklistedToken from '../../models/BlacklistedToken.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all blacklisted tokens from the database
@@ -18,6 +19,7 @@ import BlacklistedToken from '../../models/BlacklistedToken.js';
  */
 const clearBlacklistedTokens = async () => {
     try {
+        assertSafeClear('clearBlacklistedTokens');
         await connectDB();
         
         const result = await BlacklistedToken.deleteMany({});

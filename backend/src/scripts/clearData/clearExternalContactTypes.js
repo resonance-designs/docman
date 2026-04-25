@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearExternalContactTypes.js
  * @description Script to clear all external contact types from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import ExternalContactType from '../../models/ExternalContactType.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all external contact types from the database
@@ -18,6 +19,7 @@ import ExternalContactType from '../../models/ExternalContactType.js';
  */
 const clearExternalContactTypes = async () => {
     try {
+        assertSafeClear('clearExternalContactTypes');
         await connectDB();
         
         const result = await ExternalContactType.deleteMany({});

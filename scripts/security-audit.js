@@ -4,7 +4,7 @@
  * @script security-audit
  * @description Automated security audit script for dependency scanning and vulnerability detection
  * @author Richard Bakos
- * @version 1.1.10
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { execSync } from 'child_process';

@@ -4,7 +4,7 @@
  * @module documentFormSchema
  * @description Shared validation schemas and constants for document forms
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import { z } from "zod";

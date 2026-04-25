@@ -4,7 +4,7 @@
  * @middleware authMid
  * @description JWT authentication middleware for verifying Bearer tokens and protecting routes
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";

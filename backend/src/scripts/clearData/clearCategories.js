@@ -3,12 +3,13 @@
  * @file /docman/backend/src/scripts/clearData/clearCategories.js
  * @description Script to clear all categories from the database
  * @author Richard Bakos
- * @version 2.2.1
+ * @version 2.2.2
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
 import { connectDB } from '../../config/db.js';
 import Category from '../../models/Category.js';
+import { assertSafeClear } from '../lib/assertSafeClear.js';
 
 /**
  * Clear all categories from the database
@@ -18,6 +19,7 @@ import Category from '../../models/Category.js';
  */
 const clearCategories = async () => {
     try {
+        assertSafeClear('clearCategories');
         await connectDB();
         
         const result = await Category.deleteMany({});
