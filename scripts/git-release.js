@@ -8,11 +8,13 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 function git(args, options = {}) {
-  return execFileSync('git', args, {
+  const output = execFileSync('git', args, {
     cwd: repoRoot,
     encoding: 'utf8',
     stdio: options.stdio || ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  });
+
+  return typeof output === 'string' ? output.trim() : '';
 }
 
 function npmVersion() {
@@ -53,9 +55,11 @@ function refExists(args) {
   }
 }
 
-function ensureReleaseDoesNotExist(branchName, tagName) {
+function ensureReleaseCanProceed(branchName, tagName, currentBranch) {
   if (refExists(['show-ref', '--verify', '--quiet', `refs/heads/${branchName}`])) {
-    throw new Error(`Local branch ${branchName} already exists.`);
+    if (currentBranch !== branchName) {
+      throw new Error(`Local branch ${branchName} already exists. Check it out before resuming.`);
+    }
   }
 
   if (refExists(['ls-remote', '--exit-code', '--heads', 'origin', branchName])) {
@@ -78,10 +82,14 @@ function main() {
 
   ensureCleanWorktree();
   const sourceBranch = ensureOnBranch();
-  ensureReleaseDoesNotExist(releaseBranch, tagName);
+  ensureReleaseCanProceed(releaseBranch, tagName, sourceBranch);
 
-  console.log(`Creating ${releaseBranch} from ${sourceBranch}...`);
-  git(['checkout', '-b', releaseBranch], { stdio: 'inherit' });
+  if (sourceBranch === releaseBranch) {
+    console.log(`Resuming release from existing branch ${releaseBranch}...`);
+  } else {
+    console.log(`Creating ${releaseBranch} from ${sourceBranch}...`);
+    git(['checkout', '-b', releaseBranch], { stdio: 'inherit' });
+  }
 
   console.log(`Tagging ${tagName}...`);
   git(['tag', '-a', tagName, '-m', `Release ${version}`], { stdio: 'inherit' });
