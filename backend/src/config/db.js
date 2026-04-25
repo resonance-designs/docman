@@ -18,6 +18,17 @@ const requireEnv = (names) => {
 
 const encodeConnectionValue = (value) => encodeURIComponent(value);
 
+const getMongoUriSummary = (uri) => {
+    try {
+        const parsedUri = new URL(uri);
+        const database = parsedUri.pathname?.replace(/^\//, '') || '(none)';
+
+        return `${parsedUri.protocol}//${parsedUri.hostname}/${database}`;
+    } catch {
+        return '(unable to parse MongoDB URI)';
+    }
+};
+
 const buildLocalMongoUri = () => {
     requireEnv(['MONGO_USER', 'MONGO_PASSWORD', 'MONGO_HOST', 'MONGO_PORT', 'MONGO_DB', 'MONGO_AUTH_SOURCE']);
 
@@ -76,22 +87,30 @@ const buildAtlasMongoUri = () => {
  */
 export const connectDB = async () => {
     try {
+        let mongoUri;
+
         if (process.env.ATLAS === 'no' && process.env.ENV === 'Development') {
             // Connect to MongoDB using the provided credentials and host
-            await mongoose.connect(buildLocalMongoUri());
+            mongoUri = buildLocalMongoUri();
+            console.log('MongoDB connection target:', getMongoUriSummary(mongoUri));
+            await mongoose.connect(mongoUri);
             console.log('MongoDB established connection with host:', process.env.MONGO_HOST);
             console.log('MongoDB is running on port:', process.env.MONGO_PORT);
             console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
             console.log("Server is ready to accept requests.");
         } else if (process.env.ATLAS === 'no' && process.env.ENV === 'Production') {
             if (process.env.MONGO_TLS === 'false') {
-                await mongoose.connect(buildLocalMongoUri());
+                mongoUri = buildLocalMongoUri();
+                console.log('MongoDB connection target:', getMongoUriSummary(mongoUri));
+                await mongoose.connect(mongoUri);
                 console.log('MongoDB established connection with host:', process.env.MONGO_HOST);
                 console.log('MongoDB is running on port:', process.env.MONGO_PORT);
                 console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
                 console.log("Server is ready to accept requests.");
             } else if (process.env.MONGO_TLS === 'true') {
-                await mongoose.connect(buildLocalMongoTlsUri());
+                mongoUri = buildLocalMongoTlsUri();
+                console.log('MongoDB connection target:', getMongoUriSummary(mongoUri));
+                await mongoose.connect(mongoUri);
                 console.log('MongoDB established connection with host:', process.env.MONGO_HOST);
                 console.log('MongoDB is running on port:', process.env.MONGO_PORT);
                 console.log('MongoDB connected successfully to database:', process.env.MONGO_DB);
@@ -101,7 +120,9 @@ export const connectDB = async () => {
             }
         } else if (process.env.ATLAS === 'yes') {
             // Connect to MongoDB Atlas using the connection string
-            await mongoose.connect(buildAtlasMongoUri());
+            mongoUri = buildAtlasMongoUri();
+            console.log('MongoDB connection target:', getMongoUriSummary(mongoUri));
+            await mongoose.connect(mongoUri);
             console.log('MongoDB is connected via atlas server');
         } else {
             throw new Error('Invalid ATLAS environment variable. Set it to "yes" or "no".');
@@ -111,7 +132,10 @@ export const connectDB = async () => {
             await createDatabaseIndexes();
         }
     } catch (error) {
-        console.error('MongoDB connection failed:', error);
-        process.exit(1); // Exit the process with failure
+        console.error('MongoDB connection failed:', error?.name || 'Error', error?.message || error);
+        if (error?.code) {
+            console.error('MongoDB error code:', error.code);
+        }
+        throw error;
     }
 }

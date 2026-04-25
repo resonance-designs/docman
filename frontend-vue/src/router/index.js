@@ -1,8 +1,10 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 import SuiteHome from '@/views/SuiteHome.vue';
 import LoginView from '@/views/auth/LoginView.vue';
 import DocumentsView from '@/views/documents/DocumentsView.vue';
 import DocumentDetailView from '@/views/documents/DocumentDetailView.vue';
+import DocumentCreateView from '@/views/documents/DocumentCreateView.vue';
+import DocumentEditView from '@/views/documents/DocumentEditView.vue';
 import BooksView from '@/views/books/BooksView.vue';
 import CategoriesView from '@/views/categories/CategoriesView.vue';
 import TeamsView from '@/views/teams/TeamsView.vue';
@@ -28,10 +30,22 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/documents/create',
+    name: 'document-create',
+    component: DocumentCreateView,
+    meta: { requiresAuth: true, roles: ['editor', 'admin', 'superadmin'] },
+  },
+  {
     path: '/documents/:id',
     name: 'document-detail',
     component: DocumentDetailView,
     meta: { requiresAuth: true },
+  },
+  {
+    path: '/documents/:id/edit',
+    name: 'document-edit',
+    component: DocumentEditView,
+    meta: { requiresAuth: true, roles: ['editor', 'admin', 'superadmin'] },
   },
   {
     path: '/books',
@@ -59,23 +73,29 @@ const routes = [
   },
 ];
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes,
-});
+export function createDocManRouter(runtimeConfig = {}) {
+  const history = runtimeConfig.embedded
+    ? createMemoryHistory()
+    : createWebHistory(runtimeConfig.routerBase);
 
-router.beforeEach((to) => {
-  const { isAuthenticated, hasRole } = useAuth();
+  const router = createRouter({
+    history,
+    routes,
+  });
 
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    return { name: 'login', query: { redirect: to.fullPath } };
-  }
+  router.beforeEach((to) => {
+    const { isAuthenticated, hasRole } = useAuth();
 
-  if (to.meta.roles && !hasRole(to.meta.roles)) {
-    return { name: 'home' };
-  }
+    if (to.meta.requiresAuth && !isAuthenticated.value) {
+      return { name: 'login', query: { redirect: to.fullPath } };
+    }
 
-  return true;
-});
+    if (to.meta.roles && !hasRole(to.meta.roles)) {
+      return { name: 'home' };
+    }
 
-export default router;
+    return true;
+  });
+
+  return router;
+}

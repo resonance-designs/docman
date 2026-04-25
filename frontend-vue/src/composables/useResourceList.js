@@ -53,6 +53,13 @@ export function normalizeCollection(payload) {
     return payload.data;
   }
 
+  if (Array.isArray(payload?.users)) {
+    return payload.users;
+  }
+
+  if (Array.isArray(payload?.categories)) {
+    return payload.categories;
+  }
+
   return [];
 }
-

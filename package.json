@@ -30,7 +30,7 @@
   "license": "UNLICENSED",
   "main": "index.js",
   "scripts": {
-    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "build": "npm install --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend",
     "start": "npm run atlasprod --prefix backend",
     "comments": "node scripts/update-config.js && node scripts/update-descriptions.js && node scripts/update-selective-comments.js",
     "security:audit": "node scripts/security-audit.js",

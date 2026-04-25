@@ -6,9 +6,12 @@
         <h1 class="text-h4 font-weight-bold">{{ title }}</h1>
         <p class="text-body-1 text-medium-emphasis mb-0">{{ subtitle }}</p>
       </div>
-      <v-chip color="primary" variant="tonal" size="large">
-        {{ filteredItems.length }} of {{ items.length }} loaded
-      </v-chip>
+      <div class="d-flex flex-wrap align-center ga-3">
+        <slot name="actions" />
+        <v-chip color="primary" variant="tonal" size="large">
+          {{ filteredItems.length }} of {{ items.length }} loaded
+        </v-chip>
+      </div>
     </div>
 
     <v-card class="mb-4">

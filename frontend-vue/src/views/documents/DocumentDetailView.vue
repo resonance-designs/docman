@@ -19,8 +19,16 @@
       <v-row>
         <v-col cols="12" lg="8">
           <v-card>
-            <v-card-title class="text-h4 font-weight-bold">
-              {{ document.title }}
+            <v-card-title class="d-flex flex-wrap align-center justify-space-between ga-4">
+              <span class="text-h4 font-weight-bold">{{ document.title }}</span>
+              <v-btn
+                v-if="canEdit"
+                color="primary"
+                prepend-icon="mdi-file-document-edit-outline"
+                :to="`/documents/${document._id}/edit`"
+              >
+                Edit
+              </v-btn>
             </v-card-title>
             <v-card-subtitle>
               Version {{ document.currentVersion || 1 }} · {{ reviewLabel }}
@@ -74,24 +82,15 @@
 import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useResourceDetail } from '@/composables/useResourceDetail';
+import { useAuth } from '@/composables/useAuth';
+import { personName } from '@/lib/people';
 
 const route = useRoute();
 const { item: document, loading, error, load } = useResourceDetail((id) => `/docs/${id}`);
+const { hasRole } = useAuth();
 
 const reviewLabel = computed(() => document.value?.reviewCompleted ? 'Review complete' : 'Review open');
-
-function personName(person) {
-  if (!person) {
-    return 'Not set';
-  }
-
-  if (typeof person === 'string') {
-    return person;
-  }
-
-  const fullName = [person.firstname, person.lastname].filter(Boolean).join(' ');
-  return fullName || person.username || person.email || 'Not set';
-}
+const canEdit = computed(() => hasRole(['editor', 'admin', 'superadmin']));
 
 function formatDate(value) {
   if (!value) {
@@ -107,4 +106,3 @@ function formatDate(value) {
 
 onMounted(() => load(route.params.id));
 </script>
-

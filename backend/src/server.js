@@ -110,16 +110,24 @@ if(process.env.NODE_ENV === 'production') {
 }
 
 /* * Starting the Server
- * - The server listens on the specified port and connects to MongoDB.
+ * - The server connects to MongoDB before listening for requests.
  * - Logs the active environment and port number.
  */
-app.listen(nodePort, () => {
+const startServer = async () => {
     console.log("Active environment is:", activeEnv);
-    console.log("Node server is running on port:", nodePort);
     console.log("Connecting to MongoDB...");
-    connectDB(); // Connect to MongoDB
+
+    await connectDB();
+
+    app.listen(nodePort, () => {
+        console.log("Node server is running on port:", nodePort);
+        console.log("Server is ready to accept requests.");
+    });
+};
+
+startServer().catch((error) => {
+    console.error("Server startup failed:", error?.name || "Error", error?.message || error);
+    process.exit(1);
 });
-
-
 
 export default app;

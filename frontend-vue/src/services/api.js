@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { getRuntimeConfig, getStorageKey } from '@/runtime/config';
 
 function resolveApiBaseUrl() {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  const runtimeConfig = getRuntimeConfig();
+  if (runtimeConfig.apiBaseUrl) {
+    return runtimeConfig.apiBaseUrl;
   }
 
   if (import.meta.env.DEV && typeof window !== 'undefined') {
@@ -13,12 +15,13 @@ function resolveApiBaseUrl() {
 }
 
 export const api = axios.create({
-  baseURL: resolveApiBaseUrl(),
   withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  config.baseURL = config.baseURL || resolveApiBaseUrl();
+
+  const token = localStorage.getItem(getStorageKey('token'));
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -30,8 +33,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('docman:user');
+      localStorage.removeItem(getStorageKey('token'));
+      localStorage.removeItem(getStorageKey('user'));
     }
 
     return Promise.reject(error);

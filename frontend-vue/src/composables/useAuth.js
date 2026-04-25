@@ -1,15 +1,18 @@
 import { computed, reactive } from 'vue';
 import { api } from '@/services/api';
+import { getStorageKey } from '@/runtime/config';
 
 const state = reactive({
-  token: localStorage.getItem('token'),
-  user: readStoredUser(),
+  token: null,
+  user: null,
   loading: false,
   error: '',
 });
 
+syncStateFromStorage();
+
 function readStoredUser() {
-  const stored = localStorage.getItem('docman:user');
+  const stored = localStorage.getItem(getStorageKey('user'));
   if (!stored) {
     return null;
   }
@@ -17,7 +20,7 @@ function readStoredUser() {
   try {
     return JSON.parse(stored);
   } catch {
-    localStorage.removeItem('docman:user');
+    localStorage.removeItem(getStorageKey('user'));
     return null;
   }
 }
@@ -25,18 +28,25 @@ function readStoredUser() {
 function persistSession(token, user) {
   state.token = token;
   state.user = user;
-  localStorage.setItem('token', token);
-  localStorage.setItem('docman:user', JSON.stringify(user));
+  localStorage.setItem(getStorageKey('token'), token);
+  localStorage.setItem(getStorageKey('user'), JSON.stringify(user));
 }
 
 function clearSession() {
   state.token = null;
   state.user = null;
-  localStorage.removeItem('token');
-  localStorage.removeItem('docman:user');
+  localStorage.removeItem(getStorageKey('token'));
+  localStorage.removeItem(getStorageKey('user'));
+}
+
+function syncStateFromStorage() {
+  state.token = localStorage.getItem(getStorageKey('token'));
+  state.user = readStoredUser();
 }
 
 export function useAuth() {
+  syncStateFromStorage();
+
   const isAuthenticated = computed(() => Boolean(state.token));
   const userRole = computed(() => state.user?.role || null);
 
@@ -80,4 +90,3 @@ export function useAuth() {
     hasRole,
   };
 }
-
