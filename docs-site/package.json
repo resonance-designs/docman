@@ -1,0 +1,36 @@
+{
+  "name": "docman-docs-site",
+  "version": "2.2.3",
+  "private": true,
+  "description": "Docusaurus documentation site for DocMan.",
+  "scripts": {
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.9.1",
+    "@docusaurus/preset-classic": "3.9.1",
+    "@docusaurus/theme-mermaid": "3.9.1",
+    "@mdx-js/react": "^3.0.0",
+    "@mermaid-js/layout-elk": "^0.1.7",
+    "clsx": "^2.0.0",
+    "prism-react-renderer": "^2.3.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "3.9.1",
+    "@docusaurus/tsconfig": "3.9.1",
+    "@docusaurus/types": "3.9.1",
+    "typescript": "~5.6.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "overrides": {
+    "webpack": "5.101.3"
+  }
+}

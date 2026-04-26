@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-2.2.2-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.2-green)
+![Static Badge](https://img.shields.io/badge/Version-2.2.3-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.3-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -159,6 +159,8 @@ The Vue/Vuetify frontend should be brought to feature parity in phases. The curr
 The existing React frontend should remain intact until the Vue/Vuetify frontend covers the primary workflows.
 ## ⚙️ Production Deployment & Update Scripts
 
+Maintainers should read the [Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md) before cutting release branches, operating Render, or changing deployment automation.
+
 DocMan includes three scripts to manage deployment and updates on a production Apache server.
 
 These scripts are designed to work seamlessly with an Apache web server and leverage Let's Encrypt for SSL/TLS encryption. They automate the process of updating both the backend and frontend applications while ensuring that no downtime occurs during the transition period.
@@ -312,6 +314,8 @@ frontend-vue/
 ### For Developers
 
 - **[Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md)** - Complete setup and workflow guide
+- **[Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md)** - Release branches, tags, Render, GitHub Actions, and deployment safety
+- **[Docs Site](./docs-site/README.md)** - Docusaurus source for the published DocMan documentation site
 - **[Architecture Decision Records](./docs/architecture/README.md)** - Design decisions and rationale
 - **[API Documentation](http://localhost:5001/api-docs)** - Interactive API documentation
 - **[Component Library](http://localhost:6006)** - Storybook component documentation

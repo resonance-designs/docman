@@ -4,7 +4,7 @@
  * @middleware cacheMiddleware
  * @description Caching middleware for API responses to improve performance
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 

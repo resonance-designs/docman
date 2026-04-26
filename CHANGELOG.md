@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2026-04-25
+
+### Added
+
+- Added a project-specific Docusaurus documentation site under `docs-site/`.
+- Added maintainer documentation for release workflow, version syncing, GitHub Actions, Render, Linode, Cloudflare, data safety, and frontend selection.
+- Added a GitHub Pages workflow for publishing the Docusaurus docs site from `docs-site/`.
+- Added `docs-site/package.json` and `docs-site/package-lock.json` to `npm run version:sync` coverage.
+
+### Changed
+
+- Updated README and developer onboarding documentation to link maintainers to the release/deployment guide and docs site.
+- Updated the Linode GitHub Actions deployment workflow to build the selected UI and deploy the selected frontend bundle.
+- Changed the Linode deployment workflow to manual-only with `workflow_dispatch` while server-side SSH setup is unfinished.
+- Synchronized app version metadata to `2.2.3` across package files, lockfiles, project config, README badges, and tracked source headers.
+
+### Verified
+
+- Verified the docs site with `npm ci --prefix docs-site`.
+- Verified the docs site production build with `npm run build --prefix docs-site`.
+
+### Notes
+
+- The docs build succeeds with a non-fatal webpack warning from `vscode-languageserver-types`.
+- The docs dependency tree currently reports npm audit findings inherited from the Docusaurus install.
+
 ## [0.2.2] - 2026-04-25
 
 ### Added

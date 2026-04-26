@@ -11,6 +11,7 @@ const packageFiles = [
   'backend/package.json',
   'frontend/package.json',
   'frontend-vue/package.json',
+  'docs-site/package.json',
 ];
 
 const lockFiles = [
@@ -18,6 +19,7 @@ const lockFiles = [
   'backend/package-lock.json',
   'frontend/package-lock.json',
   'frontend-vue/package-lock.json',
+  'docs-site/package-lock.json',
 ];
 
 const versionHeaderRoots = [

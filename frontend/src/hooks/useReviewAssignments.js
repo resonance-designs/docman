@@ -4,7 +4,7 @@
  * @hook useReviewAssignments
  * @description Custom hook for managing document review assignments and completion status
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 import { useState, useEffect, useCallback } from "react";

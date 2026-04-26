@@ -2,6 +2,10 @@
 
 Welcome to the **DocMan** project! This guide will help you get up and running quickly and understand the codebase architecture.
 
+Maintainers responsible for releases or deployments should also read the [Release and Deployment Maintainer Guide](./RELEASE_AND_DEPLOYMENT.md).
+
+Published documentation is maintained from the Docusaurus source in [`docs-site/`](../docs-site/README.md).
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -233,7 +237,7 @@ Every file should have a descriptive header:
  * @service documentService
  * @description Business logic for document management operations
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 ```

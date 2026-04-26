@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/hooks/useConfirmation.js
  * @hook useConfirmation
  * @description Custom hook for handling confirmation modals
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 import { useState, useCallback } from 'react';
