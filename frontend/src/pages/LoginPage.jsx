@@ -4,7 +4,7 @@
  * @page LoginPage
  * @description Page for user authentication and login.
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 

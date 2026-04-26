@@ -4,7 +4,7 @@
  * @component ReviewStatusSummary
  * @description Summary component showing overall review completion status
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 import { CheckCircleIcon, ClockIcon, UsersIcon } from "lucide-react";

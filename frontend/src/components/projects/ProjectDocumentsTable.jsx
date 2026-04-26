@@ -4,7 +4,7 @@
  * @component ProjectDocumentsTable
  * @description Specialized table component for managing documents in projects with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 

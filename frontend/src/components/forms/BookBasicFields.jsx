@@ -4,7 +4,7 @@
  * @component BookBasicFields
  * @description Reusable form component for basic book fields (title, description, category)
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 

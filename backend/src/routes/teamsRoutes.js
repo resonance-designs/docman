@@ -4,7 +4,7 @@
  * @routes teamsRoutes
  * @description Team management routes for team operations, member management, and collaboration
  * @author Richard Bakos
- * @version 2.2.2
+ * @version 2.2.3
  * @license UNLICENSED
  */
 import express from "express";
