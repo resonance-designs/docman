@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2026-04-27
+
+### Added
+
+- Added Authentik migration architecture documentation in `docs/architecture/ADR-005-suite-identity-migration.md`.
+- Added transitional backend identity resolution support for future Authentik-issued tokens.
+- Added `authentikSub` and provider-linking support to the local DocMan user model.
+- Added a CLI script and admin API/UI workflow for linking existing DocMan users to Authentik identities.
+- Added an Authentik PKCE login path in `frontend-vue` for suite-level sign-in.
+- Added a reusable MongoDB TLS helper script in `scripts/setup-mongodb-ssl/setup-mongodb-ssl.sh`.
+
+### Changed
+
+- Updated `apache_production_deploy.sh` to align with the current RDocMan architecture.
+- Changed the deployment script to build and publish `frontend-vue` instead of the legacy frontend.
+- Changed the deployment script to publish `frontend-vue/dist-remote/remote/` for the RDSysCMD hybrid desktop module.
+- Changed the deployment script to recreate `docman-backend.service` with the `docman` service user.
+- Changed the deployment script to detect and reuse an existing MongoDB server configuration when available.
+- Changed the deployment script to reuse prior `.env.prod` values from the latest deployment backup as prompt defaults when available.
+- Tightened the documented and scripted Node.js requirement to `20.19+` or `22.12+` for the current Vue/Vite toolchain.
+- Updated deployment documentation and README guidance to reflect the current Vue/Vuetify, Authentik, and hybrid remote-bundle deployment path.
+
 ## [0.2.3] - 2026-04-25
 
 ### Added

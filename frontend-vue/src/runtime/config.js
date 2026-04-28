@@ -5,6 +5,12 @@ const defaults = {
   routerBase: import.meta.env.BASE_URL || '/',
   hostApp: 'RDocMan',
   storageNamespace: 'docman',
+  authentikEnabled: import.meta.env.VITE_AUTHENTIK_ENABLED === 'true',
+  authentikClientId: import.meta.env.VITE_AUTHENTIK_CLIENT_ID || '',
+  authentikAuthorizationUrl: import.meta.env.VITE_AUTHENTIK_AUTHORIZATION_URL || '',
+  authentikTokenUrl: import.meta.env.VITE_AUTHENTIK_TOKEN_URL || '',
+  authentikRedirectUri: import.meta.env.VITE_AUTHENTIK_REDIRECT_URI || '',
+  authentikScope: import.meta.env.VITE_AUTHENTIK_SCOPE || 'openid profile email',
 };
 
 function readWindowConfig() {

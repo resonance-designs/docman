@@ -4,14 +4,21 @@
  * @routes usersRoutes
  * @description User management routes for CRUD operations, profile updates, and administrative functions
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import uploadMid from "../middleware/uploadMid.js";
-import { getAllUsers, getUserById, updateUser, deleteUser } from "../controllers/usersController.js";
+import {
+    getAllUsers,
+    getUserById,
+    updateUser,
+    deleteUser,
+    getUsersMissingAuthentikLink,
+    linkUserToAuthentikIdentity,
+} from "../controllers/usersController.js";
 import { uploadProfilePicture, deleteProfilePicture, uploadBackgroundImage, deleteBackgroundImage } from "../controllers/profilePictureController.js";
 
 /**
@@ -24,6 +31,12 @@ const router = express.Router();
 
 // GET /api/users - Get all users (viewers and above can view users)
 router.get("/", verifyAccessToken, requireRole("viewer"), getAllUsers);
+
+// GET /api/users/authentik/unlinked - Get users missing Authentik links (admin and superadmin only)
+router.get("/authentik/unlinked", verifyAccessToken, requireRole("admin", "superadmin"), getUsersMissingAuthentikLink);
+
+// POST /api/users/authentik/link - Link a local user to an Authentik subject (superadmin only)
+router.post("/authentik/link", verifyAccessToken, requireRole("superadmin"), linkUserToAuthentikIdentity);
 
 // GET /api/users/:id - Get specific user by ID (for profile editing)
 router.get("/:id", verifyAccessToken, requireRole("viewer"), getUserById);

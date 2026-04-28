@@ -1,6 +1,12 @@
 import { computed, reactive } from 'vue';
 import { api } from '@/services/api';
 import { getStorageKey } from '@/runtime/config';
+import {
+  beginAuthentikLogin,
+  consumePostLoginRedirect,
+  exchangeAuthentikCode,
+  isAuthentikEnabled,
+} from '@/services/authentikAuth';
 
 const state = reactive({
   token: null,
@@ -44,11 +50,26 @@ function syncStateFromStorage() {
   state.user = readStoredUser();
 }
 
+async function hydrateCurrentSession() {
+  const response = await api.get('/auth/me');
+  const user = response.data?.user;
+  if (!user) {
+    throw new Error('Unable to resolve the current DocMan session.');
+  }
+
+  persistSession(state.token, user);
+  return {
+    user,
+    identity: response.data?.identity || null,
+  };
+}
+
 export function useAuth() {
   syncStateFromStorage();
 
   const isAuthenticated = computed(() => Boolean(state.token));
   const userRole = computed(() => state.user?.role || null);
+  const authentikAvailable = computed(() => isAuthentikEnabled());
 
   async function login(email, password) {
     state.loading = true;
@@ -81,12 +102,49 @@ export function useAuth() {
     return allowed.includes(userRole.value);
   }
 
+  async function startAuthentikLogin(redirectPath = '/documents') {
+    state.error = '';
+    await beginAuthentikLogin(redirectPath);
+  }
+
+  async function completeAuthentikLogin(code, returnedState) {
+    state.loading = true;
+    state.error = '';
+
+    try {
+      const tokenSet = await exchangeAuthentikCode(code, returnedState);
+      if (!tokenSet.access_token) {
+        throw new Error('Authentik did not return an access token.');
+      }
+
+      state.token = tokenSet.access_token;
+      localStorage.setItem(getStorageKey('token'), tokenSet.access_token);
+
+      const session = await hydrateCurrentSession();
+
+      return {
+        user: session.user,
+        identity: session.identity,
+        redirectPath: consumePostLoginRedirect(),
+      };
+    } catch (error) {
+      clearSession();
+      state.error = error.message || 'Authentik login failed.';
+      throw error;
+    } finally {
+      state.loading = false;
+    }
+  }
+
   return {
     state,
     isAuthenticated,
     userRole,
+    authentikAvailable,
     login,
     logout,
     hasRole,
+    startAuthentikLogin,
+    completeAuthentikLogin,
   };
 }

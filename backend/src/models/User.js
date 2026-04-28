@@ -4,7 +4,7 @@
  * @model User
  * @description User model schema for authentication, profile management, and role-based access control
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import mongoose from "mongoose";
@@ -29,6 +29,8 @@ import bcrypt from "bcrypt";
  * @property {string} resetPasswordToken - Token for password reset (optional)
  * @property {Date} resetPasswordExpires - Expiration date for password reset token (optional)
  * @property {string} refreshTokenHash - Hashed refresh token for authentication (optional)
+ * @property {string} identityProvider - Identity source for this user record (default: local)
+ * @property {string} authentikSub - External Authentik subject identifier for suite SSO linking (optional)
  * @property {ObjectId} lastUpdatedBy - ID of user who last updated this record (optional)
  * @property {Date} createdAt - Timestamp when user was created (auto-generated)
  * @property {Date} updatedAt - Timestamp when user was last updated (auto-generated)
@@ -95,6 +97,16 @@ const userSchema = new mongoose.Schema(
         resetPasswordToken: String,
         resetPasswordExpires: Date,
         refreshTokenHash: { type: String },
+        identityProvider: {
+            type: String,
+            enum: ["local", "authentik"],
+            default: "local",
+        },
+        authentikSub: {
+            type: String,
+            required: false,
+            trim: true,
+        },
         lastUpdatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -115,6 +127,8 @@ userSchema.pre("save", async function(next) {
     }
     next();
 });
+
+userSchema.index({ authentikSub: 1 }, { unique: true, sparse: true });
 
 /**
  * User model for managing user accounts and authentication

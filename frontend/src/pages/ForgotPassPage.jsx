@@ -4,7 +4,7 @@
  * @page ForgotPassPage
  * @description Page component for password reset request functionality
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import React, { useState } from "react";

@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/pages/ProjectSettingsPage.jsx
  * @page ProjectSettingsPage
  * @description Project settings page for managing project configuration and preferences
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

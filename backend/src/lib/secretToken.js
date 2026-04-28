@@ -4,13 +4,13 @@
  * @module secretToken
  * @description JWT token utilities for creating, verifying, and blacklisting authentication tokens
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 import BlacklistedToken from "../models/BlacklistedToken.js";
 import { TOKEN_KEY } from "./jwtSecret.js";
+import { extractBearerToken, resolveRequestIdentity } from "../services/identityService.js";
 
 /**
  * Create an access token for API authentication
@@ -56,11 +56,10 @@ export function createSecretToken(id, role) {
  */
 export async function verifyAccessToken(req, res, next) {
     try {
-        const authHeader = req.headers?.authorization || "";
-        const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+        const token = extractBearerToken(req);
 
         console.log("🔒 verifyAccessToken: Processing request to:", req.url);
-        console.log("🔒 verifyAccessToken: Auth header:", authHeader ? "present" : "missing");
+        console.log("🔒 verifyAccessToken: Auth header:", req.headers?.authorization ? "present" : "missing");
         console.log("🔒 verifyAccessToken: Token:", token ? token.substring(0, 20) + "..." : "none");
 
         if (!token) {
@@ -68,15 +67,6 @@ export async function verifyAccessToken(req, res, next) {
             return res.status(401).json({ message: "No token provided" });
         }
 
-        // Check if token is blacklisted
-        const blacklistedToken = await BlacklistedToken.findOne({ token });
-        if (blacklistedToken) {
-            return res.status(401).json({ message: "Token has been invalidated" });
-        }
-
-        console.log("🔒 verifyAccessToken: Attempting to verify token with secret length:", TOKEN_KEY.length);
-
-        // First decode without verification to check expiration
         const decodedWithoutVerify = jwt.decode(token);
         const now = Math.floor(Date.now() / 1000);
         const timeUntilExpiry = decodedWithoutVerify?.exp - now;
@@ -87,34 +77,16 @@ export async function verifyAccessToken(req, res, next) {
             expired: timeUntilExpiry <= 0
         });
 
-        const decoded = jwt.verify(token, TOKEN_KEY);
-        console.log("🔒 verifyAccessToken: Token decoded successfully:", { id: decoded?.id, role: decoded?.role });
-
-        if (!decoded || !decoded.id) {
-            console.log("🔒 Invalid token structure:", { decoded: !!decoded, hasId: !!decoded?.id });
-            return res.status(401).json({ message: "Invalid token" });
-        }
-
-        // Attach minimal user info (id and role). If you need full user object, fetch from DB.
-        // Here we fetch role from DB to ensure latest role change is respected.
-        console.log("🔒 verifyAccessToken: Looking up user with ID:", decoded.id);
-        const user = await User.findById(decoded.id).select("-password -refreshTokenHash -resetPasswordToken -resetPasswordExpires").lean();
-        console.log("🔒 verifyAccessToken: User found:", !!user, user ? `(${user.email})` : "none");
-
-        if (!user) {
-            console.log("🔒 verifyAccessToken: User not found in database");
-            return res.status(401).json({ message: "User not found" });
-        }
-
-        // Ensure user object has id field for compatibility
-        user.id = user._id.toString();
-        req.user = user;
-        console.log("🔒 verifyAccessToken: Success! User attached to request:", user.email);
+        const identity = await resolveRequestIdentity(req);
+        req.user = identity.user;
+        req.identity = identity;
+        console.log("🔒 verifyAccessToken: Identity resolved via:", identity.authType);
+        console.log("🔒 verifyAccessToken: Success! User attached to request:", identity.user.email);
         next();
     } catch (err) {
         console.error("🔒 verifyAccessToken error:", err.message || err);
         console.error("🔒 Token verification failed. TOKEN_KEY length:", TOKEN_KEY.length);
-        return res.status(401).json({ message: "Invalid token" });
+        return res.status(err.statusCode || 401).json({ message: err.message || "Invalid token" });
     }
 }
 

@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
