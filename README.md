@@ -43,7 +43,7 @@ DocMan is also the baseline UI guidepost for the larger Resonance Designs local 
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19+ or 22.12+
 - npm
 - MongoDB 4.4+
 
@@ -134,9 +134,17 @@ MONGO_ATLAS_APP=<app-name>
 
 ```env
 VITE_API_URL=http://localhost:5001/api
+VITE_AUTHENTIK_ENABLED=false
+VITE_AUTHENTIK_CLIENT_ID=rdocman-web
+VITE_AUTHENTIK_AUTHORIZATION_URL=https://accounts.resonancedesigns.dev/application/o/authorize/
+VITE_AUTHENTIK_TOKEN_URL=https://accounts.resonancedesigns.dev/application/o/token/
+VITE_AUTHENTIK_REDIRECT_URI=http://localhost:5174/auth/callback
+VITE_AUTHENTIK_SCOPE=openid profile email
 ```
 
 The Vue/Vuetify frontend defaults to the current browser hostname on port `5001` during development. This allows both `http://localhost:5174` and `http://127.0.0.1:5174` to call the backend. The backend CORS development allowlist includes both localhost and loopback origins for ports `3000`, `5173`, and `5174`.
+
+When Authentik is enabled in the Vue frontend, the login view will expose a "Sign in with Resonance Account" path. The frontend uses Authorization Code + PKCE and expects the backend to accept Authentik-issued access tokens that resolve to linked local RDocMan users through `authentikSub`.
 
 ## 🧭 Suite UI Migration
 
@@ -173,7 +181,7 @@ Download them and then upload them somewhere on your server, like your users hom
 
 | Script | Purpose | Notes |
 |--------|---------|------|
-| [`apache_production_deploy.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_deploy.sh) | Initial deployment of DocMan to a fresh server | Use this for first-time setup. Installs backend, frontend, and environment variables. |
+| [`apache_production_deploy.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_deploy.sh) | Initial deployment of DocMan to a fresh server | Use this for first-time setup or to recover a broken deployment tree. Clones a fresh repo copy, rebuilds the Vue frontend, publishes the remote bundle, and recreates the backend service definition. |
 | [`apache_production_update.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update.sh) | Standard interactive update | Updates an existing production instance. Prompts for confirmations. Optional SSL update. |
 | [`apache_production_update_ni.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update_ni.sh) | Non-interactive automated update | Fully automated update without prompts. Supports optional SSL and `--dry-run` for testing. Automatically rolls back on errors. |
 
@@ -200,6 +208,9 @@ sudo ./apache_production_deploy.sh
 * Installs backend and frontend on a fresh server.
 * Sets up environment variables (`.env.prod`) from `.env.sample.`
 * Optionally sets up SSL certificates.
+* Clones a fresh repository checkout into `/var/www/docman`.
+* Builds `frontend-vue` and `frontend-vue/dist-remote/remote/`.
+* Republishes the remote bundle used by `RDSysCMD`.
 
 #### 2️⃣ Standard Interactive Update
 

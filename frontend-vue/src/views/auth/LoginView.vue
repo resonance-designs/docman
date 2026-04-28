@@ -4,10 +4,10 @@
       <v-col cols="12" md="7" lg="5">
         <v-card class="pa-2">
           <v-card-title class="text-h4 font-weight-bold">
-            Sign in to DocMan
+            Sign in to RDocMan
           </v-card-title>
           <v-card-subtitle>
-            Use your existing DocMan account to open the documents module.
+            Use your Resonance Designs account when available, or keep using the local DocMan login during migration.
           </v-card-subtitle>
 
           <v-card-text>
@@ -44,9 +44,27 @@
                 block
                 :loading="state.loading"
               >
-                Sign in
+                Sign in with local DocMan account
               </v-btn>
             </v-form>
+
+            <div v-if="authentikAvailable" class="my-6 d-flex align-center ga-3">
+              <v-divider />
+              <span class="text-caption text-medium-emphasis">or</span>
+              <v-divider />
+            </div>
+
+            <v-btn
+              v-if="authentikAvailable"
+              color="secondary"
+              variant="tonal"
+              block
+              prepend-icon="mdi-account-key-outline"
+              :loading="state.loading"
+              @click="submitAuthentik"
+            >
+              Sign in with Resonance Account
+            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -61,7 +79,7 @@ import { useAuth } from '@/composables/useAuth';
 
 const route = useRoute();
 const router = useRouter();
-const { login, state } = useAuth();
+const { login, state, authentikAvailable, startAuthentikLogin } = useAuth();
 
 const email = ref('');
 const password = ref('');
@@ -70,5 +88,8 @@ async function submit() {
   await login(email.value, password.value);
   await router.push(route.query.redirect || '/documents');
 }
-</script>
 
+async function submitAuthentik() {
+  await startAuthentikLogin(typeof route.query.redirect === 'string' ? route.query.redirect : '/documents');
+}
+</script>

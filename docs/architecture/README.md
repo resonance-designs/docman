@@ -58,6 +58,17 @@ Standardized UI components with built-in accessibility and consistent design:
 - 95% accessibility compliance
 - Consistent user experience across all interfaces
 
+### Platform and Identity
+
+#### [ADR-005: Suite Identity Migration with Authentik](./ADR-005-suite-identity-migration.md)
+**Status:** Proposed  
+**Date:** 2026-04-26
+
+Documents the current RDocMan authentication model and the migration seams needed to move from app-local identity ownership to shared suite identity through Authentik:
+- separates authentication from app-specific authorization
+- identifies `users` and `blacklistedtokens` as migration boundaries
+- defines a phased path toward shared RDSysCMD suite login
+
 ## Decision Timeline
 
 ```mermaid
@@ -71,6 +82,9 @@ timeline
     2024-01-15 : Frontend Refactoring Phase
                : ADR-003 Custom Hooks Pattern
                : ADR-004 Shared Component Library
+
+    2026-04-26 : Suite Identity Planning
+               : ADR-005 Authentik Identity Migration
 ```
 
 ## Impact Summary
@@ -122,12 +136,12 @@ Based on the implemented ADRs, the DocMan architecture follows these key princip
 ## Future Considerations
 
 ### Potential Future ADRs
-- **ADR-005**: API Versioning Strategy
-- **ADR-006**: Error Handling Standardization
-- **ADR-007**: Security Implementation Patterns
-- **ADR-008**: Deployment and CI/CD Strategy
-- **ADR-009**: Monitoring and Observability
-- **ADR-010**: Scalability Architecture
+- **ADR-006**: API Versioning Strategy
+- **ADR-007**: Error Handling Standardization
+- **ADR-008**: Security Implementation Patterns
+- **ADR-009**: Deployment and CI/CD Strategy
+- **ADR-010**: Monitoring and Observability
+- **ADR-011**: Scalability Architecture
 
 ### Technology Evolution
 As the project evolves, these ADRs may need to be:

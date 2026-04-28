@@ -371,3 +371,100 @@ export async function deleteUser(userId, requestingUser) {
         throw new Error(sanitizeErrorMessage(error, "Failed to delete user"));
     }
 }
+
+/**
+ * Get users that have not yet been linked to an Authentik identity.
+ * @param {Object} options - Query options
+ * @param {number} options.limit - Maximum number of users to return
+ * @returns {Promise<Array>} Unlinked user records
+ */
+export async function getUsersMissingAuthentikLink({ limit = 500 } = {}) {
+    try {
+        return await User.find({
+            $or: [
+                { authentikSub: { $exists: false } },
+                { authentikSub: null },
+                { authentikSub: "" },
+            ],
+        })
+            .select("_id firstname lastname email username role identityProvider authentikSub")
+            .sort({ email: 1 })
+            .limit(Math.max(1, Math.min(limit, 5000)))
+            .lean();
+    } catch (error) {
+        logError("getUsersMissingAuthentikLink", error);
+        throw new Error(sanitizeErrorMessage(error, "Failed to retrieve unlinked users"));
+    }
+}
+
+/**
+ * Link a local RDocMan user to an Authentik subject.
+ * @param {Object} params - Linking parameters
+ * @param {string} [params.userId] - Local user ID
+ * @param {string} [params.email] - Local user email lookup
+ * @param {string} [params.username] - Local user username lookup
+ * @param {string} params.authentikSub - Authentik subject to link
+ * @param {boolean} [params.force=false] - Allow replacing an existing Authentik link
+ * @returns {Promise<Object>} Link result summary
+ */
+export async function linkUserToAuthentikIdentity({
+    userId,
+    email,
+    username,
+    authentikSub,
+    force = false,
+}) {
+    try {
+        if (!authentikSub || typeof authentikSub !== "string") {
+            throw new Error("authentikSub is required");
+        }
+
+        const normalizedSub = authentikSub.trim();
+        if (!normalizedSub) {
+            throw new Error("authentikSub is required");
+        }
+
+        const lookup = [];
+        if (userId) lookup.push({ _id: userId });
+        if (email) lookup.push({ email: sanitizeEmail(email) });
+        if (username) lookup.push({ username: sanitizeString(username) });
+
+        if (lookup.length === 0) {
+            throw new Error("A user lookup field is required: userId, email, or username");
+        }
+
+        const user = await User.findOne(lookup.length === 1 ? lookup[0] : { $or: lookup });
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        if (user.authentikSub && user.authentikSub !== normalizedSub && !force) {
+            throw new Error(`User already linked to Authentik subject ${user.authentikSub}`);
+        }
+
+        const existingLinkedUser = await User.findOne({
+            authentikSub: normalizedSub,
+            _id: { $ne: user._id },
+        }).select("_id email username authentikSub");
+
+        if (existingLinkedUser) {
+            throw new Error(`Authentik subject ${normalizedSub} is already linked to another user`);
+        }
+
+        user.identityProvider = "authentik";
+        user.authentikSub = normalizedSub;
+        await user.save();
+
+        return {
+            userId: user._id.toString(),
+            email: user.email,
+            username: user.username,
+            role: user.role,
+            identityProvider: user.identityProvider,
+            authentikSub: user.authentikSub,
+        };
+    } catch (error) {
+        logError("linkUserToAuthentikIdentity", error, { userId, email, username, authentikSub, force });
+        throw new Error(sanitizeErrorMessage(error, "Failed to link user to Authentik identity"));
+    }
+}

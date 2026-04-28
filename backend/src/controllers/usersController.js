@@ -104,3 +104,60 @@ export async function deleteUser(req, res) {
         });
     }
 }
+
+/**
+ * Get users that are not yet linked to Authentik.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with unlinked users
+ */
+export async function getUsersMissingAuthentikLink(req, res) {
+    try {
+        const limit = Number.parseInt(req.query.limit, 10) || 500;
+        const users = await userService.getUsersMissingAuthentikLink({ limit });
+        res.status(200).json({
+            total: users.length,
+            users,
+        });
+    } catch (error) {
+        console.error("Error fetching unlinked Authentik users:", error);
+        res.status(500).json({
+            message: error.message || "Failed to retrieve unlinked users",
+        });
+    }
+}
+
+/**
+ * Link a local RDocMan user to an Authentik subject.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with linking result
+ */
+export async function linkUserToAuthentikIdentity(req, res) {
+    try {
+        const { userId, email, username, authentikSub, force } = req.body || {};
+        const result = await userService.linkUserToAuthentikIdentity({
+            userId,
+            email,
+            username,
+            authentikSub,
+            force: Boolean(force),
+        });
+
+        res.status(200).json({
+            message: "User linked to Authentik successfully",
+            user: result,
+        });
+    } catch (error) {
+        console.error("Error linking user to Authentik:", error);
+        const statusCode = error.message.includes("required") ? 400
+            : error.message.includes("already linked") ? 409
+            : error.message.includes("already linked to another user") ? 409
+            : error.message.includes("not found") ? 404
+            : 500;
+
+        res.status(statusCode).json({
+            message: error.message || "Failed to link user to Authentik",
+        });
+    }
+}

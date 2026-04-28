@@ -26,3 +26,6 @@ body {
   letter-spacing: 0;
 }
 
+.authentik-linking__actions {
+  white-space: nowrap;
+}

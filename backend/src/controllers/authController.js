@@ -283,3 +283,29 @@ export async function logout(req, res) {
         res.status(500).json({ message: "Logout failed." });
     }
 }
+
+/**
+ * Return the current authenticated RDocMan session user.
+ * Works for both local DocMan JWTs and future Authentik-linked identities once request identity is resolved.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Object} JSON response with current authenticated user
+ */
+export async function getCurrentSession(req, res) {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+
+        res.status(200).json({
+            user: req.user,
+            identity: req.identity ? {
+                authType: req.identity.authType,
+                provider: req.identity.provider,
+            } : null,
+        });
+    } catch (error) {
+        console.error("Get current session error:", error);
+        res.status(500).json({ message: "Failed to resolve current session." });
+    }
+}

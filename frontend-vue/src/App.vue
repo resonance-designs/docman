@@ -99,6 +99,13 @@ const navItems = [
     to: '/projects',
     roles: ['editor', 'admin', 'superadmin'],
   },
+  {
+    title: 'Authentik Linking',
+    subtitle: 'Suite identity mapping',
+    icon: 'mdi-account-key-outline',
+    to: '/admin/authentik-linking',
+    roles: ['superadmin'],
+  },
 ];
 
 const visibleNavItems = computed(() => {

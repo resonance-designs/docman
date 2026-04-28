@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ==================================================
 # === DocMan Production Deployment Script (Full) ===
@@ -36,10 +36,20 @@ set -e
 # GitHub: https://github.com/resonance-designs
 # Date: 2025-09-24
 
+DEPLOY_ROOT=/var/www/docman
+BACKEND_DIR="$DEPLOY_ROOT/backend"
+VUE_FRONTEND_DIR="$DEPLOY_ROOT/frontend-vue"
+APACHE_ROOT=/var/www/html
+SERVICE_FILE=/etc/systemd/system/docman-backend.service
+SERVICE_USER=docman
+SERVICE_GROUP=www-data
+MIN_NODE_VERSION=20.19.0
+ENV_SOURCE_FILE=""
+
 # --- Functions ---
 rollback() {
     echo "⚠️ Rolling back deployment..."
-    rm -rf /var/www/docman
+    rm -rf "$DEPLOY_ROOT"
     echo "Deployment has been successfully reversed."
     exit 0
 }
@@ -54,9 +64,124 @@ ask() {
     sed -i "s|^$var_name=.*|$var_name=$value|" .env.prod
 }
 
+detect_previous_env_source() {
+    local candidates=()
+    local latest_backup
+
+    if [[ -f "$BACKEND_DIR/.env.prod" ]]; then
+        ENV_SOURCE_FILE="$BACKEND_DIR/.env.prod"
+        return
+    fi
+
+    latest_backup=$(ls -dt /var/www/docman_bak_* 2>/dev/null | head -n1 || true)
+    if [[ -n "$latest_backup" && -f "$latest_backup/backend/.env.prod" ]]; then
+        ENV_SOURCE_FILE="$latest_backup/backend/.env.prod"
+        return
+    fi
+
+    ENV_SOURCE_FILE=""
+}
+
+env_default() {
+    local var_name="$1"
+    local fallback="${2:-}"
+
+    if [[ -n "$ENV_SOURCE_FILE" && -f "$ENV_SOURCE_FILE" ]]; then
+        local value
+        value=$(grep -E "^${var_name}=" "$ENV_SOURCE_FILE" | tail -n1 | cut -d= -f2- || true)
+        if [[ -n "$value" && "$value" != "null" ]]; then
+            echo "$value"
+            return
+        fi
+    fi
+
+    echo "$fallback"
+}
+
 mask_sensitive() {
     local var_value="$1"
     [[ -z "$var_value" ]] && echo "null" || echo "${var_value:0:3}***"
+}
+
+version_ge() {
+    local current="$1"
+    local minimum="$2"
+    [[ "$(printf '%s\n%s\n' "$minimum" "$current" | sort -V | head -n1)" == "$minimum" ]]
+}
+
+detect_existing_mongo_setup() {
+    [[ -f /etc/mongod.conf ]]
+}
+
+read_existing_mongo_value() {
+    local pattern="$1"
+    awk -F': ' "$pattern {print \$2; exit}" /etc/mongod.conf 2>/dev/null
+}
+
+backup_if_exists() {
+    local target="$1"
+    if [[ -e "$target" ]]; then
+        local backup_path="${target}_bak_$(date +%F_%H%M%S)"
+        echo "⚠️ Existing path detected at $target"
+        echo "🔄 Backing it up to $backup_path"
+        mv "$target" "$backup_path"
+    fi
+}
+
+ensure_service_user() {
+    if id "$SERVICE_USER" >/dev/null 2>&1; then
+        echo "✅ Service user '$SERVICE_USER' already exists."
+        return
+    fi
+
+    echo "🔧 Creating service user '$SERVICE_USER'..."
+    useradd --system --create-home --home-dir "$DEPLOY_ROOT" --gid "$SERVICE_GROUP" --shell /usr/sbin/nologin "$SERVICE_USER"
+}
+
+write_backend_service() {
+    if [[ -f "$SERVICE_FILE" ]]; then
+        cp "$SERVICE_FILE" "${SERVICE_FILE}.bak.$(date +%F_%H%M%S)"
+        rm -f "$SERVICE_FILE"
+    fi
+
+    cat <<EOL > "$SERVICE_FILE"
+[Unit]
+Description=RDocMan Backend
+After=network.target
+
+[Service]
+WorkingDirectory=$BACKEND_DIR
+Environment=NODE_ENV=production
+Environment=ATLAS=no
+EnvironmentFile=$BACKEND_DIR/.env.prod
+ExecStart=/usr/bin/npm run prod
+User=$SERVICE_USER
+Group=$SERVICE_GROUP
+Restart=always
+RestartSec=3
+ExecStartPre=/usr/bin/install -d -o $SERVICE_GROUP -g $SERVICE_GROUP -m 775 $BACKEND_DIR/uploads
+NoNewPrivileges=true
+AmbientCapabilities=
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=$BACKEND_DIR
+
+[Install]
+WantedBy=multi-user.target
+EOL
+}
+
+publish_frontend_assets() {
+    local frontend_folder="$1"
+    local publish_root="$APACHE_ROOT/$frontend_folder"
+
+    mkdir -p "$publish_root/public_html"
+    mkdir -p "$publish_root/public_html/remote"
+    mkdir -p "$publish_root/logs"
+
+    rsync -a --delete "$VUE_FRONTEND_DIR/dist/" "$publish_root/public_html/"
+    rsync -a --delete "$VUE_FRONTEND_DIR/dist-remote/remote/" "$publish_root/public_html/remote/"
+    chown -R www-data:www-data "$publish_root/public_html"
 }
 
 check_prerequisites() {
@@ -64,12 +189,11 @@ check_prerequisites() {
     echo "🔍 Checking prerequisites..."
     missing_packages=()
 
-    # Node.js (>=18)
+    # Node.js (>=20.19.0 for current Vite/Vuetify toolchain)
     if command -v node >/dev/null 2>&1; then
         NODE_VERSION=$(node -v | sed 's/v//')
-        NODE_MAJOR=$(echo $NODE_VERSION | cut -d. -f1)
-        if [[ $NODE_MAJOR -lt 18 ]]; then
-            echo "⚠️ Node.js $NODE_VERSION found (need >= 18)."
+        if ! version_ge "$NODE_VERSION" "$MIN_NODE_VERSION"; then
+            echo "⚠️ Node.js $NODE_VERSION found (need >= $MIN_NODE_VERSION)."
             missing_packages+=("nodejs" "npm")
         else
             echo "✅ Node.js $NODE_VERSION installed."
@@ -101,6 +225,14 @@ check_prerequisites() {
         missing_packages+=("netcat-openbsd")
     else
         echo "✅ Netcat installed."
+    fi
+
+    # rsync
+    if ! command -v rsync >/dev/null 2>&1; then
+        echo "⚠️ rsync not found."
+        missing_packages+=("rsync")
+    else
+        echo "✅ rsync installed."
     fi
 
     # UFW (mandatory)
@@ -141,9 +273,9 @@ echo ""
 echo "This script deploys DocMan to a production server running Apache."
 echo ""
 echo "It performs the following steps:"
-echo "  1. Checks prerequisites (Node.js, Apache, UFW, Certbot)."
-echo "  2. Clones the repository from GitHub."
-echo "  3. Installs dependencies and builds the application using npm."
+echo "  1. Checks prerequisites (Node.js >= $MIN_NODE_VERSION, Apache, UFW, Certbot)."
+echo "  2. Clones a fresh repository checkout from GitHub."
+echo "  3. Installs dependencies, builds the Vue frontend, and builds the remote desktop bundle."
 echo "  4. Prepares the environment by setting up MongoDB configurations,"
 echo "     including TLS/SSL settings if desired."
 echo "  5. Configures other essential environment variables such as Node.js port,"
@@ -151,10 +283,11 @@ echo "     Redis, JWT keys, and AWS SES credentials."
 echo "  6. Provides a summary of the final configuration before proceeding further."
 echo "  7. Prompts the user to review their configuration before proceeding."
 echo "  8. Starts the MongoDB service and waits until it's ready."
-echo "  9. Creates a systemd service unit for DocMan."
+echo "  9. Recreates an idempotent systemd service unit for DocMan."
 echo " 10. Enables and starts the DocMan service."
-echo " 11. Generates letsencrypt SSL/TLS certificates with certbot for HTTPS support."
-echo " 12. Configures Apache virtual hosts for HTTP and HTTPS redirection."
+echo " 11. Publishes the Vue frontend and remote bundle to Apache."
+echo " 12. Generates letsencrypt SSL/TLS certificates with certbot for HTTPS support."
+echo " 13. Configures Apache virtual hosts for HTTP and HTTPS redirection."
 echo " 13. Restarts Apache to apply changes."
 echo " 14. Displays a success message upon completion."
 echo ""
@@ -175,23 +308,27 @@ check_prerequisites
 # --- 1️⃣ Clone repository ---
 echo ""
 echo "1️⃣ Cloning repository..."
-rm -rf /var/www/docman
-mkdir -p /var/www/docman
-chown -R www-data:www-data /var/www/docman
-git clone https://github.com/resonance-designs/docman.git /var/www/docman
+detect_previous_env_source
+backup_if_exists "$DEPLOY_ROOT"
+mkdir -p "$DEPLOY_ROOT"
+chown -R "$SERVICE_GROUP:$SERVICE_GROUP" "$DEPLOY_ROOT"
+git clone https://github.com/resonance-designs/docman.git "$DEPLOY_ROOT"
 echo "✅ Repository cloned."
 
 # --- 2️⃣ Install dependencies & build ---
 echo ""
 echo "2️⃣ Installing dependencies & building app..."
-cd /var/www/docman
-npm run build
-echo "✅ Build complete."
+cd "$DEPLOY_ROOT"
+npm ci --prefix backend
+npm ci --include=dev --prefix frontend-vue
+npm run build --prefix frontend-vue
+npm run build:remote --prefix frontend-vue
+echo "✅ Vue frontend and remote bundle build complete."
 
 # --- 3️⃣ Prepare environment ---
 echo ""
 echo "3️⃣ Configuring environment..."
-cd backend
+cd "$BACKEND_DIR"
 cp .env.sample .env.prod
 sed -i '/^#/d;/^$/d' .env.prod
 sed -i 's/^ACTIVE_ENV=.*/ACTIVE_ENV=1/' .env.prod
@@ -203,17 +340,55 @@ echo ""
 echo "4️⃣ MongoDB Setup:"
 echo "1) Private MongoDB server (localhost/own host)"
 echo "2) MongoDB Atlas"
-read -p "Choose your MongoDB type [1/2]: " mongo_choice
+existing_mongo_reuse=false
+if detect_existing_mongo_setup; then
+    echo "✅ Existing /etc/mongod.conf detected."
+    read -p "Reuse the existing local MongoDB server configuration instead of regenerating it? (Y/n): " reuse_mongo
+    if [[ ! "$reuse_mongo" =~ ^[Nn]$ ]]; then
+        mongo_choice="1"
+        existing_mongo_reuse=true
+    fi
+fi
+
+if [[ -z "${mongo_choice:-}" ]]; then
+    read -p "Choose your MongoDB type [1/2]: " mongo_choice
+fi
 
 if [[ "$mongo_choice" == "1" ]]; then
     # --- Private MongoDB Configuration ---
-    ask "MONGO_USER" "Enter MongoDB username" ""
-    ask "MONGO_PASSWORD" "Enter MongoDB password" ""
-    ask "MONGO_HOST" "Enter MongoDB host (IP/hostname)" "localhost"
-    ask "MONGO_PORT" "Enter MongoDB port" "27017"
+    existing_mongo_port="27017"
+    existing_mongo_tls="false"
+    existing_mongo_ca_file="/etc/mongodb-ssl/ca/mongodb-ca.crt"
+    existing_mongo_client_file="/etc/mongodb-ssl/client.pem"
+
+    if [[ "$existing_mongo_reuse" == true ]]; then
+        existing_mongo_port=$(read_existing_mongo_value '/^[[:space:]]+port:/')
+        [[ -z "$existing_mongo_port" ]] && existing_mongo_port="27017"
+
+        if grep -q 'mode: requireTLS' /etc/mongod.conf 2>/dev/null; then
+            existing_mongo_tls="true"
+        fi
+
+        detected_ca_file=$(read_existing_mongo_value '/^[[:space:]]+CAFile:/')
+        [[ -n "$detected_ca_file" ]] && existing_mongo_ca_file="$detected_ca_file"
+
+        echo "🔍 Reusing existing MongoDB server config from /etc/mongod.conf"
+        echo "   port: $existing_mongo_port"
+        echo "   TLS enabled: $existing_mongo_tls"
+    fi
+
+    if [[ -n "$ENV_SOURCE_FILE" ]]; then
+        echo "🔍 Found previous DocMan environment file at $ENV_SOURCE_FILE"
+        echo "   Reusing its values as the default prompts for the new .env.prod"
+    fi
+
+    ask "MONGO_USER" "Enter MongoDB username" "$(env_default MONGO_USER "")"
+    ask "MONGO_PASSWORD" "Enter MongoDB password" "$(env_default MONGO_PASSWORD "")"
+    ask "MONGO_HOST" "Enter MongoDB host (IP/hostname)" "$(env_default MONGO_HOST "localhost")"
+    ask "MONGO_PORT" "Enter MongoDB port" "$(env_default MONGO_PORT "$existing_mongo_port")"
     MONGO_PORT=$(grep "^MONGO_PORT=" .env.prod | cut -d= -f2-)
-    ask "MONGO_DB" "Enter MongoDB database name" ""
-    ask "MONGO_AUTH_SOURCE" "Enter MongoDB auth source (usually 'admin')" "admin"
+    ask "MONGO_DB" "Enter MongoDB database name" "$(env_default MONGO_DB "")"
+    ask "MONGO_AUTH_SOURCE" "Enter MongoDB auth source (usually 'admin')" "$(env_default MONGO_AUTH_SOURCE "admin")"
 
     # Disable Atlas
     sed -i "s|^MONGO_ATLAS_USER=.*|MONGO_ATLAS_USER=null|" .env.prod
@@ -222,18 +397,31 @@ if [[ "$mongo_choice" == "1" ]]; then
     sed -i "s|^MONGO_ATLAS_DB=.*|MONGO_ATLAS_DB=null|" .env.prod
     sed -i "s|^MONGO_ATLAS_APP=.*|MONGO_ATLAS_APP=null|" .env.prod
 
-    # --- Mongo TLS/SSL Setup ---
-    echo ""
-    echo "⚠️ TLS/SSL Warning:"
-    echo "If you choose to enable TLS, the script will generate CA and Mongo certificates for secure connections."
-    echo "Canceling at this step will remove the cloned repo."
-    echo ""
-    echo "1) Proceed with TLS"
-    echo "2) Proceed without TLS"
-    echo "3) Cancel deployment"
-    read -p "Choose an option [1/2/3]: " tls_choice
+    if [[ "$existing_mongo_reuse" == true ]]; then
+        if [[ "$existing_mongo_tls" == "true" ]]; then
+            sed -i "s|^MONGO_TLS=.*|MONGO_TLS=true|" .env.prod
+            ask "MONGO_CA_FILE" "Path to Mongo CA file" "$existing_mongo_ca_file"
+            ask "MONGO_CERT_FILE" "Path to Mongo client PEM" "$existing_mongo_client_file"
+            echo "✅ Reusing existing MongoDB TLS/SSL configuration."
+        else
+            sed -i "s|^MONGO_TLS=.*|MONGO_TLS=false|" .env.prod
+            sed -i "s|^MONGO_CA_FILE=.*|MONGO_CA_FILE=null|" .env.prod
+            sed -i "s|^MONGO_CERT_FILE=.*|MONGO_CERT_FILE=null|" .env.prod
+            echo "✅ Reusing existing MongoDB configuration without TLS/SSL."
+        fi
+    else
+        # --- Mongo TLS/SSL Setup ---
+        echo ""
+        echo "⚠️ TLS/SSL Warning:"
+        echo "If you choose to enable TLS, the script will generate CA and Mongo certificates for secure connections."
+        echo "Canceling at this step will remove the cloned repo."
+        echo ""
+        echo "1) Proceed with TLS"
+        echo "2) Proceed without TLS"
+        echo "3) Cancel deployment"
+        read -p "Choose an option [1/2/3]: " tls_choice
 
-    case $tls_choice in
+        case $tls_choice in
         1)
             # --- Prompt for subject details ---
             read -p "CA Country (C) [US]: " CA_C; CA_C=${CA_C:-US}
@@ -424,7 +612,8 @@ EOF
             echo "Invalid choice. Canceling deployment."
             rollback
             ;;
-    esac
+        esac
+    fi
 
 elif [[ "$mongo_choice" == "2" ]]; then
     # --- MongoDB Atlas Configuration ---
@@ -451,29 +640,29 @@ fi
 # --- 5️⃣ Configure remaining environment ---
 echo ""
 echo "5️⃣ Configuring Node.js port, Redis, JWT, and AWS SES..."
-ask "NODE_PORT" "Enter Node.js port" "5001"
+ask "NODE_PORT" "Enter Node.js port" "$(env_default NODE_PORT "5001")"
 NODE_PORT=$(grep "^NODE_PORT=" .env.prod | cut -d= -f2-)
 
 # Redis
 read -p "Do you want to use Redis? (y/n): " use_redis
 if [[ "$use_redis" =~ ^[Yy]$ ]]; then
-    ask "UPSTASH_REDIS_REST_URL" "Enter Redis REST URL" ""
-    ask "UPSTASH_REDIS_REST_TOKEN" "Enter Redis REST token" ""
+    ask "UPSTASH_REDIS_REST_URL" "Enter Redis REST URL" "$(env_default UPSTASH_REDIS_REST_URL "")"
+    ask "UPSTASH_REDIS_REST_TOKEN" "Enter Redis REST token" "$(env_default UPSTASH_REDIS_REST_TOKEN "")"
 else
     sed -i "s|^UPSTASH_REDIS_REST_URL=.*|UPSTASH_REDIS_REST_URL=null|" .env.prod
     sed -i "s|^UPSTASH_REDIS_REST_TOKEN=.*|UPSTASH_REDIS_REST_TOKEN=null|" .env.prod
 fi
 
 # Authentication
-ask "TOKEN_KEY" "Enter authentication token key (JWT secret)" ""
+ask "TOKEN_KEY" "Enter authentication token key (JWT secret)" "$(env_default TOKEN_KEY "")"
 
 # AWS SES
 read -p "Do you want to use AWS SES for email? (y/n): " use_ses
 if [[ "$use_ses" =~ ^[Yy]$ ]]; then
-    ask "AWS_ACCESS_KEY_ID" "Enter AWS Access Key ID" ""
-    ask "AWS_SECRET_ACCESS_KEY" "Enter AWS Secret Access Key" ""
-    ask "AWS_SES_REGION" "Enter AWS SES region (e.g. us-east-1)" ""
-    ask "AWS_SES_SENDER_EMAIL" "Enter AWS SES sender email" ""
+    ask "AWS_ACCESS_KEY_ID" "Enter AWS Access Key ID" "$(env_default AWS_ACCESS_KEY_ID "")"
+    ask "AWS_SECRET_ACCESS_KEY" "Enter AWS Secret Access Key" "$(env_default AWS_SECRET_ACCESS_KEY "")"
+    ask "AWS_SES_REGION" "Enter AWS SES region (e.g. us-east-1)" "$(env_default AWS_SES_REGION "")"
+    ask "AWS_SES_SENDER_EMAIL" "Enter AWS SES sender email" "$(env_default AWS_SES_SENDER_EMAIL "")"
 else
     sed -i "s|^AWS_ACCESS_KEY_ID=.*|AWS_ACCESS_KEY_ID=null|" .env.prod
     sed -i "s|^AWS_SECRET_ACCESS_KEY=.*|AWS_SECRET_ACCESS_KEY=null|" .env.prod
@@ -531,7 +720,11 @@ if [[ "$mongo_choice" == "1" ]]; then
 fi
 
 # --- 8️⃣ Create MongoDB Admin User ---
-read -p "8️⃣ Do you want to create a MongoDB admin user automatically? (y/n): " create_admin
+if [[ "$existing_mongo_reuse" == true ]]; then
+    read -p "8️⃣ Existing MongoDB detected. Do you want to create another MongoDB admin user automatically anyway? (y/n): " create_admin
+else
+    read -p "8️⃣ Do you want to create a MongoDB admin user automatically? (y/n): " create_admin
+fi
 if [[ "$create_admin" =~ ^[Yy]$ ]]; then
     mongo <<EOF
 use admin
@@ -545,63 +738,38 @@ EOF
 fi
 
 # --- 9️⃣ Systemd Backend Service ---
-SERVICE_FILE=/etc/systemd/system/docman-backend.service
 echo ""
 echo "9️⃣ Creating systemd service file at $SERVICE_FILE..."
-cat <<EOL > "$SERVICE_FILE"
-[Unit]
-Description=DocMan Backend
-After=network.target
-
-[Service]
-WorkingDirectory=/var/www/docman/backend
-Environment=NODE_ENV=production
-Environment=ATLAS=no
-EnvironmentFile=/var/www/docman/backend/.env.prod
-ExecStart=/usr/bin/npm run prod
-User=root
-Group=www-data
-Restart=always
-RestartSec=3
-ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 775 /var/www/docman/backend/uploads
-NoNewPrivileges=true
-AmbientCapabilities=
-PrivateTmp=true
-ProtectSystem=full
-ReadWritePaths=/var/www/docman/backend
-
-[Install]
-WantedBy=multi-user.target
-EOL
-
+ensure_service_user
+chown -R "$SERVICE_USER:$SERVICE_GROUP" "$BACKEND_DIR"
+install -d -o "$SERVICE_GROUP" -g "$SERVICE_GROUP" -m 775 "$BACKEND_DIR/uploads"
+write_backend_service
 systemctl daemon-reload
 systemctl enable docman-backend.service
 systemctl start docman-backend.service
 echo "✅ DocMan Backend service created and started successfully."
 
-# --- 1️⃣0️⃣ Apache frontend ---
+# --- 1️⃣0️⃣ Apache frontend and remote bundle ---
 echo ""
 echo "1️⃣0️⃣ Setting up Apache frontend with reverse proxy..."
-read -p "Enter folder/domain name for frontend: " frontend_folder
+read -p "Enter folder name for frontend publish root [docman]: " frontend_folder
+frontend_folder=${frontend_folder:-docman}
+backup_if_exists "$APACHE_ROOT/$frontend_folder"
 # Create frontend directory structure
-mkdir -p /var/www/html/$frontend_folder
-mkdir -p /var/www/html/$frontend_folder/public_html
-mkdir -p /var/www/html/$frontend_folder/logs
-# Copy files from dist to apache frontend & set permissions
-rsync -a --delete /var/www/docman/frontend/dist/ /var/www/html/$frontend_folder/public_html/
-chown -R www-data:www-data /var/www/html/$frontend_folder/public_html
+publish_frontend_assets "$frontend_folder"
 # Enable Apache modules
 a2enmod proxy proxy_http rewrite headers
 # Create Apache config file
-read -p "Enter Apache site name (conf file name, e.g. docman): " site_name
+read -p "Enter Apache site name (conf file name) [docman]: " site_name
+site_name=${site_name:-docman}
 read -p "Enter domain name for ServerName (e.g. docman.resonancedesigns.dev): " domain_name
 
 sudo tee /etc/apache2/sites-available/$site_name.conf >/dev/null <<EOF
 <VirtualHost *:80>
     ServerName $domain_name
-    DocumentRoot /var/www/html/$frontend_folder/public_html/
+    DocumentRoot $APACHE_ROOT/$frontend_folder/public_html/
 
-    <Directory /var/www/html/$frontend_folder/public_html/>
+    <Directory $APACHE_ROOT/$frontend_folder/public_html/>
         Options FollowSymLinks
         AllowOverride All
         Require all granted

@@ -8,8 +8,9 @@
  * @license UNLICENSED
  */
 import express from "express";
-import { register, login, forgotPassword, resetPassword, refreshToken, logout } from "../controllers/authController.js";
+import { register, login, forgotPassword, resetPassword, refreshToken, logout, getCurrentSession } from "../controllers/authController.js";
 import { limitLogin, limitRegister, limitPasswordReset } from "../middleware/authRateLimiter.js";
+import { verifyAccessToken } from "../lib/secretToken.js";
 
 const router = express.Router();
 
@@ -165,5 +166,8 @@ router.get("/refresh", refreshToken);
 
 // POST /api/auth/logout - Invalidate a user's refresh token and clear authentication cookies
 router.post("/logout", logout);
+
+// GET /api/auth/me - Return the current authenticated session user
+router.get("/me", verifyAccessToken, getCurrentSession);
 
 export default router;

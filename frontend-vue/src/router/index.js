@@ -1,6 +1,7 @@
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 import SuiteHome from '@/views/SuiteHome.vue';
 import LoginView from '@/views/auth/LoginView.vue';
+import AuthentikCallbackView from '@/views/auth/AuthentikCallbackView.vue';
 import DocumentsView from '@/views/documents/DocumentsView.vue';
 import DocumentDetailView from '@/views/documents/DocumentDetailView.vue';
 import DocumentCreateView from '@/views/documents/DocumentCreateView.vue';
@@ -9,6 +10,7 @@ import BooksView from '@/views/books/BooksView.vue';
 import CategoriesView from '@/views/categories/CategoriesView.vue';
 import TeamsView from '@/views/teams/TeamsView.vue';
 import ProjectsView from '@/views/projects/ProjectsView.vue';
+import AuthentikLinkingView from '@/views/admin/AuthentikLinkingView.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const routes = [
@@ -21,6 +23,12 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
+    meta: { public: true },
+  },
+  {
+    path: '/auth/callback',
+    name: 'authentik-callback',
+    component: AuthentikCallbackView,
     meta: { public: true },
   },
   {
@@ -70,6 +78,12 @@ const routes = [
     name: 'projects',
     component: ProjectsView,
     meta: { requiresAuth: true, roles: ['editor', 'admin', 'superadmin'] },
+  },
+  {
+    path: '/admin/authentik-linking',
+    name: 'authentik-linking',
+    component: AuthentikLinkingView,
+    meta: { requiresAuth: true, roles: ['superadmin'] },
   },
 ];
 
