@@ -4,7 +4,7 @@
  * @module secretToken
  * @description JWT token utilities for creating, verifying, and blacklisting authentication tokens
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";

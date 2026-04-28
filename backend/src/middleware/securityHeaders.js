@@ -4,7 +4,7 @@
  * @middleware securityHeaders
  * @description Comprehensive security headers middleware for protecting against common web vulnerabilities
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 

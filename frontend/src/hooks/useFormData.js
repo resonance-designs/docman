@@ -4,7 +4,7 @@
  * @hook useFormData
  * @description Custom hook for loading common form data (users, categories, external contact types)
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

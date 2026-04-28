@@ -4,7 +4,7 @@
  * @service identityService
  * @description Transitional identity resolution service for local JWT auth today and shared suite identity providers later
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";

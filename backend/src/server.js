@@ -3,7 +3,7 @@
  * @file /docman/backend/src/server.js
  * @description Main entry point of the DocMan backend application
  * @author Richard Bakos
- * @version 2.2.3
+ * @version 2.2.4
  * @license UNLICENSED
  */
 import { connectDB } from "./config/db.js";
