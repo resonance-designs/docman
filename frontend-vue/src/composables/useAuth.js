@@ -3,8 +3,10 @@ import { api } from '@/services/api';
 import { getStorageKey } from '@/runtime/config';
 import {
   beginAuthentikLogin,
+  beginAuthentikRegistration,
   consumePostLoginRedirect,
   exchangeAuthentikCode,
+  hasAuthentikRegistration,
   isAuthentikEnabled,
 } from '@/services/authentikAuth';
 
@@ -70,6 +72,7 @@ export function useAuth() {
   const isAuthenticated = computed(() => Boolean(state.token));
   const userRole = computed(() => state.user?.role || null);
   const authentikAvailable = computed(() => isAuthentikEnabled());
+  const authentikRegistrationAvailable = computed(() => hasAuthentikRegistration());
 
   async function login(email, password) {
     state.loading = true;
@@ -107,6 +110,11 @@ export function useAuth() {
     await beginAuthentikLogin(redirectPath);
   }
 
+  async function startAuthentikRegistration() {
+    state.error = '';
+    beginAuthentikRegistration();
+  }
+
   async function completeAuthentikLogin(code, returnedState) {
     state.loading = true;
     state.error = '';
@@ -141,10 +149,12 @@ export function useAuth() {
     isAuthenticated,
     userRole,
     authentikAvailable,
+    authentikRegistrationAvailable,
     login,
     logout,
     hasRole,
     startAuthentikLogin,
+    startAuthentikRegistration,
     completeAuthentikLogin,
   };
 }

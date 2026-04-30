@@ -29,7 +29,7 @@
       variant="tonal"
       density="comfortable"
     >
-      This tool performs explicit user-to-subject linking. It does not auto-link accounts silently by email during authentication.
+      Verified Authentik emails now auto-link existing RDocMan users and can provision new viewer accounts on first sign-in. Use this screen for manual pre-linking, exceptions, and repair work.
     </v-alert>
 
     <v-alert

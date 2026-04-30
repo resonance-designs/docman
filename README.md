@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-2.2.6-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.6-green)
+![Static Badge](https://img.shields.io/badge/Version-2.2.7-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.7-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -137,6 +137,7 @@ VITE_API_URL=http://localhost:5001/api
 VITE_AUTHENTIK_ENABLED=false
 VITE_AUTHENTIK_CLIENT_ID=rdocman-web
 VITE_AUTHENTIK_AUTHORIZATION_URL=https://accounts.resonancedesigns.dev/application/o/authorize/
+VITE_AUTHENTIK_REGISTRATION_URL=https://accounts.resonancedesigns.dev/if/flow/<your-enrollment-flow>/
 VITE_AUTHENTIK_TOKEN_URL=https://accounts.resonancedesigns.dev/application/o/token/
 VITE_AUTHENTIK_REDIRECT_URI=http://localhost:5174/auth/callback
 VITE_AUTHENTIK_SCOPE=openid profile email
@@ -161,12 +162,44 @@ Important:
 * `frontend-vue/.env.production` is intentionally ignored because it is environment-specific.
 * `VITE_*` values are shipped to the browser and must not contain secrets.
 * Pull the Authentik client ID and OIDC endpoints from the `RDocMan Web Provider` overview in Authentik or its OpenID configuration document before filling the file.
+* `VITE_AUTHENTIK_REGISTRATION_URL` should point at the Authentik self-service enrollment flow you want new users to use for suite account creation.
 * The deploy/update scripts should either copy `frontend-vue/.env.production` from the prepared source checkout or generate it from the `VITE_*` values stored in `backend/.env.prod` before the Vite build runs.
 * Changing `frontend-vue/.env.production` requires a frontend rebuild and republish.
 
 The Vue/Vuetify frontend defaults to the current browser hostname on port `5001` during development. This allows both `http://localhost:5174` and `http://127.0.0.1:5174` to call the backend. The backend CORS development allowlist includes both localhost and loopback origins for ports `3000`, `5173`, and `5174`.
 
 When Authentik is enabled in the Vue frontend, the login view will expose a "Sign in with Resonance Account" path. The frontend uses Authorization Code + PKCE and expects the backend to accept Authentik-issued access tokens that resolve to linked local RDocMan users through `authentikSub`.
+
+When `VITE_AUTHENTIK_REGISTRATION_URL` is configured, the login view also exposes a `Create Resonance Account` path for suite-wide account creation in Authentik.
+
+Current Authentik migration reality:
+
+* the Authentik user must already exist
+* if the Authentik token carries a verified email that matches one local `RDocMan` user, the app auto-links that user on first sign-in
+* if the Authentik token carries a verified email and no local `RDocMan` user exists yet, the app just-in-time provisions a new local viewer account
+* the current admin linking flow still expects the real Authentik `sub` claim from the token payload for manual repair, pre-linking, and exceptions
+
+Practical implication:
+
+* most users should no longer need manual linking if Authentik gives the app a usable verified email
+* entering a username or email instead of the real `sub` will still produce a broken manual link
+* once any `authentikSub` value is saved, the current admin UI stops showing that user in the "unlinked" list until the record is corrected
+
+Suite registration authority:
+
+* Authentik should be treated as the canonical place where new suite users create their primary account
+* `RDocMan` should own only the local shadow user/profile/role record for app-specific settings
+* set `LOCAL_SELF_REGISTRATION_ENABLED=false` in production when you want to disable the legacy local `/auth/register` path
+
+How to get the real `sub` today:
+
+* sign in through `Sign in with Resonance Account`
+* preserve the browser network log across the redirect
+* inspect the Authentik token response
+* decode the JWT payload from `access_token` or `id_token`
+* copy the `sub` claim exactly
+
+Do not use the Authentik username, email, or display name as `authentikSub` unless one of those is literally the `sub` claim in the decoded token.
 
 ## 🧭 Suite UI Migration
 

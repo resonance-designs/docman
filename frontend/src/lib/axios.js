@@ -4,7 +4,7 @@
  * @module AxiosConfig
  * @description Axios HTTP client configuration with base URL, interceptors, and authentication headers
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import axios from "axios";

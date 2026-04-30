@@ -7,7 +7,7 @@
             Sign in to RDocMan
           </v-card-title>
           <v-card-subtitle>
-            Use your Resonance Designs account when available, or keep using the local DocMan login during migration.
+            Use your Resonance Designs account for suite-wide access. Local DocMan sign-in remains available for legacy access and recovery work.
           </v-card-subtitle>
 
           <v-card-text>
@@ -20,6 +20,46 @@
             >
               {{ state.error }}
             </v-alert>
+
+            <v-alert
+              v-if="authentikAvailable"
+              class="mb-4"
+              type="info"
+              variant="tonal"
+              density="comfortable"
+            >
+              Resonance Account is the canonical suite identity. Use it to access all suite apps. Local DocMan credentials are a legacy fallback and do not create a suite-wide account.
+            </v-alert>
+
+            <v-btn
+              v-if="authentikAvailable"
+              color="primary"
+              block
+              prepend-icon="mdi-account-key-outline"
+              :loading="state.loading"
+              @click="submitAuthentik"
+            >
+              Sign in with Resonance Account
+            </v-btn>
+
+            <v-btn
+              v-if="authentikRegistrationAvailable"
+              class="mt-3"
+              color="secondary"
+              variant="tonal"
+              block
+              prepend-icon="mdi-account-plus-outline"
+              :loading="state.loading"
+              @click="createResonanceAccount"
+            >
+              Create Resonance Account
+            </v-btn>
+
+            <div v-if="authentikAvailable" class="my-6 d-flex align-center ga-3">
+              <v-divider />
+              <span class="text-caption text-medium-emphasis">legacy local access</span>
+              <v-divider />
+            </div>
 
             <v-form @submit.prevent="submit">
               <v-text-field
@@ -43,28 +83,11 @@
                 type="submit"
                 block
                 :loading="state.loading"
+                variant="outlined"
               >
                 Sign in with local DocMan account
               </v-btn>
             </v-form>
-
-            <div v-if="authentikAvailable" class="my-6 d-flex align-center ga-3">
-              <v-divider />
-              <span class="text-caption text-medium-emphasis">or</span>
-              <v-divider />
-            </div>
-
-            <v-btn
-              v-if="authentikAvailable"
-              color="secondary"
-              variant="tonal"
-              block
-              prepend-icon="mdi-account-key-outline"
-              :loading="state.loading"
-              @click="submitAuthentik"
-            >
-              Sign in with Resonance Account
-            </v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -79,7 +102,14 @@ import { useAuth } from '@/composables/useAuth';
 
 const route = useRoute();
 const router = useRouter();
-const { login, state, authentikAvailable, startAuthentikLogin } = useAuth();
+const {
+  login,
+  state,
+  authentikAvailable,
+  authentikRegistrationAvailable,
+  startAuthentikLogin,
+  startAuthentikRegistration,
+} = useAuth();
 
 const email = ref('');
 const password = ref('');
@@ -91,5 +121,9 @@ async function submit() {
 
 async function submitAuthentik() {
   await startAuthentikLogin(typeof route.query.redirect === 'string' ? route.query.redirect : '/documents');
+}
+
+async function createResonanceAccount() {
+  await startAuthentikRegistration();
 }
 </script>

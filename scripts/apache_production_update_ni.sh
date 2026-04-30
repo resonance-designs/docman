@@ -19,7 +19,8 @@ set -euo pipefail
 #   SSL_DOMAINS="docman.example.com api.docman.example.com"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_ROOT_DEFAULT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_ROOT="${DOCMAN_SOURCE_ROOT:-$SOURCE_ROOT_DEFAULT}"
 
 DEPLOY_ROOT=/var/www/docman
 BACKEND_DIR="$DEPLOY_ROOT/backend"
@@ -45,6 +46,35 @@ BACKUP_DIR=""
 BACKUP_ENV_FILE=""
 BACKUP_PUBLISH_DIR=""
 BACKUP_SERVICE_FILE=""
+
+is_docman_repo_root() {
+    local candidate="$1"
+    [[ -d "$candidate/backend" && -d "$candidate/frontend-vue" && -f "$candidate/package.json" ]]
+}
+
+resolve_source_root() {
+    if is_docman_repo_root "$SOURCE_ROOT"; then
+        return
+    fi
+
+    if is_docman_repo_root "$PWD"; then
+        SOURCE_ROOT="$PWD"
+        return
+    fi
+
+    if [[ -n "${SUDO_USER:-}" ]]; then
+        local sudo_home
+        sudo_home="$(getent passwd "$SUDO_USER" | cut -d: -f6 2>/dev/null || true)"
+        if [[ -n "$sudo_home" && -d "$sudo_home/git/docman" ]] && is_docman_repo_root "$sudo_home/git/docman"; then
+            SOURCE_ROOT="$sudo_home/git/docman"
+            return
+        fi
+    fi
+
+    echo "⚠️ Could not resolve a valid DocMan source root."
+    echo "   Set DOCMAN_SOURCE_ROOT=/path/to/docman when running this script."
+    exit 1
+}
 
 for arg in "$@"; do
     case $arg in
@@ -135,6 +165,7 @@ merge_env() {
 
 create_source_snapshot() {
     if [[ $DRY_RUN -eq 1 ]]; then
+        SOURCE_SNAPSHOT="$SOURCE_ROOT"
         echo "[DRY-RUN] Would snapshot source checkout from $SOURCE_ROOT" | tee -a "$DRYRUN_LOG"
         return
     fi
@@ -267,6 +298,7 @@ if [[ $EUID -ne 0 && $DRY_RUN -eq 0 ]]; then
 fi
 
 check_prerequisites
+resolve_source_root
 
 echo "=============================================================="
 echo "=== Updating DocMan on Apache Production Server (No Prompts) ==="

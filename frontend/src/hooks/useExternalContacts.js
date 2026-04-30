@@ -4,7 +4,7 @@
  * @hook useExternalContacts
  * @description Custom hook for managing external contacts in document forms
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";

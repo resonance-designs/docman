@@ -8,6 +8,7 @@ const defaults = {
   authentikEnabled: import.meta.env.VITE_AUTHENTIK_ENABLED === 'true',
   authentikClientId: import.meta.env.VITE_AUTHENTIK_CLIENT_ID || '',
   authentikAuthorizationUrl: import.meta.env.VITE_AUTHENTIK_AUTHORIZATION_URL || '',
+  authentikRegistrationUrl: import.meta.env.VITE_AUTHENTIK_REGISTRATION_URL || '',
   authentikTokenUrl: import.meta.env.VITE_AUTHENTIK_TOKEN_URL || '',
   authentikRedirectUri: import.meta.env.VITE_AUTHENTIK_REDIRECT_URI || '',
   authentikScope: import.meta.env.VITE_AUTHENTIK_SCOPE || 'openid profile email',

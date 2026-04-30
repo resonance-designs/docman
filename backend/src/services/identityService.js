@@ -4,14 +4,15 @@
  * @service identityService
  * @description Transitional identity resolution service for local JWT auth today and shared suite identity providers later
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";
-import { createPublicKey } from "node:crypto";
+import { createPublicKey, randomBytes } from "node:crypto";
 import User from "../models/User.js";
 import BlacklistedToken from "../models/BlacklistedToken.js";
 import { TOKEN_KEY } from "../lib/jwtSecret.js";
+import { sanitizeEmail, validateEmail, validateUsername } from "../lib/validation.js";
 
 const USER_SELECT_FIELDS = "-password -refreshTokenHash -resetPasswordToken -resetPasswordExpires";
 const AUTHENTIK_ISSUER = process.env.AUTHENTIK_ISSUER || process.env.AUTHENTIK_BASE_URL || "";
@@ -19,6 +20,7 @@ const AUTHENTIK_AUDIENCE = process.env.AUTHENTIK_AUDIENCE || process.env.AUTHENT
 const AUTHENTIK_JWT_PUBLIC_KEY = normalizePem(process.env.AUTHENTIK_JWT_PUBLIC_KEY || "");
 const AUTHENTIK_JWKS_URL = resolveAuthentikJwksUrl();
 const AUTHENTIK_JWKS_CACHE_TTL_MS = 5 * 60 * 1000;
+const JIT_DEFAULT_ROLE = "viewer";
 
 let authentikJwksCache = {
     fetchedAt: 0,
@@ -67,6 +69,222 @@ function isAuthentikToken(decoded) {
     }
 
     return Boolean(AUTHENTIK_ISSUER && decoded.iss === AUTHENTIK_ISSUER);
+}
+
+function normalizeClaimString(value) {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function isVerifiedEmail(decoded) {
+    return decoded?.email_verified === true || decoded?.email_verified === "true";
+}
+
+function getNormalizedVerifiedEmail(decoded) {
+    if (!isVerifiedEmail(decoded)) {
+        return "";
+    }
+
+    const candidateEmail = normalizeClaimString(decoded?.email);
+    const validation = validateEmail(candidateEmail);
+    return validation.isValid ? validation.sanitized : "";
+}
+
+function buildJitPassword() {
+    return `Ak!${randomBytes(24).toString("hex")}Z9`;
+}
+
+function buildJitNames(decoded, normalizedEmail) {
+    const fullName = normalizeClaimString(decoded?.name);
+    const givenName = normalizeClaimString(decoded?.given_name);
+    const familyName = normalizeClaimString(decoded?.family_name);
+    const preferredUsername = normalizeClaimString(decoded?.preferred_username);
+    const emailLocalPart = normalizedEmail ? normalizedEmail.split("@")[0] : "";
+
+    let firstname = givenName;
+    let lastname = familyName;
+
+    if (!firstname && fullName) {
+        const [firstToken, ...rest] = fullName.split(/\s+/).filter(Boolean);
+        firstname = firstToken || "";
+        lastname = rest.join(" ");
+    }
+
+    if (!firstname) {
+        firstname = preferredUsername || emailLocalPart || "Authentik";
+    }
+
+    if (!lastname) {
+        lastname = fullName && firstname !== fullName ? fullName.replace(firstname, "").trim() : "";
+    }
+
+    if (!lastname) {
+        lastname = "User";
+    }
+
+    return {
+        firstname: firstname.slice(0, 50),
+        lastname: lastname.slice(0, 50),
+    };
+}
+
+function slugifyUsernameCandidate(value) {
+    const trimmed = normalizeClaimString(value);
+    if (!trimmed) {
+        return "";
+    }
+
+    return trimmed
+        .normalize("NFKD")
+        .replace(/[^\w.\-@ ]+/g, "")
+        .replace(/@/g, "-")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/[._-]{2,}/g, "-")
+        .replace(/^[._-]+|[._-]+$/g, "")
+        .slice(0, 30);
+}
+
+function buildUsernameCandidates(decoded, normalizedEmail, authentikSub) {
+    const candidates = [];
+    const pushCandidate = (value) => {
+        const candidate = slugifyUsernameCandidate(value);
+        if (candidate && !candidates.includes(candidate)) {
+            candidates.push(candidate);
+        }
+    };
+
+    pushCandidate(decoded?.preferred_username);
+    pushCandidate(decoded?.nickname);
+
+    if (normalizedEmail) {
+        pushCandidate(normalizedEmail.split("@")[0]);
+    }
+
+    const givenName = normalizeClaimString(decoded?.given_name);
+    const familyName = normalizeClaimString(decoded?.family_name);
+    if (givenName && familyName) {
+        pushCandidate(`${givenName}.${familyName}`);
+        pushCandidate(`${givenName}-${familyName}`);
+    }
+
+    pushCandidate(decoded?.name);
+    pushCandidate(`authentik-${normalizeClaimString(authentikSub).slice(0, 12)}`);
+
+    return candidates;
+}
+
+async function findAvailableUsername(decoded, normalizedEmail, authentikSub) {
+    const candidates = buildUsernameCandidates(decoded, normalizedEmail, authentikSub);
+
+    for (const candidate of candidates) {
+        if (validateUsername(candidate)) {
+            continue;
+        }
+
+        const existingUser = await User.findOne({ username: candidate }).select("_id").lean();
+        if (!existingUser) {
+            return candidate;
+        }
+
+        for (let counter = 2; counter <= 1000; counter += 1) {
+            const suffix = `${counter}`;
+            const base = candidate.slice(0, Math.max(1, 30 - suffix.length));
+            const suffixedCandidate = `${base}${suffix}`;
+            if (validateUsername(suffixedCandidate)) {
+                continue;
+            }
+
+            const taken = await User.findOne({ username: suffixedCandidate }).select("_id").lean();
+            if (!taken) {
+                return suffixedCandidate;
+            }
+        }
+    }
+
+    throw createAuthError("Unable to generate a unique RDocMan username for the Authentik identity", 500);
+}
+
+async function hydrateRequestUserById(userId) {
+    const user = await User.findById(userId).select(USER_SELECT_FIELDS).lean();
+    return normalizeRequestUser(user);
+}
+
+async function autoLinkUserByVerifiedEmail(decoded) {
+    const normalizedEmail = getNormalizedVerifiedEmail(decoded);
+    if (!normalizedEmail) {
+        return null;
+    }
+
+    const user = await User.findOne({ email: sanitizeEmail(normalizedEmail) });
+    if (!user) {
+        return null;
+    }
+
+    if (user.authentikSub && user.authentikSub !== decoded.sub) {
+        throw createAuthError("The matching RDocMan email is already linked to another Authentik identity", 409);
+    }
+
+    user.identityProvider = "authentik";
+    user.authentikSub = decoded.sub;
+    await user.save();
+
+    return {
+        resolution: "auto-linked-by-verified-email",
+        user: await hydrateRequestUserById(user._id),
+    };
+}
+
+async function provisionUserFromAuthentikClaims(decoded) {
+    const normalizedEmail = getNormalizedVerifiedEmail(decoded);
+    if (!normalizedEmail) {
+        return null;
+    }
+
+    const existingUser = await User.findOne({ email: sanitizeEmail(normalizedEmail) }).select("_id authentikSub").lean();
+    if (existingUser) {
+        return null;
+    }
+
+    const username = await findAvailableUsername(decoded, normalizedEmail, decoded.sub);
+    const { firstname, lastname } = buildJitNames(decoded, normalizedEmail);
+
+    const createdUser = await User.create({
+        email: sanitizeEmail(normalizedEmail),
+        firstname,
+        lastname,
+        username,
+        password: buildJitPassword(),
+        role: JIT_DEFAULT_ROLE,
+        identityProvider: "authentik",
+        authentikSub: decoded.sub,
+    });
+
+    return {
+        resolution: "jit-provisioned",
+        user: await hydrateRequestUserById(createdUser._id),
+    };
+}
+
+async function resolveOrCreateAuthentikUser(decoded) {
+    const existingLinkedUser = await findUserByAuthentikSub(decoded.sub);
+    if (existingLinkedUser) {
+        return {
+            resolution: "linked-sub",
+            user: existingLinkedUser,
+        };
+    }
+
+    const autoLinkedUser = await autoLinkUserByVerifiedEmail(decoded);
+    if (autoLinkedUser) {
+        return autoLinkedUser;
+    }
+
+    const jitProvisionedUser = await provisionUserFromAuthentikClaims(decoded);
+    if (jitProvisionedUser) {
+        return jitProvisionedUser;
+    }
+
+    throw createAuthError("No linked or provisionable RDocMan user for Authentik identity");
 }
 
 /**
@@ -168,16 +386,14 @@ export async function resolveAuthentikTokenIdentity(token) {
         throw createAuthError("Invalid Authentik token");
     }
 
-    const user = await findUserByAuthentikSub(decoded.sub);
-    if (!user) {
-        throw createAuthError("No linked RDocMan user for Authentik identity");
-    }
+    const resolvedIdentity = await resolveOrCreateAuthentikUser(decoded);
 
     return {
         authType: "authentik-jwt",
         provider: "authentik",
+        resolution: resolvedIdentity.resolution,
         tokenClaims: decoded,
-        user,
+        user: resolvedIdentity.user,
     };
 }
 
