@@ -1,24 +1,32 @@
 #!/bin/bash
 set -euo pipefail
 
-# ================================================================
-# === DocMan Production Update Script (Interactive / Modernized) ===
-# ================================================================
+# ======================================================================
+# === DocMan Production Update Script (Interactive / Modernized)      ===
+# ======================================================================
 #
-# This script updates an existing Apache-hosted DocMan deployment.
+# This script updates an existing Apache-hosted DocMan deployment using the
+# current checked-out repository as the source of truth.
 #
-# It performs the following high-level steps:
-# - preserves the current backend env and frontend publish root
+# High-level flow:
+# - creates a persistent full backup of the current deploy root
+# - backs up the published Apache frontend assets and current service file
 # - exports previous .env files into ~/docman/env-backups for recovery
-# - replaces /var/www/docman with a fresh clone
-# - rebuilds the Vue frontend and the remote bundle
-# - restores and normalizes .env.prod
-# - republishes the frontend and remote assets
-# - restarts the backend service and reloads Apache
-# - optionally runs Certbot for one or more domains
+# - snapshots the current source checkout into /tmp for safe rebuilds
+# - replaces /var/www/docman with the updated source
+# - restores backend .env.prod
+# - materializes frontend-vue/.env.production for the Vite build
+# - reinstalls backend/frontend dependencies
+# - rebuilds the Vue frontend and remote bundle
+# - restarts the backend and republishes the frontend assets
+# - rolls back from the full persistent backup if anything fails
 #
 # Usage:
-#   sudo ./apache_production_update.sh
+#   sudo ./scripts/apache_production_update.sh
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_SNAPSHOT=""
 
 DEPLOY_ROOT=/var/www/docman
 BACKEND_DIR="$DEPLOY_ROOT/backend"
@@ -28,13 +36,22 @@ SERVICE_FILE=/etc/systemd/system/docman-backend.service
 SERVICE_USER=docman
 SERVICE_GROUP=www-data
 MIN_NODE_VERSION=20.19.0
-BACKUP_ROOT=/tmp/docman_env_backup
 FRONTEND_FOLDER_DEFAULT=docman
 OPERATOR_USER="${SUDO_USER:-${USER:-root}}"
 OPERATOR_HOME="$(getent passwd "$OPERATOR_USER" | cut -d: -f6 2>/dev/null || true)"
 OPERATOR_HOME="${OPERATOR_HOME:-$HOME}"
 ENV_EXPORT_DIR="$OPERATOR_HOME/docman"
 EXPORTED_ENV_SOURCE_FILE="$ENV_EXPORT_DIR/previous-backend.env.prod"
+BACKUP_DIR=""
+BACKUP_ENV_FILE=""
+BACKUP_PUBLISH_DIR=""
+BACKUP_SERVICE_FILE=""
+
+cleanup_temp() {
+    if [[ -n "$SOURCE_SNAPSHOT" && -d "$SOURCE_SNAPSHOT" ]]; then
+        rm -rf "$SOURCE_SNAPSHOT"
+    fi
+}
 
 version_ge() {
     local current="$1"
@@ -57,6 +74,7 @@ check_prerequisites() {
 
     command -v git >/dev/null 2>&1 || { echo "⚠️ Git is required."; exit 1; }
     command -v rsync >/dev/null 2>&1 || { echo "⚠️ rsync is required."; exit 1; }
+    command -v nc >/dev/null 2>&1 || { echo "⚠️ Netcat (nc) is required."; exit 1; }
 }
 
 export_env_files_from_target() {
@@ -100,6 +118,110 @@ merge_env() {
     done < <(grep -v '^#' .env.sample | cut -d= -f1)
 }
 
+create_source_snapshot() {
+    SOURCE_SNAPSHOT=$(mktemp -d /tmp/docman_update_source_XXXXXX)
+    rsync -a \
+        --exclude '.git' \
+        --exclude 'node_modules' \
+        --exclude 'dist' \
+        --exclude 'dist-remote' \
+        "$SOURCE_ROOT/" "$SOURCE_SNAPSHOT/"
+}
+
+create_full_backup() {
+    local frontend_folder="$1"
+
+    BACKUP_DIR="/var/www/docman_bak_$(date +%F_%H%M%S)"
+    BACKUP_ENV_FILE="$BACKUP_DIR/backend/.env.prod"
+    BACKUP_PUBLISH_DIR="$BACKUP_DIR/__apache_public_html"
+    BACKUP_SERVICE_FILE="$BACKUP_DIR/__systemd/docman-backend.service"
+
+    mkdir -p "$BACKUP_DIR"
+    mkdir -p "$BACKUP_PUBLISH_DIR"
+    mkdir -p "$(dirname "$BACKUP_SERVICE_FILE")"
+
+    if [[ -d "$DEPLOY_ROOT" ]]; then
+        rsync -a "$DEPLOY_ROOT/" "$BACKUP_DIR/"
+    fi
+
+    if [[ -d "$APACHE_ROOT/$frontend_folder/public_html" ]]; then
+        rsync -a "$APACHE_ROOT/$frontend_folder/public_html/" "$BACKUP_PUBLISH_DIR/"
+    fi
+
+    if [[ -f "$SERVICE_FILE" ]]; then
+        cp "$SERVICE_FILE" "$BACKUP_SERVICE_FILE"
+    fi
+
+    export_env_files_from_target "$DEPLOY_ROOT"
+
+    echo "📦 Full deployment backup created at $BACKUP_DIR"
+}
+
+restore_backup() {
+    local frontend_folder="$1"
+
+    [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]] || {
+        echo "⚠️ No persistent backup directory is available for rollback."
+        exit 1
+    }
+
+    cd /
+    rm -rf "$DEPLOY_ROOT"
+    mkdir -p "$DEPLOY_ROOT"
+    rsync -a --delete \
+        --exclude '__apache_public_html' \
+        --exclude '__systemd' \
+        "$BACKUP_DIR/" "$DEPLOY_ROOT/"
+
+    if [[ -d "$BACKUP_PUBLISH_DIR" ]]; then
+        mkdir -p "$APACHE_ROOT/$frontend_folder/public_html"
+        rsync -a --delete "$BACKUP_PUBLISH_DIR/" "$APACHE_ROOT/$frontend_folder/public_html/"
+    fi
+
+    if [[ -f "$BACKUP_SERVICE_FILE" ]]; then
+        cp "$BACKUP_SERVICE_FILE" "$SERVICE_FILE"
+        systemctl daemon-reload || true
+    fi
+
+    systemctl restart docman-backend.service || true
+    systemctl reload apache2 || true
+}
+
+rollback() {
+    trap - ERR
+    echo "⚠️ Rolling back update from persistent backup..."
+    restore_backup "$frontend_folder"
+    echo "✅ Update rolled back from $BACKUP_DIR"
+    exit 1
+}
+
+sync_frontend_env_from_backend() {
+    local source_frontend_env="$SOURCE_SNAPSHOT/frontend-vue/.env.production"
+    local backend_env="$BACKEND_DIR/.env.prod"
+    local target_env="$VUE_FRONTEND_DIR/.env.production"
+    local example_env="$VUE_FRONTEND_DIR/.env.production.example"
+
+    if [[ -f "$source_frontend_env" ]]; then
+        cp "$source_frontend_env" "$target_env"
+        echo "✅ Restored frontend build env from source checkout."
+        return
+    fi
+
+    if grep -q '^VITE_' "$backend_env" 2>/dev/null; then
+        grep '^VITE_' "$backend_env" > "$target_env"
+        echo "✅ Materialized frontend-vue/.env.production from backend .env.prod VITE_* values."
+        return
+    fi
+
+    if [[ -f "$example_env" ]]; then
+        cp "$example_env" "$target_env"
+        echo "⚠️ No real VITE_* values were found; copied frontend-vue/.env.production.example as a placeholder."
+        return
+    fi
+
+    echo "⚠️ No frontend-vue/.env.production source was available."
+}
+
 publish_frontend_assets() {
     local frontend_folder="$1"
     local publish_root="$APACHE_ROOT/$frontend_folder"
@@ -113,27 +235,7 @@ publish_frontend_assets() {
     chown -R www-data:www-data "$publish_root"
 }
 
-rollback() {
-    echo "⚠️ Rolling back update..."
-
-    rm -rf "$DEPLOY_ROOT"
-    git clone https://github.com/resonance-designs/docman.git "$DEPLOY_ROOT"
-
-    if [[ -f "$BACKUP_ROOT/.env.prod" ]]; then
-        cp "$BACKUP_ROOT/.env.prod" "$BACKEND_DIR/.env.prod"
-        echo "✅ Backend .env.prod restored."
-    fi
-
-    if [[ -d "$BACKUP_ROOT/public_html_backup" ]]; then
-        rsync -a --delete "$BACKUP_ROOT/public_html_backup/" "$APACHE_ROOT/$frontend_folder/public_html/"
-    fi
-
-    systemctl restart docman-backend.service
-    systemctl reload apache2
-    echo "✅ Update rolled back successfully."
-    exit 1
-}
-
+trap cleanup_temp EXIT
 trap 'echo "❌ Error detected during update."; rollback' ERR
 
 if [[ $EUID -ne 0 ]]; then
@@ -152,46 +254,40 @@ echo "=== Updating DocMan on Apache Production Server ==="
 echo "==================================================="
 echo ""
 echo "This update script will:"
-echo "- back up the current backend env and frontend publish root"
-echo "- clone a fresh repository into /var/www/docman"
-echo "- rebuild the Vue frontend and remote bundle"
-echo "- restore and normalize .env.prod"
+echo "- create a full persistent backup of /var/www/docman"
+echo "- back up the current Apache publish root and service unit"
+echo "- snapshot the current source checkout"
+echo "- rebuild the Vue frontend and remote bundle from the current checkout"
+echo "- restore and normalize backend .env.prod"
+echo "- generate frontend-vue/.env.production for the Vite build"
 echo "- restart the backend service and reload Apache"
 echo ""
 
-# --- 1️⃣ Backup current environment and frontend ---
-echo "1️⃣ Backing up current .env.prod and frontend..."
-mkdir -p "$BACKUP_ROOT"
-cp "$BACKEND_DIR/.env.prod" "$BACKUP_ROOT/.env.prod"
-mkdir -p "$BACKUP_ROOT/public_html_backup"
-rsync -a "$APACHE_ROOT/$frontend_folder/public_html/" "$BACKUP_ROOT/public_html_backup/"
-export_env_files_from_target "$DEPLOY_ROOT"
+echo "1️⃣ Creating full backup of the current deployment..."
+create_full_backup "$frontend_folder"
 echo "✅ Backup complete."
 
-# --- 2️⃣ Fresh repository checkout ---
 echo ""
-echo "2️⃣ Cloning fresh repository..."
+echo "2️⃣ Snapshotting the current source checkout..."
+create_source_snapshot
+echo "✅ Source snapshot ready at $SOURCE_SNAPSHOT"
+
+echo ""
+echo "3️⃣ Replacing the deployed application tree..."
+cd /
 rm -rf "$DEPLOY_ROOT"
-git clone https://github.com/resonance-designs/docman.git "$DEPLOY_ROOT"
-echo "✅ Repository cloned fresh."
+mkdir -p "$DEPLOY_ROOT"
+rsync -a "$SOURCE_SNAPSHOT/" "$DEPLOY_ROOT/"
+echo "✅ Deployment tree replaced from the current source checkout."
 
-# --- 3️⃣ Build current frontend/runtime ---
 echo ""
-echo "3️⃣ Building Vue frontend and remote bundle..."
-cd "$DEPLOY_ROOT"
-npm run build:vue
-npm run build:remote --prefix frontend-vue
-echo "✅ Build complete."
-
-# --- 4️⃣ Restore environment ---
-echo ""
-echo "4️⃣ Restoring previous .env.prod..."
+echo "4️⃣ Restoring and normalizing backend environment..."
 cd "$BACKEND_DIR"
-if [[ -f "$BACKUP_ROOT/.env.prod" ]]; then
-    cp "$BACKUP_ROOT/.env.prod" .env.prod
-    echo "✅ .env.prod restored."
+if [[ -f "$BACKUP_ENV_FILE" ]]; then
+    cp "$BACKUP_ENV_FILE" .env.prod
+    echo "✅ .env.prod restored from the full deployment backup."
 else
-    echo "⚠️ No backup found, creating new from sample..."
+    echo "⚠️ No previous backend env backup found. Creating a new one from .env.sample."
     cp .env.sample .env.prod
 fi
 
@@ -200,12 +296,24 @@ sed -i 's/^ACTIVE_ENV=.*/ACTIVE_ENV=1/' .env.prod
 sed -i 's/^ENV=.*/ENV=Production/' .env.prod
 sed -i 's/^NODE_ENV=.*/NODE_ENV=production/' .env.prod
 merge_env
-echo "✅ Environment variables updated."
+echo "✅ Backend environment updated."
 
-# --- 5️⃣ Restart MongoDB when local config exists ---
 echo ""
-echo "5️⃣ Restarting MongoDB if configured..."
-MONGO_PORT=$(grep '^MONGO_PORT=' .env.prod | cut -d= -f2-)
+echo "5️⃣ Preparing frontend build environment..."
+sync_frontend_env_from_backend
+
+echo ""
+echo "6️⃣ Installing dependencies and rebuilding frontend assets..."
+cd "$DEPLOY_ROOT"
+npm ci --prefix backend
+npm ci --include=dev --prefix frontend-vue
+npm run build:vue
+npm run build:remote --prefix frontend-vue
+echo "✅ Vue frontend and remote bundle build complete."
+
+echo ""
+echo "7️⃣ Restarting MongoDB if configured..."
+MONGO_PORT=$(grep '^MONGO_PORT=' "$BACKEND_DIR/.env.prod" | cut -d= -f2-)
 if [[ -f /etc/mongod.conf ]]; then
     systemctl restart mongod
     echo "⏳ Waiting for MongoDB to start on port $MONGO_PORT..."
@@ -213,26 +321,23 @@ if [[ -f /etc/mongod.conf ]]; then
     echo "✅ MongoDB restarted."
 fi
 
-# --- 6️⃣ Restart backend service ---
 echo ""
-echo "6️⃣ Restarting DocMan backend service..."
-install -d -o www-data -g www-data -m 775 "$BACKEND_DIR/uploads"
+echo "8️⃣ Restarting DocMan backend service..."
+install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 775 "$BACKEND_DIR/uploads"
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$BACKEND_DIR"
 systemctl daemon-reload
 systemctl restart docman-backend.service
 systemctl enable docman-backend.service
 echo "✅ Backend service restarted successfully."
 
-# --- 7️⃣ Publish frontend assets ---
 echo ""
-echo "7️⃣ Publishing frontend and remote assets..."
+echo "9️⃣ Publishing frontend and remote assets..."
 publish_frontend_assets "$frontend_folder"
 systemctl reload apache2
 echo "✅ Frontend updated successfully."
 
-# --- 8️⃣ Optional SSL ---
 echo ""
-read -p "8️⃣ Do you want to update SSL certificates via Certbot? (y/n): " update_cert
+read -p "🔟 Do you want to update SSL certificates via Certbot? (y/n): " update_cert
 if [[ "$update_cert" =~ ^[Yy]$ ]]; then
     read -p "Enter domains for Certbot (space-separated, e.g. docman.resonancedesigns.dev api.docman.resonancedesigns.dev): " certbot_domains
     read -p "Enter email for SSL registration (Let's Encrypt): " certbot_email

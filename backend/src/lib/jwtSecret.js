@@ -4,7 +4,7 @@
  * @module jwtSecret
  * @description Shared JWT secret configuration for token signing and verification
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import dotenv from "dotenv";

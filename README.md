@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-2.2.5-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.5-green)
+![Static Badge](https://img.shields.io/badge/Version-2.2.6-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.6-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -142,6 +142,28 @@ VITE_AUTHENTIK_REDIRECT_URI=http://localhost:5174/auth/callback
 VITE_AUTHENTIK_SCOPE=openid profile email
 ```
 
+#### Frontend production build env
+
+For production Authentik-enabled builds, the Vue frontend reads build-time values from:
+
+```text
+frontend-vue/.env.production
+```
+
+Create it from:
+
+```text
+frontend-vue/.env.production.example
+```
+
+Important:
+
+* `frontend-vue/.env.production` is intentionally ignored because it is environment-specific.
+* `VITE_*` values are shipped to the browser and must not contain secrets.
+* Pull the Authentik client ID and OIDC endpoints from the `RDocMan Web Provider` overview in Authentik or its OpenID configuration document before filling the file.
+* The deploy/update scripts should either copy `frontend-vue/.env.production` from the prepared source checkout or generate it from the `VITE_*` values stored in `backend/.env.prod` before the Vite build runs.
+* Changing `frontend-vue/.env.production` requires a frontend rebuild and republish.
+
 The Vue/Vuetify frontend defaults to the current browser hostname on port `5001` during development. This allows both `http://localhost:5174` and `http://127.0.0.1:5174` to call the backend. The backend CORS development allowlist includes both localhost and loopback origins for ports `3000`, `5173`, and `5174`.
 
 When Authentik is enabled in the Vue frontend, the login view will expose a "Sign in with Resonance Account" path. The frontend uses Authorization Code + PKCE and expects the backend to accept Authentik-issued access tokens that resolve to linked local RDocMan users through `authentikSub`.
@@ -181,9 +203,9 @@ Download them and then upload them somewhere on your server, like your users hom
 
 | Script | Purpose | Notes |
 |--------|---------|------|
-| [`apache_production_deploy.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_deploy.sh) | Initial deployment of DocMan to a fresh server | Use this for first-time setup or to recover a broken deployment tree. Clones a fresh repo copy, rebuilds the Vue frontend, publishes the remote bundle, and recreates the backend service definition. |
-| [`apache_production_update.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update.sh) | Standard interactive update | Updates an existing Apache-hosted instance using the current Vue frontend and remote-bundle publish path. Preserves the previous backend env, republishes the hybrid assets, and optionally runs Certbot for one or more domains. |
-| [`apache_production_update_ni.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update_ni.sh) | Non-interactive automated update | Fully automated update for the current Vue/remote-bundle deployment shape. Supports `--dry-run`, auto-rolls back on errors, and can run Certbot when `SSL_DOMAINS` and `CERTBOT_EMAIL` are provided. |
+| [`apache_production_deploy.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_deploy.sh) | Initial deployment of DocMan to a fresh server | Use this for first-time setup or to recover a broken deployment tree. Clones a fresh repo copy, creates a persistent backup of any existing deployment tree/service/publish root, materializes `frontend-vue/.env.production`, rebuilds the Vue frontend, publishes the remote bundle, and recreates the backend service definition. |
+| [`apache_production_update.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update.sh) | Standard interactive update | Updates an existing Apache-hosted instance from the current checked-out repo, creates a full persistent backup of the deployment tree and Apache publish root, materializes `frontend-vue/.env.production`, rebuilds the Vue/remote assets, and optionally runs Certbot for one or more domains. |
+| [`apache_production_update_ni.sh`](https://github.com/resonance-designs/docman/releases/download/latest/apache_production_update_ni.sh) | Non-interactive automated update | Fully automated update for the current Vue/remote-bundle deployment shape. Supports `--dry-run`, creates a full persistent backup, rolls back from the local backup on errors, and can run Certbot when `SSL_DOMAINS` and `CERTBOT_EMAIL` are provided. |
 
 ### Setting Executable Permissions
 
@@ -207,6 +229,7 @@ sudo ./apache_production_deploy.sh
 
 * Installs backend and frontend on a fresh server.
 * Creates a fresh `.env.prod` from `.env.sample` for the new deployment.
+* Generates `frontend-vue/.env.production` from the prepared source checkout or `VITE_*` values in `backend/.env.prod`.
 * Optionally sets up SSL certificates.
 * Clones a fresh repository checkout into `/var/www/docman`.
 * Builds `frontend-vue` and `frontend-vue/dist-remote/remote/`.
@@ -233,8 +256,10 @@ sudo ./apache_production_update.sh
 ```
 
 * Updates an existing Apache-hosted DocMan instance in an interactive mode.
-* Preserves the previous `.env.prod` before replacing `/var/www/docman`.
+* Uses the current checked-out repo as the update source after you `git pull`.
+* Creates a full persistent backup of `/var/www/docman`, the Apache publish root, and the current systemd unit before destructive steps.
 * Exports discovered `.env*` files into `~/docman/env-backups/`.
+* Restores backend `.env.prod` and materializes `frontend-vue/.env.production` before rebuilding.
 * Builds the current `frontend-vue` app and `dist-remote/remote/`.
 * Republishes both the browser UI and the hybrid remote bundle.
 * Restarts the backend service and reloads Apache.
@@ -247,10 +272,12 @@ sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
 ```
 
 * Performs a fully automated update of the current Vue/remote-bundle deployment shape.
-* Preserves `.env.prod` and exports previous `.env*` files before replacing `/var/www/docman`.
+* Uses the current checked-out repo as the update source after you `git pull`.
+* Creates a full persistent backup of `/var/www/docman`, the Apache publish root, and the current systemd unit before destructive steps.
+* Restores backend `.env.prod` and materializes `frontend-vue/.env.production` before rebuilding.
 * Rebuilds the Vue frontend and the remote bundle.
 * Republishes frontend assets into the Apache publish root.
-* Automatically rolls back if any command fails.
+* Automatically rolls back from the persistent local backup if any command fails.
 * `--dry-run` simulates the update without applying changes.
 * `--ssl` enables Certbot, but expects these environment variables to be set first:
   * `SSL_DOMAINS`
@@ -280,7 +307,7 @@ sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
 
 ### Notes
 
-* **Backups**: The deploy and update scripts back up the existing backend env and export discovered `.env*` files into `~/docman/env-backups/`. The non-interactive update script also keeps a working copy under `/tmp/docman_env_backup/` for auto-rollback.
+* **Backups**: The deploy and update scripts export discovered `.env*` files into `~/docman/env-backups/`, keep `~/docman/previous-backend.env.prod` as the preferred recovery copy, and create persistent full deployment backups under `/var/www/docman_bak_<timestamp>/`.
 * **Rollback**: Scripts automatically restore previous state if a command fails.
 * **Root Privileges**: Scripts must be run as root or via sudo.
 * **Dry-Run Logs**: Non-interactive script logs simulated commands for review without applying changes.

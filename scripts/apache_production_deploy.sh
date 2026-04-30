@@ -44,19 +44,52 @@ SERVICE_FILE=/etc/systemd/system/docman-backend.service
 SERVICE_USER=docman
 SERVICE_GROUP=www-data
 MIN_NODE_VERSION=20.19.0
+FRONTEND_FOLDER_DEFAULT=docman
+FRONTEND_ENV_FILE="$VUE_FRONTEND_DIR/.env.production"
 ENV_SOURCE_FILE=""
 OPERATOR_USER="${SUDO_USER:-${USER:-root}}"
 OPERATOR_HOME="$(getent passwd "$OPERATOR_USER" | cut -d: -f6 2>/dev/null || true)"
 OPERATOR_HOME="${OPERATOR_HOME:-$HOME}"
 ENV_EXPORT_DIR="$OPERATOR_HOME/docman"
 EXPORTED_ENV_SOURCE_FILE="$ENV_EXPORT_DIR/previous-backend.env.prod"
+BACKUP_DIR=""
+BACKUP_PUBLISH_DIR=""
+BACKUP_SERVICE_FILE=""
+CURRENT_FRONTEND_FOLDER="$FRONTEND_FOLDER_DEFAULT"
 
 # --- Functions ---
 rollback() {
+    trap - ERR
     echo "⚠️ Rolling back deployment..."
-    rm -rf "$DEPLOY_ROOT"
-    echo "Deployment has been successfully reversed."
-    exit 0
+
+    if [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]]; then
+        cd /
+        rm -rf "$DEPLOY_ROOT"
+        mkdir -p "$DEPLOY_ROOT"
+        rsync -a --delete \
+            --exclude '__apache_public_html' \
+            --exclude '__systemd' \
+            "$BACKUP_DIR/" "$DEPLOY_ROOT/" || true
+
+        if [[ -d "$BACKUP_PUBLISH_DIR" ]]; then
+            mkdir -p "$APACHE_ROOT/$CURRENT_FRONTEND_FOLDER/public_html"
+            rsync -a --delete "$BACKUP_PUBLISH_DIR/" "$APACHE_ROOT/$CURRENT_FRONTEND_FOLDER/public_html/" || true
+        fi
+
+        if [[ -f "$BACKUP_SERVICE_FILE" ]]; then
+            cp "$BACKUP_SERVICE_FILE" "$SERVICE_FILE" || true
+            systemctl daemon-reload || true
+        fi
+
+        systemctl restart docman-backend.service || true
+        systemctl reload apache2 || true
+        echo "✅ Previous deployment restored from $BACKUP_DIR"
+    else
+        rm -rf "$DEPLOY_ROOT"
+        echo "⚠️ No persistent backup was available. Removed the partial deployment tree only."
+    fi
+
+    exit 1
 }
 
 ask() {
@@ -133,15 +166,49 @@ read_existing_mongo_value() {
     awk -F': ' "$pattern {print \$2; exit}" /etc/mongod.conf 2>/dev/null
 }
 
-backup_if_exists() {
-    local target="$1"
-    if [[ -e "$target" ]]; then
-        local backup_path="${target}_bak_$(date +%F_%H%M%S)"
-        echo "⚠️ Existing path detected at $target"
-        export_env_files_from_target "$target"
-        echo "🔄 Backing it up to $backup_path"
-        mv "$target" "$backup_path"
+ensure_backup_root() {
+    if [[ -n "$BACKUP_DIR" ]]; then
+        return
     fi
+
+    BACKUP_DIR="/var/www/docman_bak_$(date +%F_%H%M%S)"
+    BACKUP_PUBLISH_DIR="$BACKUP_DIR/__apache_public_html"
+    BACKUP_SERVICE_FILE="$BACKUP_DIR/__systemd/docman-backend.service"
+
+    mkdir -p "$BACKUP_DIR"
+    mkdir -p "$BACKUP_PUBLISH_DIR"
+    mkdir -p "$(dirname "$BACKUP_SERVICE_FILE")"
+
+    echo "📦 Persistent backup root prepared at $BACKUP_DIR"
+}
+
+backup_deploy_root() {
+    local target="$1"
+
+    [[ -d "$target" ]] || return 0
+
+    ensure_backup_root
+    export_env_files_from_target "$target"
+    rsync -a "$target/" "$BACKUP_DIR/"
+    echo "📦 Backed up existing deployment tree from $target"
+}
+
+backup_publish_root() {
+    local target="$1"
+
+    [[ -d "$target/public_html" ]] || return 0
+
+    ensure_backup_root
+    rsync -a "$target/public_html/" "$BACKUP_PUBLISH_DIR/"
+    echo "📦 Backed up existing Apache publish root from $target/public_html"
+}
+
+backup_service_file() {
+    [[ -f "$SERVICE_FILE" ]] || return 0
+
+    ensure_backup_root
+    cp "$SERVICE_FILE" "$BACKUP_SERVICE_FILE"
+    echo "📦 Backed up existing systemd unit from $SERVICE_FILE"
 }
 
 export_env_files_from_target() {
@@ -208,7 +275,8 @@ User=$SERVICE_USER
 Group=$SERVICE_GROUP
 Restart=always
 RestartSec=3
-ExecStartPre=/usr/bin/install -d -o $SERVICE_GROUP -g $SERVICE_GROUP -m 775 $BACKEND_DIR/uploads
+PermissionsStartOnly=true
+ExecStartPre=/usr/bin/install -d -o $SERVICE_USER -g $SERVICE_GROUP -m 775 $BACKEND_DIR/uploads
 NoNewPrivileges=true
 AmbientCapabilities=
 PrivateTmp=true
@@ -230,7 +298,29 @@ publish_frontend_assets() {
 
     rsync -a --delete "$VUE_FRONTEND_DIR/dist/" "$publish_root/public_html/"
     rsync -a --delete "$VUE_FRONTEND_DIR/dist-remote/remote/" "$publish_root/public_html/remote/"
-    chown -R www-data:www-data "$publish_root/public_html"
+    chown -R www-data:www-data "$publish_root"
+}
+
+sync_frontend_env_from_backend() {
+    local source_frontend_env="$VUE_FRONTEND_DIR/.env.production"
+    local backend_env="$BACKEND_DIR/.env.prod"
+    local example_env="$VUE_FRONTEND_DIR/.env.production.example"
+
+    if [[ -f "$source_frontend_env" ]]; then
+        echo "✅ Using frontend build env from $source_frontend_env"
+        return
+    fi
+
+    if grep -q '^VITE_' "$backend_env" 2>/dev/null; then
+        grep '^VITE_' "$backend_env" > "$FRONTEND_ENV_FILE"
+        echo "✅ Generated $FRONTEND_ENV_FILE from backend .env.prod VITE_* values."
+        return
+    fi
+
+    if [[ -f "$example_env" ]]; then
+        cp "$example_env" "$FRONTEND_ENV_FILE"
+        echo "⚠️ No real VITE_* values were found; copied $example_env as a placeholder."
+    fi
 }
 
 check_prerequisites() {
@@ -324,7 +414,7 @@ echo ""
 echo "It performs the following steps:"
 echo "  1. Checks prerequisites (Node.js >= $MIN_NODE_VERSION, Apache, UFW, Certbot)."
 echo "  2. Clones a fresh repository checkout from GitHub."
-echo "  3. Installs dependencies, builds the Vue frontend, and builds the remote desktop bundle."
+echo "  3. Installs dependencies."
 echo "  4. Prepares the environment by setting up MongoDB configurations,"
 echo "     including TLS/SSL settings if desired."
 echo "  5. Configures other essential environment variables such as Node.js port,"
@@ -347,6 +437,8 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+trap 'echo "❌ Error detected during deployment."; rollback' ERR
+
 read -p "Continue with prerequisites check? (y/n): " use_deploy
 if [[ ! "$use_deploy" =~ ^[Yy]$ ]]; then
     echo "⚠️ Deployment canceled."
@@ -358,21 +450,20 @@ check_prerequisites
 echo ""
 echo "1️⃣ Cloning repository..."
 detect_previous_env_source
-backup_if_exists "$DEPLOY_ROOT"
+backup_deploy_root "$DEPLOY_ROOT"
+rm -rf "$DEPLOY_ROOT"
 mkdir -p "$DEPLOY_ROOT"
 chown -R "$SERVICE_GROUP:$SERVICE_GROUP" "$DEPLOY_ROOT"
 git clone https://github.com/resonance-designs/docman.git "$DEPLOY_ROOT"
 echo "✅ Repository cloned."
 
-# --- 2️⃣ Install dependencies & build ---
+# --- 2️⃣ Install dependencies ---
 echo ""
-echo "2️⃣ Installing dependencies & building app..."
+echo "2️⃣ Installing dependencies..."
 cd "$DEPLOY_ROOT"
 npm ci --prefix backend
 npm ci --include=dev --prefix frontend-vue
-npm run build --prefix frontend-vue
-npm run build:remote --prefix frontend-vue
-echo "✅ Vue frontend and remote bundle build complete."
+echo "✅ Dependencies installed."
 
 # --- 3️⃣ Prepare environment ---
 echo ""
@@ -704,6 +795,32 @@ fi
 
 # Authentication
 ask "TOKEN_KEY" "Enter authentication token key (JWT secret)" "$(env_default TOKEN_KEY "")"
+authentik_enabled_default="$(env_default VITE_AUTHENTIK_ENABLED "false")"
+read -p "Enable Authentik sign-in for the Vue frontend? (y/n) [$( [[ "$authentik_enabled_default" == "true" ]] && echo Y || echo n )]: " use_authentik
+if [[ "$authentik_enabled_default" == "true" ]]; then
+    use_authentik=${use_authentik:-Y}
+else
+    use_authentik=${use_authentik:-n}
+fi
+
+if [[ "$use_authentik" =~ ^[Yy]$ ]]; then
+    sed -i "s|^VITE_AUTHENTIK_ENABLED=.*|VITE_AUTHENTIK_ENABLED=true|" .env.prod
+    ask "VITE_AUTHENTIK_CLIENT_ID" "Enter Authentik OIDC client ID" "$(env_default VITE_AUTHENTIK_CLIENT_ID "$(env_default AUTHENTIK_CLIENT_ID "")")"
+    ask "VITE_AUTHENTIK_AUTHORIZATION_URL" "Enter Authentik authorization URL" "$(env_default VITE_AUTHENTIK_AUTHORIZATION_URL "https://accounts.resonancedesigns.dev/application/o/authorize/")"
+    ask "VITE_AUTHENTIK_TOKEN_URL" "Enter Authentik token URL" "$(env_default VITE_AUTHENTIK_TOKEN_URL "https://accounts.resonancedesigns.dev/application/o/token/")"
+    ask "VITE_AUTHENTIK_REDIRECT_URI" "Enter Authentik redirect URI" "$(env_default VITE_AUTHENTIK_REDIRECT_URI "https://docman.resonancedesigns.dev/auth/callback")"
+    ask "VITE_AUTHENTIK_SCOPE" "Enter Authentik scope list" "$(env_default VITE_AUTHENTIK_SCOPE "openid profile email")"
+
+    auth_client_id=$(grep '^VITE_AUTHENTIK_CLIENT_ID=' .env.prod | cut -d= -f2-)
+    ask "AUTHENTIK_ISSUER" "Enter Authentik issuer URL" "$(env_default AUTHENTIK_ISSUER "https://accounts.resonancedesigns.dev/application/o/rdocman-web/")"
+    ask "AUTHENTIK_AUDIENCE" "Enter Authentik audience/client ID" "$(env_default AUTHENTIK_AUDIENCE "$auth_client_id")"
+    ask "AUTHENTIK_CLIENT_ID" "Enter backend Authentik client ID" "$(env_default AUTHENTIK_CLIENT_ID "$auth_client_id")"
+    ask "AUTHENTIK_BASE_URL" "Enter Authentik base URL" "$(env_default AUTHENTIK_BASE_URL "https://accounts.resonancedesigns.dev")"
+    ask "AUTHENTIK_JWKS_URL" "Enter Authentik JWKS URL" "$(env_default AUTHENTIK_JWKS_URL "https://accounts.resonancedesigns.dev/application/o/rdocman-web/jwks/")"
+    ask "AUTHENTIK_JWT_PUBLIC_KEY" "Optional PEM fallback for Authentik JWT verification (leave blank to prefer JWKS)" "$(env_default AUTHENTIK_JWT_PUBLIC_KEY "")"
+else
+    sed -i "s|^VITE_AUTHENTIK_ENABLED=.*|VITE_AUTHENTIK_ENABLED=false|" .env.prod
+fi
 
 # AWS SES
 read -p "Do you want to use AWS SES for email? (y/n): " use_ses
@@ -758,21 +875,30 @@ while true; do
 done
 echo "✅ Backend environment file created successfully."
 
-# --- 7️⃣ Check that MongoDB is running ---
+# --- 7️⃣ Prepare frontend build env & build assets ---
+echo ""
+echo "7️⃣ Preparing frontend build env and building assets..."
+sync_frontend_env_from_backend
+cd "$DEPLOY_ROOT"
+npm run build --prefix frontend-vue
+npm run build:remote --prefix frontend-vue
+echo "✅ Vue frontend and remote bundle build complete."
+
+# --- 8️⃣ Check that MongoDB is running ---
 if [[ "$mongo_choice" == "1" ]]; then
     echo ""
-    echo "7️⃣ Waiting for MongoDB to start..."
+    echo "8️⃣ Waiting for MongoDB to start..."
     systemctl enable mongod
     systemctl start mongod
     until nc -z localhost $MONGO_PORT; do sleep 1; done;
     echo "✅ MongoDB started successfully."
 fi
 
-# --- 8️⃣ Create MongoDB Admin User ---
+# --- 9️⃣ Create MongoDB Admin User ---
 if [[ "$existing_mongo_reuse" == true ]]; then
-    read -p "8️⃣ Existing MongoDB detected. Do you want to create another MongoDB admin user automatically anyway? (y/n): " create_admin
+    read -p "9️⃣ Existing MongoDB detected. Do you want to create another MongoDB admin user automatically anyway? (y/n): " create_admin
 else
-    read -p "8️⃣ Do you want to create a MongoDB admin user automatically? (y/n): " create_admin
+    read -p "9️⃣ Do you want to create a MongoDB admin user automatically? (y/n): " create_admin
 fi
 if [[ "$create_admin" =~ ^[Yy]$ ]]; then
     mongo <<EOF
@@ -786,24 +912,26 @@ EOF
     echo "✅ MongoDB admin user created."
 fi
 
-# --- 9️⃣ Systemd Backend Service ---
+# --- 🔟 Systemd Backend Service ---
 echo ""
-echo "9️⃣ Creating systemd service file at $SERVICE_FILE..."
+echo "🔟 Creating systemd service file at $SERVICE_FILE..."
 ensure_service_user
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$BACKEND_DIR"
-install -d -o "$SERVICE_GROUP" -g "$SERVICE_GROUP" -m 775 "$BACKEND_DIR/uploads"
+install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 775 "$BACKEND_DIR/uploads"
+backup_service_file
 write_backend_service
 systemctl daemon-reload
 systemctl enable docman-backend.service
 systemctl start docman-backend.service
 echo "✅ DocMan Backend service created and started successfully."
 
-# --- 1️⃣0️⃣ Apache frontend and remote bundle ---
+# --- 1️⃣1️⃣ Apache frontend and remote bundle ---
 echo ""
-echo "1️⃣0️⃣ Setting up Apache frontend with reverse proxy..."
+echo "1️⃣1️⃣ Setting up Apache frontend with reverse proxy..."
 read -p "Enter folder name for frontend publish root [docman]: " frontend_folder
-frontend_folder=${frontend_folder:-docman}
-backup_if_exists "$APACHE_ROOT/$frontend_folder"
+frontend_folder=${frontend_folder:-$FRONTEND_FOLDER_DEFAULT}
+CURRENT_FRONTEND_FOLDER="$frontend_folder"
+backup_publish_root "$APACHE_ROOT/$frontend_folder"
 # Create frontend directory structure
 publish_frontend_assets "$frontend_folder"
 # Enable Apache modules
@@ -861,9 +989,9 @@ a2ensite $site_name
 systemctl reload apache2
 echo "✅ Apache frontend site configured successfully."
 
-# --- 1️⃣1️⃣ Certbot SSL (Optional) ---
+# --- 1️⃣2️⃣ Certbot SSL (Optional) ---
 echo ""
-echo "1️⃣1️⃣ Use certbot to configure SSL certificate..."
+echo "1️⃣2️⃣ Use certbot to configure SSL certificate..."
 read -p "Do you wish to create an SSL certificate and use https on your domain? (y/n): " use_cert
 if [[ "$use_cert" =~ ^[Yy]$ ]]; then
     missing_packages=()

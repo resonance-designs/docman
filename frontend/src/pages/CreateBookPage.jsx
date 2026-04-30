@@ -4,7 +4,7 @@
  * @page CreateBookPage
  * @description Book creation page with form for adding new books using shared design patterns
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import { useState } from "react";

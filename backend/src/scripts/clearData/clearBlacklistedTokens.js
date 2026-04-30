@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearBlacklistedTokens.js
  * @description Script to clear all blacklisted tokens from the database
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

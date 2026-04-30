@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import Doc from "../models/Doc.js";

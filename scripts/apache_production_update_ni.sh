@@ -6,15 +6,20 @@ set -euo pipefail
 # ======================================================================
 #
 # This script performs a non-interactive update of an existing Apache-hosted
-# DocMan deployment and automatically rolls back if a command fails.
+# DocMan deployment using the current checked-out repository as the source
+# of truth. It creates a full persistent backup and rolls back from that
+# backup if any step fails.
 #
 # Usage:
-#   sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
+#   sudo ./scripts/apache_production_update_ni.sh [--ssl] [--dry-run]
 #
 # Optional environment variables:
 #   FRONTEND_FOLDER=docman
-#   CERTBOT_EMAIL=admin@example.com
+#   CERTBOT_EMAIL=info@example.com
 #   SSL_DOMAINS="docman.example.com api.docman.example.com"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 DEPLOY_ROOT=/var/www/docman
 BACKEND_DIR="$DEPLOY_ROOT/backend"
@@ -24,18 +29,22 @@ SERVICE_FILE=/etc/systemd/system/docman-backend.service
 SERVICE_USER=docman
 SERVICE_GROUP=www-data
 MIN_NODE_VERSION=20.19.0
-BACKUP_ROOT=/tmp/docman_env_backup
 FRONTEND_FOLDER="${FRONTEND_FOLDER:-docman}"
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
 SSL_DOMAINS="${SSL_DOMAINS:-}"
 SSL_FLAG=0
 DRY_RUN=0
-DRYRUN_LOG=/tmp/docman_dryrun.log
 OPERATOR_USER="${SUDO_USER:-${USER:-root}}"
 OPERATOR_HOME="$(getent passwd "$OPERATOR_USER" | cut -d: -f6 2>/dev/null || true)"
 OPERATOR_HOME="${OPERATOR_HOME:-$HOME}"
 ENV_EXPORT_DIR="$OPERATOR_HOME/docman"
 EXPORTED_ENV_SOURCE_FILE="$ENV_EXPORT_DIR/previous-backend.env.prod"
+DRYRUN_LOG=/tmp/docman_dryrun.log
+SOURCE_SNAPSHOT=""
+BACKUP_DIR=""
+BACKUP_ENV_FILE=""
+BACKUP_PUBLISH_DIR=""
+BACKUP_SERVICE_FILE=""
 
 for arg in "$@"; do
     case $arg in
@@ -50,6 +59,12 @@ run_cmd() {
         echo "[DRY-RUN] $*" | tee -a "$DRYRUN_LOG"
     else
         eval "$@"
+    fi
+}
+
+cleanup_temp() {
+    if [[ -n "$SOURCE_SNAPSHOT" && -d "$SOURCE_SNAPSHOT" ]]; then
+        rm -rf "$SOURCE_SNAPSHOT"
     fi
 }
 
@@ -74,6 +89,7 @@ check_prerequisites() {
 
     command -v git >/dev/null 2>&1 || { echo "⚠️ Git is required."; exit 1; }
     command -v rsync >/dev/null 2>&1 || { echo "⚠️ rsync is required."; exit 1; }
+    command -v nc >/dev/null 2>&1 || { echo "⚠️ Netcat (nc) is required."; exit 1; }
 }
 
 export_env_files_from_target() {
@@ -117,6 +133,120 @@ merge_env() {
     done < <(grep -v '^#' .env.sample | cut -d= -f1)
 }
 
+create_source_snapshot() {
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo "[DRY-RUN] Would snapshot source checkout from $SOURCE_ROOT" | tee -a "$DRYRUN_LOG"
+        return
+    fi
+
+    SOURCE_SNAPSHOT=$(mktemp -d /tmp/docman_update_source_XXXXXX)
+    rsync -a \
+        --exclude '.git' \
+        --exclude 'node_modules' \
+        --exclude 'dist' \
+        --exclude 'dist-remote' \
+        "$SOURCE_ROOT/" "$SOURCE_SNAPSHOT/"
+}
+
+create_full_backup() {
+    BACKUP_DIR="/var/www/docman_bak_$(date +%F_%H%M%S)"
+    BACKUP_ENV_FILE="$BACKUP_DIR/backend/.env.prod"
+    BACKUP_PUBLISH_DIR="$BACKUP_DIR/__apache_public_html"
+    BACKUP_SERVICE_FILE="$BACKUP_DIR/__systemd/docman-backend.service"
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo "[DRY-RUN] Would create full backup at $BACKUP_DIR" | tee -a "$DRYRUN_LOG"
+        return
+    fi
+
+    mkdir -p "$BACKUP_DIR"
+    mkdir -p "$BACKUP_PUBLISH_DIR"
+    mkdir -p "$(dirname "$BACKUP_SERVICE_FILE")"
+
+    if [[ -d "$DEPLOY_ROOT" ]]; then
+        rsync -a "$DEPLOY_ROOT/" "$BACKUP_DIR/"
+    fi
+
+    if [[ -d "$APACHE_ROOT/$FRONTEND_FOLDER/public_html" ]]; then
+        rsync -a "$APACHE_ROOT/$FRONTEND_FOLDER/public_html/" "$BACKUP_PUBLISH_DIR/"
+    fi
+
+    if [[ -f "$SERVICE_FILE" ]]; then
+        cp "$SERVICE_FILE" "$BACKUP_SERVICE_FILE"
+    fi
+
+    export_env_files_from_target "$DEPLOY_ROOT"
+}
+
+restore_backup() {
+    [[ -n "$BACKUP_DIR" && -d "$BACKUP_DIR" ]] || {
+        echo "⚠️ No persistent backup directory is available for rollback."
+        exit 1
+    }
+
+    cd /
+    rm -rf "$DEPLOY_ROOT"
+    mkdir -p "$DEPLOY_ROOT"
+    rsync -a --delete \
+        --exclude '__apache_public_html' \
+        --exclude '__systemd' \
+        "$BACKUP_DIR/" "$DEPLOY_ROOT/"
+
+    if [[ -d "$BACKUP_PUBLISH_DIR" ]]; then
+        mkdir -p "$APACHE_ROOT/$FRONTEND_FOLDER/public_html"
+        rsync -a --delete "$BACKUP_PUBLISH_DIR/" "$APACHE_ROOT/$FRONTEND_FOLDER/public_html/"
+    fi
+
+    if [[ -f "$BACKUP_SERVICE_FILE" ]]; then
+        cp "$BACKUP_SERVICE_FILE" "$SERVICE_FILE"
+        systemctl daemon-reload || true
+    fi
+
+    systemctl restart docman-backend.service || true
+    systemctl reload apache2 || true
+}
+
+rollback() {
+    trap - ERR
+    echo "⚠️ Rolling back update..."
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo "[DRY-RUN] Would restore $DEPLOY_ROOT, frontend publish root, and the backend service from backup." | tee -a "$DRYRUN_LOG"
+        exit 1
+    fi
+
+    restore_backup
+    echo "✅ Update rolled back from $BACKUP_DIR"
+    exit 1
+}
+
+sync_frontend_env_from_backend() {
+    local source_frontend_env="$SOURCE_SNAPSHOT/frontend-vue/.env.production"
+    local backend_env="$BACKEND_DIR/.env.prod"
+    local target_env="$VUE_FRONTEND_DIR/.env.production"
+    local example_env="$VUE_FRONTEND_DIR/.env.production.example"
+
+    if [[ -f "$source_frontend_env" ]]; then
+        cp "$source_frontend_env" "$target_env"
+        echo "✅ Restored frontend build env from source checkout."
+        return
+    fi
+
+    if grep -q '^VITE_' "$backend_env" 2>/dev/null; then
+        grep '^VITE_' "$backend_env" > "$target_env"
+        echo "✅ Materialized frontend-vue/.env.production from backend .env.prod VITE_* values."
+        return
+    fi
+
+    if [[ -f "$example_env" ]]; then
+        cp "$example_env" "$target_env"
+        echo "⚠️ No real VITE_* values were found; copied frontend-vue/.env.production.example as a placeholder."
+        return
+    fi
+
+    echo "⚠️ No frontend-vue/.env.production source was available."
+}
+
 publish_frontend_assets() {
     local publish_root="$APACHE_ROOT/$FRONTEND_FOLDER"
 
@@ -128,32 +258,7 @@ publish_frontend_assets() {
     run_cmd "chown -R www-data:www-data '$publish_root'"
 }
 
-rollback() {
-    echo "⚠️ Rolling back update..."
-
-    if [[ $DRY_RUN -eq 1 ]]; then
-        echo "[DRY-RUN] Would restore backend, env, frontend assets, and restart services." | tee -a "$DRYRUN_LOG"
-        exit 1
-    fi
-
-    rm -rf "$DEPLOY_ROOT"
-    git clone https://github.com/resonance-designs/docman.git "$DEPLOY_ROOT"
-
-    if [[ -f "$BACKUP_ROOT/.env.prod" ]]; then
-        cp "$BACKUP_ROOT/.env.prod" "$BACKEND_DIR/.env.prod"
-        echo "✅ Backend .env.prod restored."
-    fi
-
-    if [[ -d "$BACKUP_ROOT/public_html_backup" ]]; then
-        rsync -a --delete "$BACKUP_ROOT/public_html_backup/" "$APACHE_ROOT/$FRONTEND_FOLDER/public_html/"
-    fi
-
-    systemctl restart docman-backend.service
-    systemctl reload apache2
-    echo "✅ Update rolled back successfully."
-    exit 1
-}
-
+trap cleanup_temp EXIT
 trap 'echo "❌ Error detected. Rolling back..."; rollback' ERR
 
 if [[ $EUID -ne 0 && $DRY_RUN -eq 0 ]]; then
@@ -169,39 +274,26 @@ echo "=== Updating DocMan on Apache Production Server (No Prompts) ==="
 [[ $DRY_RUN -eq 1 ]] && echo "=== DRY-RUN MODE: no changes will be applied ==="
 echo "=============================================================="
 
-# --- 1️⃣ Backup ---
-echo "1️⃣ Backing up current .env.prod and frontend..."
-if [[ $DRY_RUN -eq 0 ]]; then
-    mkdir -p "$BACKUP_ROOT"
-    cp "$BACKEND_DIR/.env.prod" "$BACKUP_ROOT/.env.prod"
-    mkdir -p "$BACKUP_ROOT/public_html_backup"
-    rsync -a "$APACHE_ROOT/$FRONTEND_FOLDER/public_html/" "$BACKUP_ROOT/public_html_backup/"
-    export_env_files_from_target "$DEPLOY_ROOT"
-else
-    echo "[DRY-RUN] Would back up $BACKEND_DIR/.env.prod and $APACHE_ROOT/$FRONTEND_FOLDER/public_html/" | tee -a "$DRYRUN_LOG"
-fi
+echo "1️⃣ Creating full backup of the current deployment..."
+create_full_backup
 [[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Backup simulated." || echo "✅ Backup complete."
 
-# --- 2️⃣ Fresh clone ---
 echo ""
-echo "2️⃣ Cloning fresh repository..."
-run_cmd "rm -rf '$DEPLOY_ROOT'"
-run_cmd "git clone https://github.com/resonance-designs/docman.git '$DEPLOY_ROOT'"
-[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Repository clone simulated." || echo "✅ Repository cloned fresh."
+echo "2️⃣ Snapshotting the current source checkout..."
+create_source_snapshot
+[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Source snapshot simulated." || echo "✅ Source snapshot ready at $SOURCE_SNAPSHOT"
 
-# --- 3️⃣ Build Vue frontend and remote bundle ---
 echo ""
-echo "3️⃣ Building Vue frontend and remote bundle..."
-run_cmd "cd '$DEPLOY_ROOT' && npm run build:vue"
-run_cmd "cd '$DEPLOY_ROOT' && npm run build:remote --prefix frontend-vue"
-[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Build simulated." || echo "✅ Build complete."
+echo "3️⃣ Replacing the deployed application tree..."
+run_cmd "cd / && rm -rf '$DEPLOY_ROOT'"
+run_cmd "mkdir -p '$DEPLOY_ROOT'"
+run_cmd "rsync -a '$SOURCE_SNAPSHOT/' '$DEPLOY_ROOT/'"
+[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Deployment tree replacement simulated." || echo "✅ Deployment tree replaced from the current source checkout."
 
-# --- 4️⃣ Restore environment ---
 echo ""
-echo "4️⃣ Restoring previous .env.prod..."
-run_cmd "cd '$BACKEND_DIR'"
-if [[ -f "$BACKUP_ROOT/.env.prod" ]]; then
-    run_cmd "cp '$BACKUP_ROOT/.env.prod' '$BACKEND_DIR/.env.prod'"
+echo "4️⃣ Restoring and normalizing backend environment..."
+if [[ -f "$BACKUP_ENV_FILE" ]]; then
+    run_cmd "cp '$BACKUP_ENV_FILE' '$BACKEND_DIR/.env.prod'"
 else
     run_cmd "cp '$BACKEND_DIR/.env.sample' '$BACKEND_DIR/.env.prod'"
 fi
@@ -215,11 +307,26 @@ if [[ $DRY_RUN -eq 0 ]]; then
 else
     echo "[DRY-RUN] Would merge missing env keys from .env.sample" | tee -a "$DRYRUN_LOG"
 fi
-[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Environment update simulated." || echo "✅ Environment variables updated."
+[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Environment update simulated." || echo "✅ Backend environment updated."
 
-# --- 5️⃣ MongoDB ---
 echo ""
-echo "5️⃣ Restarting MongoDB if configured..."
+echo "5️⃣ Preparing frontend build environment..."
+if [[ $DRY_RUN -eq 0 ]]; then
+    sync_frontend_env_from_backend
+else
+    echo "[DRY-RUN] Would generate frontend-vue/.env.production from source or backend VITE_* values" | tee -a "$DRYRUN_LOG"
+fi
+
+echo ""
+echo "6️⃣ Installing dependencies and rebuilding frontend assets..."
+run_cmd "cd '$DEPLOY_ROOT' && npm ci --prefix backend"
+run_cmd "cd '$DEPLOY_ROOT' && npm ci --include=dev --prefix frontend-vue"
+run_cmd "cd '$DEPLOY_ROOT' && npm run build:vue"
+run_cmd "cd '$DEPLOY_ROOT' && npm run build:remote --prefix frontend-vue"
+[[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Build simulated." || echo "✅ Build complete."
+
+echo ""
+echo "7️⃣ Restarting MongoDB if configured..."
 if [[ $DRY_RUN -eq 0 ]]; then
     MONGO_PORT=$(grep '^MONGO_PORT=' "$BACKEND_DIR/.env.prod" | cut -d= -f2-)
 else
@@ -236,30 +343,27 @@ if [[ -f /etc/mongod.conf ]]; then
     [[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] MongoDB restart simulated." || echo "✅ MongoDB restarted."
 fi
 
-# --- 6️⃣ Backend service ---
 echo ""
-echo "6️⃣ Restarting DocMan backend service..."
-run_cmd "install -d -o www-data -g www-data -m 775 '$BACKEND_DIR/uploads'"
+echo "8️⃣ Restarting DocMan backend service..."
+run_cmd "install -d -o '$SERVICE_USER' -g '$SERVICE_GROUP' -m 775 '$BACKEND_DIR/uploads'"
 run_cmd "chown -R '$SERVICE_USER:$SERVICE_GROUP' '$BACKEND_DIR'"
 run_cmd "systemctl daemon-reload"
 run_cmd "systemctl restart docman-backend.service"
 run_cmd "systemctl enable docman-backend.service"
 [[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Backend restart simulated." || echo "✅ Backend service restarted successfully."
 
-# --- 7️⃣ Frontend assets ---
 echo ""
-echo "7️⃣ Publishing frontend and remote assets..."
+echo "9️⃣ Publishing frontend and remote assets..."
 publish_frontend_assets
 run_cmd "systemctl reload apache2"
 [[ $DRY_RUN -eq 1 ]] && echo "[DRY-RUN] Frontend publish simulated." || echo "✅ Frontend updated successfully."
 
-# --- 8️⃣ Optional SSL ---
 if [[ $SSL_FLAG -eq 1 ]]; then
     echo ""
-    echo "8️⃣ Updating SSL certificates..."
+    echo "🔟 Updating SSL certificates..."
     if [[ -z "$SSL_DOMAINS" || -z "$CERTBOT_EMAIL" ]]; then
         echo "⚠️ When using --ssl, set SSL_DOMAINS and CERTBOT_EMAIL first."
-        echo "   Example: SSL_DOMAINS=\"docman.example.com api.docman.example.com\" CERTBOT_EMAIL=info@example.com sudo ./apache_production_update_ni.sh --ssl"
+        echo "   Example: SSL_DOMAINS=\"docman.example.com api.docman.example.com\" CERTBOT_EMAIL=info@example.com sudo ./scripts/apache_production_update_ni.sh --ssl"
         exit 1
     fi
 

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2026-04-29
+
+### Changed
+
+- Hardened `apache_production_deploy.sh` to create a persistent full backup of the existing deployment tree, Apache publish root, and backend systemd unit before replacing them.
+- Changed the deployment script to prompt for Authentik frontend/backend env values and materialize `frontend-vue/.env.production` before the Vite build.
+- Hardened `apache_production_update.sh` and `apache_production_update_ni.sh` to restore from persistent local backups instead of relying on a fresh git clone during rollback.
+- Updated `backend/.env.sample`, `frontend-vue/.env.production.example`, and README guidance to document the real frontend Authentik build env flow.
+
 ## [0.2.5] - 2026-04-29
 
 ### Added

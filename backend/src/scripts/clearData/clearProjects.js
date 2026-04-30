@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearProjects.js
  * @description Script to clear all projects from the database
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';
