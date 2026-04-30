@@ -8,6 +8,7 @@ function getAuthentikConfig() {
     enabled: Boolean(runtimeConfig.authentikEnabled),
     clientId: runtimeConfig.authentikClientId,
     authorizationUrl: runtimeConfig.authentikAuthorizationUrl,
+    registrationUrl: runtimeConfig.authentikRegistrationUrl,
     tokenUrl: runtimeConfig.authentikTokenUrl,
     redirectUri: runtimeConfig.authentikRedirectUri,
     scope: runtimeConfig.authentikScope || 'openid profile email',
@@ -26,6 +27,11 @@ function assertAuthentikConfigured(config) {
 
 export function isAuthentikEnabled() {
   return getAuthentikConfig().enabled;
+}
+
+export function hasAuthentikRegistration() {
+  const config = getAuthentikConfig();
+  return Boolean(config.enabled && config.registrationUrl);
 }
 
 export async function beginAuthentikLogin(redirectPath = '/documents') {
@@ -51,6 +57,17 @@ export async function beginAuthentikLogin(redirectPath = '/documents') {
   });
 
   window.location.assign(`${config.authorizationUrl}?${params.toString()}`);
+}
+
+export function beginAuthentikRegistration() {
+  const config = getAuthentikConfig();
+  assertAuthentikConfigured(config);
+
+  if (!config.registrationUrl) {
+    throw new Error('Authentik registration is not configured.');
+  }
+
+  window.location.assign(config.registrationUrl);
 }
 
 export async function exchangeAuthentikCode(code, returnedState) {

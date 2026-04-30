@@ -4,7 +4,7 @@
  * @page TeamsPage
  * @description Team management page displaying user teams with creation, editing, and member management capabilities
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

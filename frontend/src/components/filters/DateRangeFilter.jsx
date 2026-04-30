@@ -4,7 +4,7 @@
  * @component DateRangeFilter
  * @description Date range filter component with calendar picker for filtering by date periods
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import { CalendarIcon, XIcon } from "lucide-react";

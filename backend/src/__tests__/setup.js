@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/setup.js
  * @description Global test setup and configuration
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import { jest } from '@jest/globals';

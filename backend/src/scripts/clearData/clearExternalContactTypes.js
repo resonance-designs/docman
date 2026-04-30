@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearExternalContactTypes.js
  * @description Script to clear all external contact types from the database
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

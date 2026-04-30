@@ -4,7 +4,7 @@
  * @hook useDocumentManagement
  * @description Custom hook for managing document selection in book forms
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";

@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/linkAuthentikUsers.js
  * @description Bulk link existing DocMan users to Authentik subject IDs through an explicit mapping file
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import fs from "fs";

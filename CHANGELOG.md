@@ -2,7 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.2.6] - 2026-04-29
+## [2.2.7] - 2026-04-30
+
+### Changed
+
+- Changed the Authentik backend identity flow to auto-link existing local users by verified email on first sign-in.
+- Changed the Authentik backend identity flow to just-in-time provision new local viewer accounts for verified Authentik identities that do not already exist in MongoDB.
+- Changed the Vue login experience to expose `Create Resonance Account` when an Authentik enrollment URL is configured and to de-emphasize legacy local-only access.
+- Added `LOCAL_SELF_REGISTRATION_ENABLED` so production can disable the legacy local `/auth/register` path when Authentik is the canonical suite registration authority.
+- Updated deployment and recovery documentation to explain the new verified-email auto-linking path, JIT provisioning behavior, and the remaining manual `authentikSub` repair workflow.
+
+## [2.2.6] - 2026-04-29
 
 ### Changed
 
@@ -11,7 +21,7 @@ All notable changes to this project will be documented in this file.
 - Hardened `apache_production_update.sh` and `apache_production_update_ni.sh` to restore from persistent local backups instead of relying on a fresh git clone during rollback.
 - Updated `backend/.env.sample`, `frontend-vue/.env.production.example`, and README guidance to document the real frontend Authentik build env flow.
 
-## [0.2.5] - 2026-04-29
+## [2.2.5] - 2026-04-29
 
 ### Added
 
@@ -29,7 +39,7 @@ All notable changes to this project will be documented in this file.
 - Updated Swagger/OpenAPI metadata to use `info@resonancedesigns.dev`, label the live API correctly as production, and remove stale `docman.com` assumptions.
 - Updated package metadata and backend email fallbacks to use the Resonance Designs contact address consistently.
 
-## [0.2.4] - 2026-04-27
+## [2.2.4] - 2026-04-27
 
 ### Added
 
@@ -51,7 +61,7 @@ All notable changes to this project will be documented in this file.
 - Tightened the documented and scripted Node.js requirement to `20.19+` or `22.12+` for the current Vue/Vite toolchain.
 - Updated deployment documentation and README guidance to reflect the current Vue/Vuetify, Authentik, and hybrid remote-bundle deployment path.
 
-## [0.2.3] - 2026-04-25
+## [2.2.3] - 2026-04-25
 
 ### Added
 
@@ -77,7 +87,7 @@ All notable changes to this project will be documented in this file.
 - The docs build succeeds with a non-fatal webpack warning from `vscode-languageserver-types`.
 - The docs dependency tree currently reports npm audit findings inherited from the Docusaurus install.
 
-## [0.2.2] - 2026-04-25
+## [2.2.2] - 2026-04-25
 
 ### Added
 

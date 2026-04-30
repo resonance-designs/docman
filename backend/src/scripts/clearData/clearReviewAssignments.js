@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearReviewAssignments.js
  * @description Script to clear all review assignments from the database
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

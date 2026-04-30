@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# ======================================================================
-# === DocMan Production Update Script (Interactive / Modernized)      ===
-# ======================================================================
+# =====================================================================
+# ===  DocMan Production Update Script (Interactive / Modernized)   ===
+# =====================================================================
 #
 # This script updates an existing Apache-hosted DocMan deployment using the
 # current checked-out repository as the source of truth.
@@ -25,7 +25,8 @@ set -euo pipefail
 #   sudo ./scripts/apache_production_update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SOURCE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_ROOT_DEFAULT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_ROOT="${DOCMAN_SOURCE_ROOT:-$SOURCE_ROOT_DEFAULT}"
 SOURCE_SNAPSHOT=""
 
 DEPLOY_ROOT=/var/www/docman
@@ -46,6 +47,35 @@ BACKUP_DIR=""
 BACKUP_ENV_FILE=""
 BACKUP_PUBLISH_DIR=""
 BACKUP_SERVICE_FILE=""
+
+is_docman_repo_root() {
+    local candidate="$1"
+    [[ -d "$candidate/backend" && -d "$candidate/frontend-vue" && -f "$candidate/package.json" ]]
+}
+
+resolve_source_root() {
+    if is_docman_repo_root "$SOURCE_ROOT"; then
+        return
+    fi
+
+    if is_docman_repo_root "$PWD"; then
+        SOURCE_ROOT="$PWD"
+        return
+    fi
+
+    if [[ -n "${SUDO_USER:-}" ]]; then
+        local sudo_home
+        sudo_home="$(getent passwd "$SUDO_USER" | cut -d: -f6 2>/dev/null || true)"
+        if [[ -n "$sudo_home" && -d "$sudo_home/git/docman" ]] && is_docman_repo_root "$sudo_home/git/docman"; then
+            SOURCE_ROOT="$sudo_home/git/docman"
+            return
+        fi
+    fi
+
+    echo "⚠️ Could not resolve a valid DocMan source root."
+    echo "   Set DOCMAN_SOURCE_ROOT=/path/to/docman when running this script."
+    exit 1
+}
 
 cleanup_temp() {
     if [[ -n "$SOURCE_SNAPSHOT" && -d "$SOURCE_SNAPSHOT" ]]; then
@@ -244,6 +274,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 check_prerequisites
+resolve_source_root
 
 frontend_folder="$FRONTEND_FOLDER_DEFAULT"
 read -p "Enter frontend folder name to update [$FRONTEND_FOLDER_DEFAULT]: " frontend_folder_input

@@ -237,7 +237,7 @@ Every file should have a descriptive header:
  * @service documentService
  * @description Business logic for document management operations
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 ```

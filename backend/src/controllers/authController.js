@@ -4,7 +4,7 @@
  * @controller authController
  * @description Authentication controller handling user registration, login, logout, and password reset functionality
  * @author Richard Bakos
- * @version 2.2.6
+ * @version 2.2.7
  * @license UNLICENSED
  */
 import crypto from "crypto";
@@ -21,6 +21,10 @@ import {
     sanitizeString,
     sanitizeEmail
 } from "../lib/validation.js";
+
+function isLocalSelfRegistrationEnabled() {
+    return process.env.LOCAL_SELF_REGISTRATION_ENABLED !== "false";
+}
 
 /**
  * Helper function to set refresh token cookie
@@ -44,6 +48,12 @@ function setRefreshCookie(res, token) {
  */
 export async function register(req, res) {
     try {
+        if (!isLocalSelfRegistrationEnabled()) {
+            return res.status(403).json({
+                message: "Local self-registration is disabled. Create a Resonance Account through Authentik instead.",
+            });
+        }
+
         const { email, firstname, lastname, username, password, role } = req.body;
 
         // Validation
@@ -302,6 +312,7 @@ export async function getCurrentSession(req, res) {
             identity: req.identity ? {
                 authType: req.identity.authType,
                 provider: req.identity.provider,
+                resolution: req.identity.resolution || null,
             } : null,
         });
     } catch (error) {
