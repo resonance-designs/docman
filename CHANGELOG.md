@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.5] - 2026-04-29
+
+### Added
+
+- Added `.secrets/.env.prod` as a local ignored production env reference for recovery and deployment patching.
+- Added `AUTHENTIK_JWKS_URL` support so the backend can verify Authentik RS256 tokens from JWKS instead of relying solely on a hard-coded PEM.
+
+### Changed
+
+- Updated `apache_production_deploy.sh` to preserve discovered `.env*` files under `~/docman/env-backups/` and keep `~/docman/previous-backend.env.prod` as the preferred recovery source.
+- Changed the deployment script to detect and reuse existing production values more safely during recovery prompts instead of depending on placeholder `.env` content.
+- Modernized `apache_production_update.sh` to rebuild the Vue frontend, publish the remote bundle, preserve prior env files, and follow the current `docman` service model.
+- Modernized `apache_production_update_ni.sh` to match the current Vue/remote-bundle deployment path, preserve env backups, and require explicit SSL domain/email inputs for Certbot automation.
+- Updated deployment documentation and README guidance to reflect the current Linode, Apache, Authentik, SES, Redis, and hybrid remote-bundle deployment path.
+- Updated backend Authentik configuration examples and `.env.sample` to prefer JWKS-based validation with `AUTHENTIK_JWKS_URL`.
+- Updated Swagger/OpenAPI metadata to use `info@resonancedesigns.dev`, label the live API correctly as production, and remove stale `docman.com` assumptions.
+- Updated package metadata and backend email fallbacks to use the Resonance Designs contact address consistently.
+
 ## [0.2.4] - 2026-04-27
 
 ### Added

@@ -33,3 +33,5 @@ docman.users.json
 certs/
 
 db/
+
+.secrets/
