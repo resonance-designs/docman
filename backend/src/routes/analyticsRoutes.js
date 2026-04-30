@@ -4,7 +4,7 @@
  * @routes analyticsRoutes
  * @description Analytics routes for generating reports, metrics, and data visualizations
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import express from "express";

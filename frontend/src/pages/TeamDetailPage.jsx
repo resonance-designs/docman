@@ -4,7 +4,7 @@
  * @page TeamDetailPage
  * @description Team detail page displaying team members, projects, and collaboration tools
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

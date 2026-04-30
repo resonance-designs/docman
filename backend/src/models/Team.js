@@ -4,7 +4,7 @@
  * @model Team
  * @description Team model schema for collaborative team management with members, invitations, and project associations
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 // backend/src/models/Team.js

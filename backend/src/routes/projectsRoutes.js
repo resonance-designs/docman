@@ -4,7 +4,7 @@
  * @routes projectsRoutes
  * @description Project management routes for project operations and team assignments
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import express from "express";

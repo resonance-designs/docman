@@ -4,7 +4,7 @@
  * @page ViewDocsPage
  * @description Document listing page with search, filtering, sorting, and bulk operations for managing documents
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import { useEffect, useState } from "react";

@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyDocs.js
  * @description Script to create dummy documents in the database
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

@@ -4,7 +4,7 @@
  * @middleware rateLimiter
  * @description Rate limiting middleware using Redis for preventing API abuse and ensuring fair usage
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 import ratelimit from "../config/upstash.js";

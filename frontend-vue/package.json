@@ -1,7 +1,7 @@
 {
   "name": "rd-docman-frontend-vue",
   "private": true,
-  "version": "2.2.5",
+  "version": "2.2.6",
   "type": "module",
   "description": "Vue and Vuetify migration foundation for DocMan.",
   "scripts": {

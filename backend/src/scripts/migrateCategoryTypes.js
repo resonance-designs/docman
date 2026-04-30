@@ -4,7 +4,7 @@
  * @script migrateCategoryTypes
  * @description Migration script to add type field to existing categories
  * @author Richard Bakos
- * @version 2.2.5
+ * @version 2.2.6
  * @license UNLICENSED
  */
 
