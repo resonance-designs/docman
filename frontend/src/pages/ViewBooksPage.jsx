@@ -4,7 +4,7 @@
  * @page ViewBooksPage
  * @description Books listing page with filtering and management capabilities
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import React, { useState, useEffect } from 'react';

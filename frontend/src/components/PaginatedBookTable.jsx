@@ -4,7 +4,7 @@
  * @component PaginatedBookTable
  * @description Paginated table component for displaying books with sorting, filtering, and bulk actions
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 

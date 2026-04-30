@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearUsers.js
  * @description Script to clear all users from the database
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

@@ -4,7 +4,7 @@
  * @hook useStakeholderManagement
  * @description Custom hook for managing stakeholders and owners in document forms
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { useState, useCallback } from "react";

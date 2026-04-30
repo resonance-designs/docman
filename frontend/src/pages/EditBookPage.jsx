@@ -4,7 +4,7 @@
  * @page EditBookPage
  * @description Book editing page with form for updating existing books using shared design patterns
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { useNavigate, useParams, Link } from "react-router";

@@ -4,7 +4,7 @@
  * @hook useDocument
  * @description Custom hook for loading and managing document data
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { useState, useEffect, useCallback } from "react";

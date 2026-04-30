@@ -4,7 +4,7 @@
  * @module swagger
  * @description OpenAPI/Swagger configuration for comprehensive API documentation
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import swaggerJsdoc from 'swagger-jsdoc';
@@ -22,21 +22,21 @@ const options = {
             description: 'Comprehensive Document Management System API',
             contact: {
                 name: 'Richard Bakos',
-                email: 'support@docman.com'
+                email: 'info@resonancedesigns.dev'
             },
             license: {
                 name: 'UNLICENSED',
-                url: 'https://docman.com/license'
+                url: 'https://resonancedesigns.dev'
             }
         },
         servers: [
             {
-                url: process.env.API_URL || 'http://localhost:5001/api',
-                description: 'Development server'
+                url: process.env.API_URL || 'https://api.docman.resonancedesigns.dev/api',
+                description: 'Production server'
             },
             {
-                url: 'https://api.docman.com/api',
-                description: 'Production server'
+                url: 'http://localhost:5001/api',
+                description: 'Local development server'
             }
         ],
         components: {

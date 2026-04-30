@@ -275,6 +275,24 @@ For static frontend-only updates, copy the selected `dist` output into the Apach
 
 For backend updates, update the backend application path, preserve `.env.prod`, install production dependencies, and restart the backend service.
 
+For full recovery deploys using `scripts/apache_production_deploy.sh`:
+
+- back up the existing `/var/www/docman` tree instead of deleting it blindly
+- preserve previous `.env*` files during that backup
+- export those env files into `~/docman/env-backups/`
+- preserve the last backend env file as `~/docman/previous-backend.env.prod`
+- prefer that preserved backend env file as the prompt-default source on the next recovery run
+
+This env preservation behavior exists specifically because production recovery often needs to re-enter:
+
+- MongoDB connection values
+- `NODE_PORT`
+- Upstash Redis credentials
+- AWS SES credentials
+- JWT/auth token secrets
+
+Maintainers should treat `~/docman/previous-backend.env.prod` as a recovery aid, not as a replacement for proper secret management. After a successful recovery deploy, confirm the resulting `/var/www/docman/backend/.env.prod` matches the intended live configuration.
+
 ## Data Safety Rules
 
 Production deploys must not clear or recreate collections.

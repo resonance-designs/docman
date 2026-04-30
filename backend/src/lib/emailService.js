@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
@@ -27,7 +27,7 @@ const sesClient = new SESClient({
 // Function to send email using AWS SES
 export async function sendEmail(to, subject, text, html) {
     // Use environment-specific sender email
-    const senderEmail = process.env.AWS_SES_SENDER_EMAIL || "noreply@resonancedesigns.dev";
+    const senderEmail = process.env.AWS_SES_SENDER_EMAIL || "info@resonancedesigns.dev";
     
     const params = {
         Destination: {

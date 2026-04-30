@@ -45,6 +45,11 @@ SERVICE_USER=docman
 SERVICE_GROUP=www-data
 MIN_NODE_VERSION=20.19.0
 ENV_SOURCE_FILE=""
+OPERATOR_USER="${SUDO_USER:-${USER:-root}}"
+OPERATOR_HOME="$(getent passwd "$OPERATOR_USER" | cut -d: -f6 2>/dev/null || true)"
+OPERATOR_HOME="${OPERATOR_HOME:-$HOME}"
+ENV_EXPORT_DIR="$OPERATOR_HOME/docman"
+EXPORTED_ENV_SOURCE_FILE="$ENV_EXPORT_DIR/previous-backend.env.prod"
 
 # --- Functions ---
 rollback() {
@@ -65,17 +70,27 @@ ask() {
 }
 
 detect_previous_env_source() {
-    local candidates=()
     local latest_backup
 
-    if [[ -f "$BACKEND_DIR/.env.prod" ]]; then
-        ENV_SOURCE_FILE="$BACKEND_DIR/.env.prod"
+    if [[ -f "$EXPORTED_ENV_SOURCE_FILE" ]]; then
+        ENV_SOURCE_FILE="$EXPORTED_ENV_SOURCE_FILE"
+        return
+    fi
+
+    latest_backup=$(ls -dt "$ENV_EXPORT_DIR"/env-backups/* 2>/dev/null | head -n1 || true)
+    if [[ -n "$latest_backup" && -f "$latest_backup/backend/.env.prod" ]]; then
+        ENV_SOURCE_FILE="$latest_backup/backend/.env.prod"
         return
     fi
 
     latest_backup=$(ls -dt /var/www/docman_bak_* 2>/dev/null | head -n1 || true)
     if [[ -n "$latest_backup" && -f "$latest_backup/backend/.env.prod" ]]; then
         ENV_SOURCE_FILE="$latest_backup/backend/.env.prod"
+        return
+    fi
+
+    if [[ -f "$BACKEND_DIR/.env.prod" ]]; then
+        ENV_SOURCE_FILE="$BACKEND_DIR/.env.prod"
         return
     fi
 
@@ -123,8 +138,42 @@ backup_if_exists() {
     if [[ -e "$target" ]]; then
         local backup_path="${target}_bak_$(date +%F_%H%M%S)"
         echo "⚠️ Existing path detected at $target"
+        export_env_files_from_target "$target"
         echo "🔄 Backing it up to $backup_path"
         mv "$target" "$backup_path"
+    fi
+}
+
+export_env_files_from_target() {
+    local target="$1"
+    local snapshot_root="$ENV_EXPORT_DIR/env-backups/$(basename "$target")_$(date +%F_%H%M%S)"
+    local found_env=false
+
+    [[ -d "$target" ]] || return 0
+
+    mkdir -p "$snapshot_root"
+    mkdir -p "$ENV_EXPORT_DIR"
+
+    while IFS= read -r -d '' env_file; do
+        local rel_path="${env_file#$target/}"
+        local dest_dir="$snapshot_root/$(dirname "$rel_path")"
+
+        mkdir -p "$dest_dir"
+        cp "$env_file" "$dest_dir/"
+        found_env=true
+
+        if [[ "$rel_path" == "backend/.env.prod" ]]; then
+            cp "$env_file" "$EXPORTED_ENV_SOURCE_FILE"
+        fi
+    done < <(find "$target" -maxdepth 4 -type f -name '.env*' -print0 2>/dev/null)
+
+    if [[ "$found_env" == true ]]; then
+        echo "📦 Exported previous .env files to $snapshot_root"
+        if [[ -f "$EXPORTED_ENV_SOURCE_FILE" ]]; then
+            echo "🔍 Preserved backend env defaults at $EXPORTED_ENV_SOURCE_FILE"
+        fi
+    else
+        rmdir "$snapshot_root" 2>/dev/null || true
     fi
 }
 

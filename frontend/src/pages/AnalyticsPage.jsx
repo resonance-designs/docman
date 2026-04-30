@@ -4,7 +4,7 @@
  * @page AnalyticsPage
  * @description Analytics dashboard with charts and metrics for document management insights and reporting
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { useState, useEffect } from "react";

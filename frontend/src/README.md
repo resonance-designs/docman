@@ -11,7 +11,7 @@ All frontend files should include a comment header with the following format:
  * @page [ComponentName]
  * @description [Brief description of the component/page]
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 ```
