@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import File from "../models/File.js";  // Your file schema/model

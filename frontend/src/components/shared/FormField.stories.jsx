@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/shared/FormField.stories.jsx
  * @description Storybook stories for FormField component
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { useState } from 'react';

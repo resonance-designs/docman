@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyExternalContacts.js
  * @description Script to create dummy external contacts in the database
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

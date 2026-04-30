@@ -4,7 +4,7 @@
  * @service documentService
  * @description Business logic service for document operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

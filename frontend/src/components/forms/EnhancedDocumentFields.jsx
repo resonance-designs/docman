@@ -4,7 +4,7 @@
  * @component EnhancedDocumentFields
  * @description Enhanced form component for document fields with new review system
  * @author Richard Bakos
- * @version 2.2.4
+ * @version 2.2.5
  * @license UNLICENSED
  */
 import { Controller } from "react-hook-form";
