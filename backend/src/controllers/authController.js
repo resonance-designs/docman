@@ -345,7 +345,8 @@ export async function logout(req, res) {
         if (accessToken) {
             // Import the blacklistToken function here to avoid circular dependencies
             const secretTokenModule = await import("../lib/secretToken.js");
-            await secretTokenModule.blacklistToken(accessToken);
+            const invalidated = await secretTokenModule.blacklistToken(accessToken);
+            if (!invalidated) return res.status(503).json({ message: "Unable to invalidate the session. Please retry sign out." });
         }
         
         res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production' });

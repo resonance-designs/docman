@@ -468,6 +468,7 @@ export async function getDocumentById(documentId, user) {
             .populate('category', 'name')
             .populate('stakeholders', 'firstname lastname email username')
             .populate('owners', 'firstname lastname email username')
+            .populate('approvers', 'firstname lastname email username')
             .populate('reviewAssignees', 'firstname lastname email username')
             .populate('reviewCompletedBy', 'firstname lastname email username')
             .populate('lastUpdatedBy', 'firstname lastname email username')

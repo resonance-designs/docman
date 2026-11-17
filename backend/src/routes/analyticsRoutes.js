@@ -11,7 +11,6 @@ import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { getAnalyticsData, getAnalyticsExport } from "../controllers/analyticsController.js";
-import { cacheAnalytics, setCacheHeaders } from "../middleware/cacheMiddleware.js";
 
 /**
  * Express router for analytics and reporting endpoints
@@ -22,7 +21,7 @@ import { cacheAnalytics, setCacheHeaders } from "../middleware/cacheMiddleware.j
 const router = express.Router();
 
 // GET /api/analytics - Get analytics data and system metrics (all authenticated users can view analytics)
-router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), cacheAnalytics(), setCacheHeaders(600), getAnalyticsData);
+router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getAnalyticsData);
 
 // GET /api/analytics/export - Export analytics data in various formats (all authenticated users can export)
 router.get("/export", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getAnalyticsExport);

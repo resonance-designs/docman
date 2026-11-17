@@ -35,6 +35,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem(getStorageKey('token'));
       localStorage.removeItem(getStorageKey('user'));
+      window.dispatchEvent(new Event('docman:session-expired'));
     }
 
     return Promise.reject(error);

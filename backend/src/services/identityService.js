@@ -371,6 +371,9 @@ export async function resolveLocalTokenIdentity(token) {
  * @returns {Promise<Object>} Normalized identity context
  */
 export async function resolveAuthentikTokenIdentity(token) {
+    const blacklistedToken = await BlacklistedToken.findOne({ token }).lean();
+    if (blacklistedToken) throw createAuthError("Token has been invalidated");
+
     if (!isAuthentikConfigured()) {
         throw createAuthError("Authentik identity is not configured", 500);
     }

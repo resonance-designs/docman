@@ -58,14 +58,14 @@
               <v-btn size="small" variant="text" prepend-icon="mdi-download" :loading="busy === `dl-${file._id}`" @click="download(file)">
                 Download
               </v-btn>
-              <template v-if="file.status === 'pending_approval'">
+              <template v-if="['pending_approval', 'publishing'].includes(file.status)">
                 <v-btn v-if="canDecide(file)" size="small" color="success" variant="tonal" class="ml-1" @click="openDecision(file, 'approve')">
-                  Approve
+                  {{ file.status === 'publishing' ? 'Retry publication' : 'Approve' }}
                 </v-btn>
-                <v-btn v-if="canDecide(file)" size="small" color="error" variant="tonal" class="ml-1" @click="openDecision(file, 'reject')">
+                <v-btn v-if="file.status === 'pending_approval' && canDecide(file)" size="small" color="error" variant="tonal" class="ml-1" @click="openDecision(file, 'reject')">
                   Reject
                 </v-btn>
-                <v-btn v-if="canWithdraw(file)" size="small" variant="text" class="ml-1" @click="openDecision(file, 'withdraw')">
+                <v-btn v-if="file.status === 'pending_approval' && canWithdraw(file)" size="small" variant="text" class="ml-1" @click="openDecision(file, 'withdraw')">
                   Withdraw
                 </v-btn>
               </template>
@@ -173,7 +173,7 @@ const isApprover = computed(() => {
   return list.some((person) => idOf(person) === userId.value);
 });
 
-const hasPending = computed(() => files.value.some((file) => file.status === 'pending_approval'));
+const hasPending = computed(() => files.value.some((file) => ['pending_approval', 'publishing'].includes(file.status)));
 const selectedFile = computed(() => (Array.isArray(newFile.value) ? newFile.value[0] : newFile.value));
 const decisionTitle = computed(() => ({ approve: 'Approve version', reject: 'Reject version', withdraw: 'Withdraw version' }[decision.action]));
 
@@ -182,9 +182,10 @@ function statusOf(file) {
 }
 
 function canDecide(file) {
+  if (file.status === 'publishing') return isApprover.value || (file.approvalRequired === false && canEdit.value);
   if (!isApprover.value) return false;
   if (idOf(file.uploadedBy) === userId.value) return false;
-  return !(file.approvals || []).some((approval) => idOf(approval.user) === userId.value);
+  return file.status === 'publishing' || !(file.approvals || []).some((approval) => idOf(approval.user) === userId.value);
 }
 
 function canWithdraw(file) {

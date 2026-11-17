@@ -65,7 +65,7 @@ export function snapshotDocument(doc) {
  * @param {string} [params.reason]
  * @returns {Promise<{revision: Object|null, changes: Array}>}
  */
-export async function recordRevision({ doc, before = null, action, user = null, reason = "" }) {
+export async function recordRevision({ doc, before = null, action, user = null, reason = "", publicationFileId }) {
     const after = snapshotDocument(doc);
     const previous = before ? snapshotDocument(before) : {};
     const changes = diffFields(previous, after, TRACKED_DOCUMENT_FIELDS);
@@ -75,10 +75,15 @@ export async function recordRevision({ doc, before = null, action, user = null, 
     }
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
+        if (publicationFileId) {
+            const existing = await DocumentRevision.findOne({ publicationFileId });
+            if (existing) return { revision: existing, changes: existing.changes };
+        }
         const last = await DocumentRevision.findOne({ documentId: doc._id }, { revision: 1 }).sort({ revision: -1 }).lean();
         try {
             const revision = await DocumentRevision.create({
                 documentId: doc._id,
+                ...(publicationFileId ? { publicationFileId } : {}),
                 revision: (last?.revision || 0) + 1,
                 action,
                 changedBy: user?._id || user?.id || null,

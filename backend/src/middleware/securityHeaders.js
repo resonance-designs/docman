@@ -155,7 +155,7 @@ export function apiSecurity(req, res, next) {
     res.setHeader('X-RateLimit-Policy', 'standard');
 
     // Prevent caching of sensitive API responses
-    if (req.path.includes('/auth') || req.path.includes('/users')) {
+    if (req.path.startsWith('/api/') || req.path.includes('/auth') || req.path.includes('/users')) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');

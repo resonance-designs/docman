@@ -56,7 +56,7 @@ function userIdOf(user) {
 
 /** Versions in these states are only visible to editors/approvers of the document. */
 export function isRestrictedStatus(status) {
-    return ["pending_approval", "rejected", "withdrawn"].includes(status || "approved");
+    return ["pending_approval", "publishing", "rejected", "withdrawn"].includes(status || "approved");
 }
 
 /** Whether a user may see/download a given file version. */
@@ -75,32 +75,21 @@ async function removeOrphanUpload(file) {
  * Publish an approved version: supersede the previously published version and point the document at it.
  */
 async function publishVersion(req, doc, file) {
-    const before = snapshotDocument(doc);
-    const now = new Date();
-
-    await File.updateMany(
-        { documentId: doc._id, status: "approved", _id: { $ne: file._id } },
-        { $set: { status: "superseded" } }
+    // Keep the file in publishing until every durable step succeeds. Retrying approval
+    // resumes this operation; the document update and revision insertion are idempotent.
+    const before = file.publicationBefore || snapshotDocument(doc);
+    const updatedDoc = await Doc.findOneAndUpdate(
+        { _id: doc._id, "versionHistory.version": { $ne: file.version } },
+        { $set: { currentVersion: file.version, lastUpdatedBy: req.user?._id || req.user?.id },
+          $push: { versionHistory: { version: file.version, label: file.versionLabel,
+              uploadedAt: file.uploadedAt, uploadedBy: file.uploadedBy, changelog: file.changelog } } },
+        { new: true }
     );
-
-    file.status = "approved";
-    file.publishedAt = now;
-    if (!file.decidedAt) file.decidedAt = now;
-    await file.save();
-
-    doc.currentVersion = file.version;
-    doc.versionHistory = doc.versionHistory || [];
-    doc.versionHistory.push({
-        version: file.version,
-        label: file.versionLabel,
-        uploadedAt: file.uploadedAt,
-        uploadedBy: file.uploadedBy,
-        changelog: file.changelog,
-    });
-    doc.lastUpdatedBy = req.user?._id || req.user?.id || doc.lastUpdatedBy;
-    await doc.save();
-
-    await recordRevision({ doc, before, action: "publish", user: req.user, reason: `Published version ${file.version}` });
+    const publishedDoc = updatedDoc || await Doc.findById(doc._id);
+    if (!publishedDoc) throw new WorkflowError("Document is no longer available for publication.", 409);
+    Object.assign(doc, { currentVersion: publishedDoc.currentVersion, versionHistory: publishedDoc.versionHistory });
+    await recordRevision({ doc: publishedDoc, before, action: "publish", user: req.user,
+        reason: `Published version ${file.version}`, publicationFileId: file._id });
     await record(req, {
         action: AUDIT_ACTIONS.VERSION_PUBLISH,
         resourceType: "file",
@@ -110,7 +99,15 @@ async function publishVersion(req, doc, file) {
         changes: [{ field: "currentVersion", from: before.currentVersion, to: file.version }],
         metadata: { version: file.version, sha256: file.sha256 },
     });
-    return file;
+    await File.updateMany(
+        { documentId: doc._id, status: "approved", version: { $lt: file.version }, _id: { $ne: file._id } },
+        { $set: { status: "superseded" } }
+    );
+    const finished = await File.findOneAndUpdate(
+        { _id: file._id, status: "publishing" },
+        { $set: { status: "approved", publishedAt: new Date() } }, { new: true }
+    );
+    return finished || await File.findOne({ _id: file._id });
 }
 
 /**
@@ -124,11 +121,13 @@ export async function submitVersion(req, doc, uploaded, { versionLabel, changelo
     if (!uploaded) throw new WorkflowError("No file uploaded.", 400);
 
     const policy = getApprovalPolicy();
-    const pending = await File.findOne({ documentId: doc._id, status: "pending_approval" }).lean();
-    if (pending && policy.required) {
+    const pending = await File.findOne({ documentId: doc._id, status: { $in: ["pending_approval", "publishing"] } }).lean();
+    if (pending) {
         await removeOrphanUpload(uploaded);
         throw new WorkflowError(
-            `Version ${pending.version} is still awaiting approval. Approve, reject, or withdraw it before uploading another version.`,
+            pending.status === "publishing"
+                ? `Version ${pending.version} has an incomplete publication. Retry publication before uploading another version.`
+                : `Version ${pending.version} is still awaiting approval. Approve, reject, or withdraw it before uploading another version.`,
             409
         );
     }
@@ -147,13 +146,21 @@ export async function submitVersion(req, doc, uploaded, { versionLabel, changelo
         uploadedBy: req.user?._id || req.user?.id || null,
         changelog: typeof changelog === "string" ? changelog.slice(0, 5000) : "",
         sha256,
-        status: policy.required ? "pending_approval" : "approved",
+        status: policy.required ? "pending_approval" : "publishing",
+        approvalRequired: policy.required,
+        ...(!policy.required ? { publicationBefore: snapshotDocument(doc) } : {}),
         submittedAt: now,
     });
-    await file.save();
+    try {
+        await file.save();
+    } catch (error) {
+        await removeOrphanUpload(uploaded);
+        if (error?.code === 11000) throw new WorkflowError("Another upload won the version slot. Refresh and try again.", 409);
+        throw error;
+    }
 
+    await Doc.updateOne({ _id: doc._id }, { $max: { latestVersion: file.version } });
     doc.latestVersion = Math.max(doc.latestVersion || 0, file.version);
-    await doc.save();
 
     await record(req, {
         action: AUDIT_ACTIONS.FILE_UPLOAD,
@@ -180,7 +187,7 @@ export async function submitVersion(req, doc, uploaded, { versionLabel, changelo
             metadata: { version: file.version, minApprovals: policy.minApprovals },
         });
     } else {
-        await publishVersion(req, doc, file);
+        return publishVersion(req, doc, file);
     }
 
     return file;
@@ -213,8 +220,17 @@ async function deny(req, doc, file, action, reason) {
  */
 export async function approveVersion(req, doc, version, comment = "") {
     const policy = getApprovalPolicy();
-    const file = await loadPendingFile(doc, version);
+    const file = await File.findOne({ documentId: doc._id, version: Number(version) });
+    if (!file) throw new WorkflowError("Version not found.", 404);
     const userId = userIdOf(req.user);
+
+    if (file.status === "publishing") {
+        if (!canApproveDocument(doc, req.user) && !(file.approvalRequired === false && canEditDocument(doc, req.user))) {
+            await deny(req, doc, file, AUDIT_ACTIONS.VERSION_APPROVE, "You cannot resume publication for this document.");
+        }
+        return { file: await publishVersion(req, doc, file), published: true,
+            approvalCount: file.approvals.filter((entry) => entry.decision === "approved").length };
+    }
 
     if (!canApproveDocument(doc, req.user)) {
         await deny(req, doc, file, AUDIT_ACTIONS.VERSION_APPROVE, "You are not an approver for this document.");
@@ -223,7 +239,9 @@ export async function approveVersion(req, doc, version, comment = "") {
         await deny(req, doc, file, AUDIT_ACTIONS.VERSION_APPROVE, "You cannot approve a version you uploaded.");
     }
 
-    const updated = await File.findOneAndUpdate(
+    if (file.status !== "pending_approval") throw new WorkflowError("Version is no longer pending.", 409);
+
+    let updated = await File.findOneAndUpdate(
         { _id: file._id, status: "pending_approval", "approvals.user": { $ne: userId } },
         {
             $push: {
@@ -238,7 +256,10 @@ export async function approveVersion(req, doc, version, comment = "") {
         { new: true }
     );
     if (!updated) {
-        throw new WorkflowError("You have already approved this version, or it is no longer pending.", 409);
+        updated = await File.findOne({ _id: file._id, status: "pending_approval" });
+        if (!updated || updated.approvals.filter((entry) => entry.decision === "approved").length < policy.minApprovals) {
+            throw new WorkflowError("You have already approved this version, or it is no longer pending.", 409);
+        }
     }
 
     const approvalCount = updated.approvals.filter((entry) => entry.decision === "approved").length;
@@ -254,7 +275,7 @@ export async function approveVersion(req, doc, version, comment = "") {
     if (approvalCount >= policy.minApprovals) {
         const claimed = await File.findOneAndUpdate(
             { _id: updated._id, status: "pending_approval" },
-            { $set: { status: "approved", decidedAt: new Date(), decidedBy: userId } },
+            { $set: { status: "publishing", decidedAt: new Date(), decidedBy: userId, publicationBefore: snapshotDocument(doc) } },
             { new: true }
         );
         if (claimed) {
@@ -338,7 +359,7 @@ export async function withdrawVersion(req, doc, version, comment = "") {
  * Pending versions the user can act on (approval inbox).
  */
 export async function listPendingApprovalsForUser(user) {
-    const pendingFiles = await File.find({ status: "pending_approval" })
+    const pendingFiles = await File.find({ status: { $in: ["pending_approval", "publishing"] } })
         .sort({ submittedAt: 1 })
         .populate("uploadedBy", "firstname lastname email username")
         .lean();
@@ -356,9 +377,9 @@ export async function listPendingApprovalsForUser(user) {
             const doc = docsById.get(String(file.documentId));
             if (!doc || !canApproveDocument(doc, user)) return false;
             if (!policy.allowSelfApproval && String(file.uploadedBy?._id || file.uploadedBy || "") === userId) return false;
-            return !(file.approvals || []).some((entry) => String(entry.user) === userId);
+            return file.status === "publishing" || !(file.approvals || []).some((entry) => String(entry.user) === userId);
         })
-        .map((file) => ({
+        .map(({ path: _path, publicationBefore: _before, ...file }) => ({
             ...file,
             document: { _id: file.documentId, title: docsById.get(String(file.documentId))?.title },
             requiredApprovals: policy.minApprovals,

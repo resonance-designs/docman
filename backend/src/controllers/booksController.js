@@ -7,6 +7,7 @@
  * @version 2.3.0
  * @license UNLICENSED
  */
+import { documentReadFilter } from "../middleware/documentAccess.js";
 import Book from "../models/Book.js";
 import Category from "../models/Category.js";
 
@@ -68,6 +69,7 @@ export async function getAllBooks(req, res) {
         // Execute query with pagination
         const [books, totalCount] = await Promise.all([
             Book.find(filter)
+                .populate({ path: 'documents', select: '_id', match: documentReadFilter(req.user) })
                 .populate('category', 'name type')
                 .populate('owners', 'firstname lastname email')
                 .populate('lastUpdatedBy', 'firstname lastname email')
@@ -102,7 +104,7 @@ export async function getBookById(req, res) {
     try {
         const book = await Book.findById(req.params.id)
             .populate('category', 'name type')
-            .populate('documents', 'title description reviewDate reviewCompleted')
+            .populate({ path: 'documents', select: 'title description reviewDate reviewCompleted', match: documentReadFilter(req.user) })
             .populate('owners', 'firstname lastname email')
             .populate('lastUpdatedBy', 'firstname lastname email');
 
@@ -259,7 +261,7 @@ export async function updateBook(req, res) {
         console.log("📚 UpdateBook: Populating book for response...");
         const populatedBook = await Book.findById(book._id)
             .populate('category', 'name type')
-            .populate('documents', 'title description')
+            .populate({ path: 'documents', select: 'title description', match: documentReadFilter(req.user) })
             .populate('owners', 'firstname lastname email')
             .populate('lastUpdatedBy', 'firstname lastname email');
         console.log("📚 UpdateBook: Book populated successfully");

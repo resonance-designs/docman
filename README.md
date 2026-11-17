@@ -49,7 +49,7 @@ See [docs/compliance-and-redis.md](docs/compliance-and-redis.md) for the audit l
 
 - Node.js 20.19+ or 22.12+
 - npm
-- MongoDB 4.4+
+- MongoDB 6.0+ (verified with 8.0.34)
 
 ### Manual Local Installation
 

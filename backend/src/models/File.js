@@ -22,7 +22,7 @@ const fileSchema = new mongoose.Schema({
     // Change-approval workflow. Legacy files (uploaded before 2.3.0) default to "approved".
     status: {
         type: String,
-        enum: ["pending_approval", "approved", "rejected", "withdrawn", "superseded"],
+        enum: ["pending_approval", "publishing", "approved", "rejected", "withdrawn", "superseded"],
         default: "approved",
     },
     submittedAt: { type: Date, default: null },
@@ -37,11 +37,18 @@ const fileSchema = new mongoose.Schema({
     decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     rejectionReason: { type: String, default: null },
     publishedAt: { type: Date, default: null },
+    publicationBefore: { type: mongoose.Schema.Types.Mixed },
+    approvalRequired: { type: Boolean, default: true },
 });
 
 fileSchema.index({ documentId: 1, status: 1 });
 
-fileSchema.index({ documentId: 1, version: 1 });
+fileSchema.index({ documentId: 1, version: 1 }, { unique: true });
+fileSchema.index({ documentId: 1 }, {
+    unique: true,
+    name: 'one_active_version_per_document',
+    partialFilterExpression: { status: { $in: ['pending_approval', 'publishing'] } },
+});
 
 // Pre-save middleware to automatically set version numbers
 fileSchema.pre('save', async function(next) {

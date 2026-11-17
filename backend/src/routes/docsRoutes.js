@@ -14,7 +14,6 @@ import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { requireDocumentAccess } from "../middleware/documentAccess.js";
 import uploadMid, { handleUploadError } from "../middleware/uploadMid.js";
-import { cacheUserData, setCacheHeaders } from "../middleware/cacheMiddleware.js";
 import {
     getAllDocs,
     getDocById,
@@ -52,7 +51,7 @@ function withUpload(middleware) {
 }
 
 // Collection-level routes (registered before /:id so they are not captured as ids)
-router.get("/", verifyAccessToken, ANY_ROLE, cacheUserData(), setCacheHeaders(120), getAllDocs);
+router.get("/", verifyAccessToken, ANY_ROLE, getAllDocs);
 router.post("/", verifyAccessToken, EDITOR, withUpload(uploadMid.single("file")), createDoc);
 router.get("/approvals/pending", verifyAccessToken, ANY_ROLE, pendingApprovals);
 router.get("/deleted", verifyAccessToken, ADMIN, listDeletedDocs);

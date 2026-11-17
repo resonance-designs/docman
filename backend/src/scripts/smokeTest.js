@@ -87,7 +87,7 @@ async function main() {
         assert(["admin", "superadmin"].includes(res.data.user.role), `admin role is ${res.data.user.role}`);
         ctx.admin = { token: res.data.token, id: String(res.data.user.id), role: res.data.user.role };
     });
-    if (!ctx.admin) return;
+    if (!ctx.admin) return finish();
 
     await check("self-registration cannot request superadmin", async () => {
         const res = await call("POST", "/api/auth/register", {
@@ -210,6 +210,42 @@ async function main() {
         assert(restore.status === 200, `restore -> ${restore.status} ${JSON.stringify(restore.data)}`);
     });
 
+    await check("concurrent uploads permit only one active version", async () => {
+        const upload = () => {
+            const form = new FormData();
+            form.append("file", new Blob([fileContent], { type: "text/plain" }), "concurrent.txt");
+            return call("POST", `/api/docs/${ctx.docId}/upload`, { token: ctx.admin.token, form });
+        };
+        const results = await Promise.all([upload(), upload()]);
+        assert(results.filter((r) => r.status === 201).length === 1, `expected one success: ${results.map(r => r.status)}`);
+        assert(results.filter((r) => r.status === 409).length === 1, "losing upload must return conflict");
+        const version = results.find((r) => r.status === 201).data.file.version;
+        const withdrawn = await call("POST", `/api/docs/${ctx.docId}/versions/${version}/withdraw`, { token: ctx.admin.token, json: {} });
+        assert(withdrawn.status === 200, `withdraw -> ${withdrawn.status}`);
+    });
+
+    await check("book responses do not expose inaccessible documents", async () => {
+        const cat = await call("POST", "/api/categories", { token: ctx.admin.token, json: { name: `Books ${RUN}`, type: "Book" } });
+        const category = cat.data?._id || cat.data?.category?._id;
+        assert(category, `book category -> ${cat.status}`);
+        const created = await call("POST", "/api/books", { token: ctx.admin.token,
+            json: { title: `Book ${RUN}`, category, documents: [ctx.docId] } });
+        assert(created.status === 201, `book create -> ${created.status}`);
+        const id = created.data.book._id;
+        const hidden = await call("GET", `/api/books/${id}`, { token: ctx.outsider.token });
+        assert(hidden.status === 200 && hidden.data.book.documents.length === 0, "book leaked document metadata");
+        const visible = await call("GET", `/api/books/${id}`, { token: ctx.approver.token });
+        assert(visible.status === 200 && visible.data.book.documents.length === 1, "allowed document missing");
+    });
+
+    await check("analytics exports respect document access", async () => {
+        for (const type of ["monthly", "category", "author", "review"]) {
+            const res = await call("GET", `/api/analytics/export?type=${type}`, { token: ctx.outsider.token });
+            assert(res.status === 200, `analytics ${type} -> ${res.status}`);
+            assert(!JSON.stringify(res.data).includes(`Smoke policy ${RUN}`), `${type} leaked the protected title`);
+        }
+    });
+
     await check("audit log recorded the workflow", async () => {
         const res = await call("GET", `/api/docs/${ctx.docId}/audit?limit=500`, { token: ctx.admin.token });
         assert(res.status === 200, `doc audit -> ${res.status}`);
@@ -243,6 +279,12 @@ async function main() {
         console.log(`      active store: ${res.data.activeProvider} (${res.data.health.latencyMs} ms)`);
     });
 
+    await check("logout invalidates the access token", async () => {
+        const out = await call("POST", "/api/auth/logout", { token: ctx.outsider.token });
+        assert(out.status === 200, `logout -> ${out.status}`);
+        const me = await call("GET", "/api/auth/me", { token: ctx.outsider.token });
+        assert(me.status === 401, `logged-out token still accepted: ${me.status}`);
+    });
     return finish();
 }
 

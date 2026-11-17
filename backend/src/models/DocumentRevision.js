@@ -23,6 +23,7 @@ const documentRevisionSchema = new mongoose.Schema(
         changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
         changedAt: { type: Date, default: Date.now },
         reason: { type: String, default: "" },
+        publicationFileId: { type: mongoose.Schema.Types.ObjectId },
         changes: [
             {
                 _id: false,
@@ -37,6 +38,7 @@ const documentRevisionSchema = new mongoose.Schema(
 );
 
 documentRevisionSchema.index({ documentId: 1, revision: 1 }, { unique: true });
+documentRevisionSchema.index({ publicationFileId: 1 }, { unique: true, sparse: true });
 
 const IMMUTABLE_MESSAGE = "Document revisions are immutable.";
 [

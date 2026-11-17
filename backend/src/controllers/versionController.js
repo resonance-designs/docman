@@ -34,6 +34,7 @@ function envFlag(name, fallback) {
 function serializeFile(file) {
     const plain = typeof file.toObject === "function" ? file.toObject() : { ...file };
     delete plain.path; // never expose server filesystem paths
+    delete plain.publicationBefore;
     plain.status = plain.status || "approved";
     return plain;
 }

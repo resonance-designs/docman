@@ -9,6 +9,56 @@ deployed with `scripts/apache_production_*.sh`). No Docker is used anywhere, and
 
 ---
 
+## Verification follow-up — November 17, 2026
+
+The secure document-sharing follow-up is implemented in this working tree. Scope remains authenticated upload,
+download and file replacement; no new project or invitation workflow was introduced.
+
+Verified in an isolated WSL Ubuntu 22.04 copy with Node 22.23.4, MongoDB 8.0.34 and Redis 7.0.15:
+
+- Clean `npm ci` for backend, Vue and legacy React; Vue Vite 8 production build, remote bundle and React build pass.
+- 69 targeted security/compliance/identity tests pass (7 suites). The Authentik suite now runs under the existing Jest configuration.
+- Expanded real-database smoke test: 24 checks pass using both memory and real local Redis; no Redis fallback.
+- Browser: local sign-in, replacement upload, separate approver inbox/approval, published version and superseded
+  history, authenticated download (HTTP 200), revision and audit views. The live Authentik provider was not contacted.
+- MongoDB dump restored to a separate disposable database; copied uploaded files match stored SHA-256 values;
+  restored audit chain verifies. An injected publication interruption recovers with one history entry and one revision.
+- Real RSA-signed test Authentik token works before blacklist insertion and fails afterward.
+- Windows `node_modules` were preserved. No production deployment or production database mutation was performed.
+
+Corrections include shared document visibility filters in book/project responses and analytics/custom-chart data;
+removal of stale document/analytics response caches; Authentik blacklist enforcement; reactive session clearing;
+unique version and active-upload indexes; resumable publication with a unique publication revision; a retry button;
+and an approver display-name fix. Logout reports failure if token invalidation cannot be persisted.
+
+Publication uses a durable `publishing` state for standalone MongoDB compatibility. A crash can leave publication
+incomplete until an authorized user clicks **Retry publication**. History/revision writes are idempotent; audit
+records may show repeated publication attempts. This is recovery across multiple writes, not a cross-collection transaction.
+
+Before release, run the compliance migration while writes are stopped. It checks for conflicting existing versions
+and refuses to silently renumber/discard them, then replaces the old nonunique version index and adds the new indexes.
+The partial active-version index uses MongoDB 6+ syntax; the verified deployment target is MongoDB 8.0.34.
+Do not roll back application code alone across a migrated production database without a tested recovery plan.
+
+The GitHub deploy workflow now accepts the repository's `VITE_AUTHENTIK_*` variables, checks required values when
+Authentik is enabled, tests the security/identity suites, builds/publishes the remote bundle, and runs migration
+preflight/migration. Repository variables still must be configured for the target server; this workflow was not run remotely.
+
+Reproducible checks:
+
+```bash
+REDIS_URL=redis://127.0.0.1:6399/0 MONGO_URI=mongodb://127.0.0.1:27199 bash scripts/verify-linux.sh
+# After smoke-testing and restoring a disposable DB and its uploaded files:
+NODE_ENV=verify MONGO_URI=mongodb://127.0.0.1:27199/docman_verify_restored \
+  UPLOAD_DIR=/path/to/restored-test-uploads node backend/src/scripts/verifyWorkflowRecovery.js
+```
+
+`verifyWorkflowRecovery.js` requires an existing smoke-test fixture in a `docman_verify_*` database and makes test
+changes there. The historical full backend suite still contains unrelated failures/timeouts; it is not claimed green.
+Upstash and the deployed Authentik provider/server remain environment-specific checks.
+
+---
+
 ## ⚠️ Why this handoff exists: the previous assistant could not access WSL
 
 The previous assistant (Claude, in the Claude desktop app) **could not run anything inside the user's WSL environment**.

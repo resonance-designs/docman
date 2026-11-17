@@ -51,7 +51,27 @@ export async function migrateComplianceFields({ dryRun = DRY_RUN, log = console.
         baselineRevisions: 0,
     };
 
+    // Do not silently renumber existing versions or discard conflicting uploads.
+    const duplicateVersions = await File.aggregate([
+        { $group: { _id: { documentId: '$documentId', version: '$version' }, count: { $sum: 1 } } },
+        { $match: { count: { $gt: 1 } } }, { $limit: 1 },
+    ]);
+    const duplicatePending = await File.aggregate([
+        { $match: { status: { $in: ['pending_approval', 'publishing'] } } },
+        { $group: { _id: '$documentId', count: { $sum: 1 } } },
+        { $match: { count: { $gt: 1 } } }, { $limit: 1 },
+    ]);
+    if (duplicateVersions.length || duplicatePending.length) {
+        throw new Error('Conflicting file versions exist. Resolve duplicate version numbers or active uploads before migrating. No files were changed.');
+    }
+
     if (!dryRun) {
+        const indexes = await File.collection.indexes().catch((error) => {
+            if (error.code === 26) return [];
+            throw error;
+        });
+        const oldVersionIndex = indexes.find((index) => index.name === 'documentId_1_version_1' && !index.unique);
+        if (oldVersionIndex) await File.collection.dropIndex(oldVersionIndex.name);
         for (const model of [AuditLog, DocumentRevision, SystemSetting, File, Doc]) {
             await model.createIndexes();
         }
@@ -136,6 +156,6 @@ async function main() {
     }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
     main();
 }

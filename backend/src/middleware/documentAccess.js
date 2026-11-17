@@ -30,6 +30,16 @@ export function isAdmin(user) {
     return Boolean(user && ADMIN_ROLES.has(user.role));
 }
 
+/** MongoDB equivalent of canReadDocument, including soft-deletion. */
+export function documentReadFilter(user) {
+    if (isAdmin(user)) return { deletedAt: null };
+    const id = user?.id || user?._id;
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) return { _id: { $in: [] } };
+    const userId = new mongoose.Types.ObjectId(String(id));
+    return { deletedAt: null, $or: ['author', 'owners', 'stakeholders', 'approvers', 'reviewAssignees']
+        .map((field) => ({ [field]: userId })) };
+}
+
 /** Read access: admins, author, owners, stakeholders, approvers, review assignees. */
 export function canReadDocument(doc, user) {
     if (!doc || !user) return false;

@@ -3,6 +3,7 @@
  * @version 2.3.0
  * @license UNLICENSED
  */
+import { documentReadFilter } from "../middleware/documentAccess.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
 import Category from "../models/Category.js";
@@ -21,6 +22,7 @@ export async function getAnalyticsData(req, res) {
 
         // Documents created by month (2025 onwards)
         const documentsPerMonth = await Doc.aggregate([
+            { $match: documentReadFilter(req.user) },
             {
                 $match: {
                     createdAt: { $gte: startOfYear }
@@ -42,6 +44,7 @@ export async function getAnalyticsData(req, res) {
 
         // Documents by category
         const documentsByCategory = await Doc.aggregate([
+            { $match: documentReadFilter(req.user) },
             {
                 $lookup: {
                     from: "categories",
@@ -66,6 +69,7 @@ export async function getAnalyticsData(req, res) {
 
         // Documents by author
         const documentsByAuthor = await Doc.aggregate([
+            { $match: documentReadFilter(req.user) },
             {
                 $lookup: {
                     from: "users",
@@ -97,6 +101,7 @@ export async function getAnalyticsData(req, res) {
         // Review status analysis
         const now = new Date();
         const reviewStatus = await Doc.aggregate([
+            { $match: documentReadFilter(req.user) },
             {
                 $project: {
                     status: {
@@ -125,13 +130,14 @@ export async function getAnalyticsData(req, res) {
         ]);
 
         // Total counts
-        const totalDocuments = await Doc.countDocuments();
+        const totalDocuments = await Doc.countDocuments(documentReadFilter(req.user));
         const totalUsers = await User.countDocuments();
         const totalCategories = await Category.countDocuments();
 
         // Recent activity (last 30 days)
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const recentDocuments = await Doc.countDocuments({
+            ...documentReadFilter(req.user),
             createdAt: { $gte: thirtyDaysAgo }
         });
 
@@ -169,19 +175,19 @@ export async function getAnalyticsExport(req, res) {
 
         switch (type) {
             case 'monthly':
-                data = await getMonthlyDocumentsData();
+                data = await getMonthlyDocumentsData(req.user);
                 filename = 'documents-by-month.json';
                 break;
             case 'category':
-                data = await getCategoryData();
+                data = await getCategoryData(req.user);
                 filename = 'documents-by-category.json';
                 break;
             case 'author':
-                data = await getAuthorData();
+                data = await getAuthorData(req.user);
                 filename = 'documents-by-author.json';
                 break;
             case 'review':
-                data = await getReviewStatusData();
+                data = await getReviewStatusData(req.user);
                 filename = 'review-status.json';
                 break;
             default:
@@ -202,11 +208,12 @@ export async function getAnalyticsExport(req, res) {
  * Get monthly documents data for export
  * @returns {Array} Array of monthly document statistics
  */
-async function getMonthlyDocumentsData() {
+async function getMonthlyDocumentsData(user) {
     const currentYear = new Date().getFullYear();
     const startOfYear = new Date(currentYear, 0, 1);
     
     return await Doc.aggregate([
+        { $match: documentReadFilter(user) },
         {
             $match: {
                 createdAt: { $gte: startOfYear }
@@ -232,8 +239,9 @@ async function getMonthlyDocumentsData() {
  * Get category data for export
  * @returns {Array} Array of category statistics
  */
-async function getCategoryData() {
+async function getCategoryData(user) {
     return await Doc.aggregate([
+        { $match: documentReadFilter(user) },
         {
             $lookup: {
                 from: "categories",
@@ -262,8 +270,9 @@ async function getCategoryData() {
  * Get author data for export
  * @returns {Array} Array of author statistics
  */
-async function getAuthorData() {
+async function getAuthorData(user) {
     return await Doc.aggregate([
+        { $match: documentReadFilter(user) },
         {
             $lookup: {
                 from: "users",
@@ -295,9 +304,10 @@ async function getAuthorData() {
  * Get review status data for export
  * @returns {Array} Array of review status statistics
  */
-async function getReviewStatusData() {
+async function getReviewStatusData(user) {
     const now = new Date();
     return await Doc.aggregate([
+        { $match: documentReadFilter(user) },
         {
             $project: {
                 title: 1,

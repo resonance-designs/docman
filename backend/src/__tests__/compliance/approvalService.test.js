@@ -14,6 +14,7 @@ function mockMatches(file, filter) {
         if (key === "_id") return String(file._id) === String(value?.$ne ? "__never__" : value) || (value?.$ne && String(file._id) !== String(value.$ne));
         if (key === "approvals.user") return !(file.approvals || []).some((a) => String(a.user) === String(value.$ne));
         if (key === "documentId") return String(file.documentId) === String(value);
+        if (value?.$in) return value.$in.includes(file[key]);
         return file[key] === value;
     });
 }
@@ -54,7 +55,9 @@ jest.mock("../../models/File.js", () => {
     });
     return { __esModule: true, default: File };
 });
-jest.mock("../../models/Doc.js", () => ({ __esModule: true, default: { find: jest.fn() } }));
+jest.mock("../../models/Doc.js", () => ({ __esModule: true, default: {
+    find: jest.fn(), findOneAndUpdate: jest.fn(), findById: jest.fn(), updateOne: jest.fn(),
+} }));
 jest.mock("../../services/auditService.js", () => ({
     __esModule: true,
     record: jest.fn(async () => null),
@@ -68,6 +71,8 @@ jest.mock("../../services/revisionService.js", () => ({
 jest.mock("../../lib/fileIntegrity.js", () => ({ __esModule: true, sha256File: jest.fn(async () => "a".repeat(64)) }));
 jest.mock("fs", () => ({ __esModule: true, default: { promises: { unlink: jest.fn(async () => {}) } } }));
 
+import Doc from "../../models/Doc.js";
+import File from "../../models/File.js";
 import { record } from "../../services/auditService.js";
 import {
     submitVersion,
@@ -106,6 +111,14 @@ beforeEach(() => {
         versionHistory: [],
         save: jest.fn(async () => doc),
     };
+    Doc.findOneAndUpdate.mockImplementation(async (filter, update) => {
+        if (doc.versionHistory.some((entry) => entry.version === filter["versionHistory.version"].$ne)) return null;
+        Object.assign(doc, update.$set);
+        doc.versionHistory.push(update.$push.versionHistory);
+        return doc;
+    });
+    Doc.findById.mockImplementation(async () => doc);
+    Doc.updateOne.mockResolvedValue({ matchedCount: 1 });
 });
 
 describe("submitVersion", () => {
@@ -155,6 +168,27 @@ describe("approve / reject / withdraw", () => {
         expect(doc.currentVersion).toBe(2);
         expect(mockFiles.find((f) => f.version === 1).status).toBe("superseded");
         expect(mockFiles.find((f) => f.version === 2).status).toBe("approved");
+    });
+
+    test("failed publication can be retried without duplicate history", async () => {
+        Doc.findOneAndUpdate.mockRejectedValueOnce(new Error("database unavailable"));
+        await expect(approveVersion(reqFor("approverA"), doc, 1)).rejects.toThrow("database unavailable");
+        expect(mockFiles[0].status).toBe("publishing");
+        expect(doc.currentVersion).toBe(0);
+        const result = await approveVersion(reqFor("approverA"), doc, 1);
+        expect(result.published).toBe(true);
+        expect(doc.versionHistory).toHaveLength(1);
+        expect(mockFiles[0].status).toBe("approved");
+    });
+
+    test("publication failure after pointer update resumes without appending history twice", async () => {
+        File.updateMany.mockRejectedValueOnce(new Error("interrupted"));
+        await expect(approveVersion(reqFor("approverA"), doc, 1)).rejects.toThrow("interrupted");
+        expect(doc.versionHistory).toHaveLength(1);
+        expect(mockFiles[0].status).toBe("publishing");
+        await approveVersion(reqFor("approverA"), doc, 1);
+        expect(doc.versionHistory).toHaveLength(1);
+        expect(mockFiles[0].status).toBe("approved");
     });
 
     test("APPROVAL_MIN_APPROVALS=2 needs two distinct approvers", async () => {

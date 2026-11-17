@@ -47,6 +47,7 @@ export function formatValue(value) {
 }
 
 export const VERSION_STATUS = {
+  publishing: { label: 'Publication incomplete', color: 'warning', icon: 'mdi-refresh' },
   pending_approval: { label: 'Awaiting approval', color: 'warning', icon: 'mdi-timer-sand' },
   approved: { label: 'Published', color: 'success', icon: 'mdi-check-decagram' },
   superseded: { label: 'Superseded', color: 'grey', icon: 'mdi-history' },

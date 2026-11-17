@@ -44,13 +44,14 @@ step "Install (npm ci)"
 echo "ok"
 
 step "Backend unit tests (compliance + security)"
-(cd backend && NODE_ENV=test npx jest src/__tests__/compliance --ci 2>&1 | tee "$LOG_DIR/unit.log" | grep -E "^(PASS|FAIL)|^Tests:" ) || true
-grep -qE "^Tests:.*failed" "$LOG_DIR/unit.log" && fail "unit tests failed (see $LOG_DIR/unit.log)"
-grep -qE "^Tests:.*passed" "$LOG_DIR/unit.log" || fail "unit tests did not run (see $LOG_DIR/unit.log)"
+(cd backend && NODE_ENV=test npx jest src/__tests__/compliance src/__tests__/services/identityService.authentik.test.js --ci 2>&1 | tee "$LOG_DIR/unit.log") || fail "unit tests failed (see $LOG_DIR/unit.log)"
 
 step "Build Vue frontend"
 (cd frontend-vue && npm run build) > "$LOG_DIR/build-vue.log" 2>&1 || fail "Vue build failed (see $LOG_DIR/build-vue.log)"
 tail -n 3 "$LOG_DIR/build-vue.log"
+
+step "Build Vue remote bundle"
+(cd frontend-vue && npm run build:remote) > "$LOG_DIR/build-remote.log" 2>&1 || fail "Vue remote build failed (see $LOG_DIR/build-remote.log)"
 
 step "Build React frontend (legacy)"
 (cd frontend && npm run build) > "$LOG_DIR/build-react.log" 2>&1 || fail "React build failed (see $LOG_DIR/build-react.log)"
