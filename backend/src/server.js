@@ -3,7 +3,7 @@
  * @file /docman/backend/src/server.js
  * @description Main entry point of the DocMan backend application
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import { connectDB } from "./config/db.js";
@@ -21,7 +21,9 @@ import usersRoutes from "./routes/usersRoutes.js";
 import docsRoutes from "./routes/docsRoutes.js";
 import categoriesRoutes from "./routes/categoriesRoutes.js";
 import booksRoutes from "./routes/booksRoutes.js";
-import uploadRoutes from "./routes/uploadRoutes.js";
+import mediaRoutes from "./routes/mediaRoutes.js";
+import auditRoutes from "./routes/auditRoutes.js";
+import { initRedisProvider } from "./config/redis.js";
 import systemRoutes from "./routes/systemRoutes.js";
 import teamsRoutes from "./routes/teamsRoutes.js";
 import projectsRoutes from "./routes/projectsRoutes.js";
@@ -68,7 +70,11 @@ const nodePort = process.env.PORT || process.env.NODE_PORT || 5001;
  * Includes CORS, rate limiting, JSON parsing, and production static file serving
  * @type {express.Application}
  */
-const app = express(); // Initialize Express app
+const app = express();
+// Behind Apache/nginx: trust the loopback proxy so req.ip is the real client IP (audit log + rate limiting).
+// Override with TRUST_PROXY (e.g. "1", "10.0.0.0/8", or "false").
+const trustProxy = process.env.TRUST_PROXY ?? 'loopback';
+app.set('trust proxy', trustProxy === 'false' ? false : (/^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy));
 const selectedUi = (process.env.DOCMAN_UI || process.env.UI_FLAVOR || "vue").toLowerCase();
 const frontendDistPath = uiDistFolders[selectedUi] || uiDistFolders.vue;
 
@@ -97,15 +103,19 @@ app.use("/api/custom-charts", customChartsRoutes); // Declare custom charts endp
 app.use("/api/reviews", reviewRoutes); // Declare review endpoints
 app.use("/api/external-contacts", externalContactsRoutes); // Declare external contacts endpoints
 app.use("/api/notifications", notificationsRoutes); // Declare notifications endpoints
-app.use("/upload", uploadRoutes); // Declare uploads endpoints
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads"))); // Serve uploaded files
+app.use("/api/audit", auditRoutes); // Declare audit log endpoints (admin)
+// Only user profile images are served publicly. Document files are downloaded through
+// /api/docs/:id/files/:fileId/download with access checks, integrity checks and auditing.
+app.use("/uploads", mediaRoutes);
 
-// API Documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerUiOptions));
-app.get("/api-docs.json", (req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(specs);
-});
+// API Documentation (disabled in production unless ENABLE_API_DOCS=true)
+if (process.env.NODE_ENV !== 'production' || String(process.env.ENABLE_API_DOCS || '').toLowerCase() === 'true') {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerUiOptions));
+    app.get("/api-docs.json", (req, res) => {
+        res.setHeader("Content-Type", "application/json");
+        res.send(specs);
+    });
+}
 // Static file serving for production
 if(process.env.NODE_ENV === 'production') {
     console.log(`Serving ${selectedUi} UI from:`, frontendDistPath);
@@ -126,6 +136,7 @@ const startServer = async () => {
     console.log("Connecting to MongoDB...");
 
     await connectDB();
+    await initRedisProvider();
 
     if (String(process.env.SEED_ON_DEPLOY || '').toLowerCase() === 'true') {
         const { runSafeSeed } = await import('./scripts/seedSafe.js');

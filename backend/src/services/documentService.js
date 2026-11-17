@@ -4,7 +4,7 @@
  * @service documentService
  * @description Business logic service for document operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";
@@ -12,6 +12,51 @@ import Doc from "../models/Doc.js";
 import File from "../models/File.js";
 import { sanitizeErrorMessage, logError } from "../lib/utils.js";
 import { resetReviewAssignmentsForNewCycle, cleanupDuplicateReviewAssignments, cleanupOrphanedReviewAssignments } from "../controllers/reviewController.js";
+import { record, AUDIT_ACTIONS } from "./auditService.js";
+import { recordRevision, snapshotDocument } from "./revisionService.js";
+import { submitVersion } from "./approvalService.js";
+import { canReadDocument, canEditDocument, isAdmin } from "../middleware/documentAccess.js";
+
+/**
+ * Fields a client may set through the document update API. Everything else (version numbers, version history,
+ * review completion, soft-delete markers, createdBy...) is controlled by the server.
+ */
+export const UPDATABLE_DOCUMENT_FIELDS = Object.freeze([
+    "title",
+    "description",
+    "category",
+    "opensForReview",
+    "reviewInterval",
+    "reviewIntervalDays",
+    "reviewPeriod",
+    "reviewDueDate",
+    "reviewNotes",
+    "nextReviewDueOn",
+]);
+
+/** Reference-list fields parsed by parseDocumentFields(). */
+const PARSED_LIST_FIELDS = ["stakeholders", "owners", "approvers", "reviewAssignees", "externalContacts", "projects"];
+
+/** Fields only admins may change after creation. */
+const ADMIN_ONLY_FIELDS = ["author"];
+
+/**
+ * Pick only allowed scalar fields from a request body and coerce them to strings/numbers.
+ * Rejects operator-style values (objects) to prevent NoSQL injection through the update.
+ */
+export function pickUpdatableFields(body = {}, user = null) {
+    const picked = {};
+    const allowed = isAdmin(user) ? [...UPDATABLE_DOCUMENT_FIELDS, ...ADMIN_ONLY_FIELDS] : UPDATABLE_DOCUMENT_FIELDS;
+    for (const field of allowed) {
+        if (!Object.prototype.hasOwnProperty.call(body, field)) continue;
+        const value = body[field];
+        if (value !== null && typeof value === "object") {
+            throw new Error(`Invalid value for ${field}`);
+        }
+        picked[field] = value === "" && field !== "title" && field !== "description" ? null : value;
+    }
+    return picked;
+}
 
 /**
  * Check if user has permission to access a document
@@ -21,32 +66,7 @@ import { resetReviewAssignmentsForNewCycle, cleanupDuplicateReviewAssignments, c
  * @returns {boolean} True if user has access
  */
 export function hasDocumentAccess(doc, userId, userRole) {
-    // Admins and superadmins have access to all documents
-    if (userRole === 'admin' || userRole === 'superadmin') return true;
-
-    // Check if user is the author (handle both populated and unpopulated)
-    if (doc.author && doc.author._id && doc.author._id.toString() === userId) return true;
-    if (doc.author && doc.author.toString() === userId) return true;
-
-    // Check if user is a stakeholder (handle both populated and unpopulated)
-    if (doc.stakeholders && doc.stakeholders.some(stakeholder => {
-        const stakeholderId = stakeholder._id ? stakeholder._id.toString() : stakeholder.toString();
-        return stakeholderId === userId;
-    })) return true;
-
-    // Check if user is an owner (handle both populated and unpopulated)
-    if (doc.owners && doc.owners.some(owner => {
-        const ownerId = owner._id ? owner._id.toString() : owner.toString();
-        return ownerId === userId;
-    })) return true;
-
-    // Check if user is a review assignee (handle both populated and unpopulated)
-    if (doc.reviewAssignees && doc.reviewAssignees.some(assignee => {
-        const assigneeId = assignee._id ? assignee._id.toString() : assignee.toString();
-        return assigneeId === userId;
-    })) return true;
-
-    return false;
+    return canReadDocument(doc, { id: userId, role: userRole });
 }
 
 /**
@@ -234,6 +254,20 @@ export function parseDocumentFields(requestBody) {
         }
     }
 
+    // Parse approvers and projects (same id-list format)
+    for (const listField of ["approvers", "projects"]) {
+        const raw = requestBody[listField];
+        if (raw === undefined || raw === null || raw === "") continue;
+        try {
+            const list = Array.isArray(raw) ? raw : JSON.parse(raw);
+            if (Array.isArray(list)) {
+                parsed[listField] = list.filter(id => typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id));
+            }
+        } catch (error) {
+            throw new Error(`Invalid ${listField} format`);
+        }
+    }
+
     // Parse review assignees
     if (reviewAssignees) {
         try {
@@ -276,7 +310,8 @@ export async function getDocuments(queryParams, user) {
                     { author: userId },
                     { stakeholders: userId },
                     { owners: userId },
-                    { reviewAssignees: userId }
+                    { reviewAssignees: userId },
+                    { approvers: userId }
                 ]
             };
             
@@ -461,59 +496,46 @@ export async function getDocumentById(documentId, user) {
  * @param {Object} user - User object
  * @returns {Promise<Object>} Created document
  */
-export async function createDocument(documentData, file, user) {
+export async function createDocument(documentData, file, user, req = null) {
+    const context = req || { user };
     try {
         const parsedFields = parseDocumentFields(documentData);
+        const scalarFields = pickUpdatableFields(documentData, { role: "admin" });
 
         const docData = {
-            title: documentData.title,
-            description: documentData.description,
+            ...scalarFields,
             author: documentData.author,
-            category: documentData.category,
             opensForReview: documentData.opensForReview || documentData.reviewDate, // Migration fallback
             reviewInterval: documentData.reviewInterval || 'quarterly',
-            reviewIntervalDays: documentData.reviewIntervalDays,
             reviewPeriod: documentData.reviewPeriod || '2weeks',
             lastReviewedOn: documentData.lastReviewedOn,
-            nextReviewDueOn: documentData.nextReviewDueOn,
-            reviewDueDate: documentData.reviewDueDate,
-            reviewNotes: documentData.reviewNotes,
             ...parsedFields,
+            currentVersion: 0,
+            latestVersion: 0,
             createdBy: user._id || user.id,
             lastUpdatedBy: user._id || user.id
         };
+        Object.keys(docData).forEach((key) => docData[key] === undefined && delete docData[key]);
 
         const doc = new Doc(docData);
         await doc.save();
 
-        // Create file record if file is provided
+        await recordRevision({ doc, before: null, action: "create", user });
+        await record(context, {
+            action: AUDIT_ACTIONS.DOCUMENT_CREATE,
+            resourceType: "document",
+            resourceId: doc._id,
+            documentId: doc._id,
+            summary: `Created document "${doc.title}"`,
+            metadata: { snapshot: snapshotDocument(doc) },
+        });
+
+        // Initial file goes through the same approval workflow as later versions
         if (file) {
-            const newFile = new File({
-                filename: file.filename,
-                originalname: file.originalname,
-                path: file.path,
-                mimetype: file.mimetype,
-                size: file.size,
-                documentId: doc._id,
+            await submitVersion(context, doc, file, {
                 versionLabel: "Initial Version",
-                uploadedAt: new Date(),
-                uploadedBy: user._id || user.id,
-                changelog: "Initial document upload"
+                changelog: "Initial document upload",
             });
-
-            await newFile.save();
-
-            // Update document's current version and version history
-            doc.currentVersion = newFile.version;
-            doc.versionHistory = [{
-                version: newFile.version,
-                label: newFile.versionLabel,
-                uploadedAt: newFile.uploadedAt,
-                uploadedBy: newFile.uploadedBy,
-                changelog: newFile.changelog
-            }];
-            
-            await doc.save();
         }
 
         // Populate the created document
@@ -522,6 +544,7 @@ export async function createDocument(documentData, file, user) {
             { path: 'category', select: 'name' },
             { path: 'stakeholders', select: 'firstname lastname email' },
             { path: 'owners', select: 'firstname lastname email' },
+            { path: 'approvers', select: 'firstname lastname email' },
             { path: 'reviewAssignees', select: 'firstname lastname email' },
             { path: 'externalContacts.type' }
         ]);
@@ -529,6 +552,7 @@ export async function createDocument(documentData, file, user) {
         return doc;
     } catch (error) {
         logError('createDocument', error, { userId: user.id });
+        if (error?.statusCode) throw error;
         throw new Error(sanitizeErrorMessage(error, "Failed to create document"));
     }
 }
@@ -541,20 +565,27 @@ export async function createDocument(documentData, file, user) {
  * @param {Object} user - User object
  * @returns {Promise<Object>} Updated document
  */
-export async function updateDocument(documentId, updateData, file, user) {
+export async function updateDocument(documentId, updateData, file, user, req = null) {
+    const context = req || { user };
     try {
         // Get existing document and check access
-        const existingDoc = await getDocumentById(documentId, user);
+        const existingDoc = await Doc.findById(documentId);
+        if (!existingDoc) {
+            throw new Error("Document not found");
+        }
+        if (!canEditDocument(existingDoc, user)) {
+            throw new Error("Access denied");
+        }
+        const before = snapshotDocument(existingDoc);
 
         // Parse JSON fields
         const parsedFields = parseDocumentFields(updateData);
 
-        // Build update object
+        // Build update object from an explicit allow-list only
         const update = {
-            ...updateData,
+            ...pickUpdatableFields(updateData, user),
             ...parsedFields,
-            lastUpdatedBy: user.id,
-            lastUpdatedAt: new Date()
+            lastUpdatedBy: user.id
         };
 
         // Reset review completion status if opensForReview is updated to a future date
@@ -609,26 +640,6 @@ export async function updateDocument(documentId, updateData, file, user) {
             }
         }
 
-        // Add file information if provided
-        if (file) {
-            update.filename = file.filename;
-            update.originalname = file.originalname;
-            update.mimetype = file.mimetype;
-            update.size = file.size;
-            update.url = `/uploads/${file.filename}`;
-
-            // Add to version history
-            if (existingDoc.filename) {
-                if (!update.versionHistory) update.versionHistory = [];
-                update.versionHistory.push({
-                    filename: existingDoc.filename,
-                    originalname: existingDoc.originalname,
-                    uploadedAt: existingDoc.lastUpdatedAt || existingDoc.createdAt,
-                    uploadedBy: existingDoc.lastUpdatedBy || existingDoc.author
-                });
-            }
-        }
-
         // Remove undefined values
         Object.keys(update).forEach(key => {
             if (update[key] === undefined) {
@@ -645,11 +656,24 @@ export async function updateDocument(documentId, updateData, file, user) {
             { path: 'category', select: 'name' },
             { path: 'stakeholders', select: 'firstname lastname email' },
             { path: 'owners', select: 'firstname lastname email' },
+            { path: 'approvers', select: 'firstname lastname email' },
             { path: 'reviewAssignees', select: 'firstname lastname email' },
             { path: 'reviewCompletedBy', select: 'firstname lastname email' },
             { path: 'lastUpdatedBy', select: 'firstname lastname email' },
             { path: 'externalContacts.type' }
         ]);
+
+        const { changes } = await recordRevision({ doc: updatedDoc, before, action: "update", user });
+        if (changes.length > 0) {
+            await record(context, {
+                action: AUDIT_ACTIONS.DOCUMENT_UPDATE,
+                resourceType: "document",
+                resourceId: documentId,
+                documentId,
+                summary: `Updated ${changes.map((change) => change.field).join(", ")}`,
+                changes,
+            });
+        }
 
         return updatedDoc;
     } catch (error) {
@@ -659,25 +683,78 @@ export async function updateDocument(documentId, updateData, file, user) {
 }
 
 /**
- * Delete a document
+ * Soft-delete a document. The record, its files, revisions and audit trail are retained.
  * @param {string} documentId - Document ID
- * @param {Object} user - User object
- * @returns {Promise<void>}
+ * @param {Object} user - User object (admin/superadmin enforced by the route)
+ * @param {Object} [options] - { reason, req }
+ * @returns {Promise<Object>} The deleted document
  */
-export async function deleteDocument(documentId, user) {
-    try {
-        // Check if document exists and user has access
-        await getDocumentById(documentId, user);
-
-        // Only admins or document authors can delete
-        const doc = await Doc.findById(documentId);
-        if (user.role !== 'admin' && doc.author.toString() !== user.id) {
-            throw new Error("Insufficient permissions to delete document");
-        }
-
-        await Doc.findByIdAndDelete(documentId);
-    } catch (error) {
-        logError('deleteDocument', error, { documentId, userId: user.id });
-        throw new Error(sanitizeErrorMessage(error, "Failed to delete document"));
+export async function deleteDocument(documentId, user, { reason = "", req = null } = {}) {
+    const context = req || { user };
+    const doc = await Doc.findById(documentId);
+    if (!doc) {
+        throw new Error("Document not found");
     }
+    if (!isAdmin(user)) {
+        throw new Error("Access denied");
+    }
+    const before = snapshotDocument(doc);
+    doc.deletedAt = new Date();
+    doc.deletedBy = user._id || user.id;
+    doc.deleteReason = String(reason || "").slice(0, 2000) || null;
+    await doc.save();
+
+    await recordRevision({ doc, before, action: "delete", user, reason });
+    await record(context, {
+        action: AUDIT_ACTIONS.DOCUMENT_DELETE,
+        resourceType: "document",
+        resourceId: documentId,
+        documentId,
+        summary: `Deleted document "${doc.title}"`,
+        metadata: { reason: doc.deleteReason },
+    });
+    return doc;
+}
+
+/**
+ * Restore a soft-deleted document.
+ */
+export async function restoreDocument(documentId, user, { reason = "", req = null } = {}) {
+    const context = req || { user };
+    const doc = await Doc.findOne({ _id: documentId }).setOptions({ includeDeleted: true });
+    if (!doc) {
+        throw new Error("Document not found");
+    }
+    if (!doc.deletedAt) {
+        throw new Error("Invalid request: document is not deleted");
+    }
+    const before = snapshotDocument(doc);
+    doc.deletedAt = null;
+    doc.deletedBy = null;
+    doc.deleteReason = null;
+    await doc.save();
+
+    await recordRevision({ doc, before, action: "restore", user, reason });
+    await record(context, {
+        action: AUDIT_ACTIONS.DOCUMENT_RESTORE,
+        resourceType: "document",
+        resourceId: documentId,
+        documentId,
+        summary: `Restored document "${doc.title}"`,
+        metadata: { reason: String(reason || "") },
+    });
+    return doc;
+}
+
+/**
+ * List soft-deleted documents (admin recovery view).
+ */
+export async function listDeletedDocuments() {
+    return Doc.find({ deletedAt: { $ne: null } })
+        .setOptions({ includeDeleted: true })
+        .sort({ deletedAt: -1 })
+        .populate('deletedBy', 'firstname lastname email')
+        .populate('author', 'firstname lastname email')
+        .select('title description deletedAt deletedBy deleteReason author currentVersion')
+        .lean();
 }

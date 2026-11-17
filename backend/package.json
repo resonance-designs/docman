@@ -1,7 +1,7 @@
 {
   "name": "rdocman-backend",
   "private": true,
-  "version": "2.2.7",
+  "version": "2.3.0",
   "description": "RDocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
     "Document Management",
@@ -73,7 +73,10 @@
     "dummy:review-assignments": "ATLAS=no NODE_ENV=development node src/scripts/dummyData/createDummyReviewAssignments.js",
     "dummy:blacklisted-tokens": "ATLAS=no NODE_ENV=development node src/scripts/dummyData/createDummyBlacklistedTokens.js",
     "dummy:all": "ATLAS=no NODE_ENV=development node src/scripts/dummyData/createAllDummyData.js",
-    "seed:safe": "node src/scripts/seedSafe.js"
+    "seed:safe": "node src/scripts/seedSafe.js",
+    "migrate:compliance": "node src/scripts/migrateComplianceFields.js",
+    "migrate:compliance:dry-run": "node src/scripts/migrateComplianceFields.js --dry-run",
+    "audit:verify": "node src/scripts/verifyAuditChain.js"
   },
   "type": "module",
   "dependencies": {

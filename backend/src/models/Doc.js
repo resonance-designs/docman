@@ -4,7 +4,7 @@
  * @model Doc
  * @description Document model schema for managing document metadata, version history, stakeholders, and review workflows
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 // backend/src/models/Doc.js
@@ -133,14 +133,45 @@ const docSchema = new mongoose.Schema(
             ref: 'User',
             required: false
         },
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
         lastUpdatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: false
         },
+        // currentVersion = the published (approved) file version users should rely on. 0 = nothing published yet.
         currentVersion: {
             type: Number,
-            default: 1
+            default: 0
+        },
+        // latestVersion = the highest uploaded file version, including drafts awaiting approval.
+        latestVersion: {
+            type: Number,
+            default: 0
+        },
+        // Users allowed to approve new versions. When empty, document owners are the approvers.
+        // Admins and superadmins can always approve. Nobody can approve a version they uploaded.
+        approvers: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }],
+        // Soft delete. Deleted documents are hidden from normal queries but retained for records retention.
+        deletedAt: {
+            type: Date,
+            default: null
+        },
+        deletedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+        deleteReason: {
+            type: String,
+            default: null
         },
         versionHistory: [{
             version: Number,
@@ -164,6 +195,35 @@ const docSchema = new mongoose.Schema(
     },
     { timestamps: true } // createdAt and updatedAt fields
 );
+
+docSchema.index({ deletedAt: 1 });
+
+/**
+ * Soft-delete filter: hide deleted documents from every query unless the query sets
+ * the `includeDeleted` option or filters on `deletedAt` explicitly.
+ */
+function excludeDeleted(next) {
+    const options = this.getOptions ? this.getOptions() : {};
+    if (options.includeDeleted) return next();
+    const filter = this.getFilter ? this.getFilter() : {};
+    if (!Object.prototype.hasOwnProperty.call(filter, 'deletedAt')) {
+        this.where({ deletedAt: null });
+    }
+    return next();
+}
+
+['find', 'findOne', 'countDocuments', 'findOneAndUpdate', 'updateOne', 'updateMany'].forEach((operation) => {
+    docSchema.pre(operation, excludeDeleted);
+});
+
+docSchema.pre('aggregate', function (next) {
+    if (this.options?.includeDeleted) return next();
+    const pipeline = this.pipeline();
+    const first = pipeline[0] || {};
+    if (first.$geoNear || first.$search || first.$searchMeta) return next();
+    pipeline.unshift({ $match: { deletedAt: null } });
+    return next();
+});
 
 /**
  * Document model for managing document metadata and tracking

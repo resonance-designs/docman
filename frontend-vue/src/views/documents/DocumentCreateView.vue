@@ -109,6 +109,7 @@ function createEmptyForm() {
     reviewDueDate: '',
     nextReviewDueOn: '',
     owners: [],
+    approvers: [],
     stakeholders: [],
     reviewAssignees: [],
     reviewNotes: '',
@@ -183,6 +184,7 @@ function buildCreatePayload(currentForm) {
   }
 
   payload.append('owners', JSON.stringify(currentForm.owners));
+  payload.append('approvers', JSON.stringify(currentForm.approvers || []));
   payload.append('stakeholders', JSON.stringify(currentForm.stakeholders));
   payload.append('reviewAssignees', JSON.stringify(currentForm.reviewAssignees));
 

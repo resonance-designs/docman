@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2026-11-16
+
+### Added
+
+- Append-only, hash-chained audit log (`AuditLog`) with admin search, CSV/JSON export, integrity verification (`GET /api/audit/verify`, `npm run audit:verify`), and per-document audit trails.
+- Immutable document revision history (`DocumentRevision`) with full snapshots and field-level diffs for create, update, delete, restore, publish, and review changes.
+- Change-approval workflow for file versions: pending → approved/rejected/withdrawn, designated approvers, separation of duties (no self-approval), configurable approval threshold, and an approvals inbox.
+- SHA-256 checksums for stored files, verified on every download.
+- Authenticated, audited file downloads (`GET /api/docs/:id/files/:fileId/download`).
+- Soft delete with reasons and admin restore.
+- Switchable rate-limit store: Upstash, self-hosted Redis (built-in RESP client, no new dependency), or in-memory; runtime switch for superadmins in System Settings.
+- Vue screens: document versions/approvals/revisions/audit panels, Approvals inbox, Audit Log, System Settings.
+- `npm run migrate:compliance` data migration and `docs/compliance-and-redis.md`.
+
+### Security
+
+- `/uploads` no longer serves document files publicly.
+- Per-document access checks on all document routes; field allow-list on document updates.
+- Review assignments restricted to the assignee or admins.
+- Self-registration can no longer request elevated roles.
+- Password reset hardened (hashed tokens, input type checks, no account enumeration, configurable link base URL).
+- Admins can no longer change superadmin roles or their own role.
+- `trust proxy` configured so audit and rate limiting see real client IPs.
+- Swagger UI and destructive maintenance tools disabled in production by default.
+
+### Removed
+
+- Unused generic `POST /upload` endpoint.
+
 ## [2.2.7] - 2026-04-30
 
 ### Changed

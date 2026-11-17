@@ -1,12 +1,17 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import ReviewAssignment from "../models/ReviewAssignment.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
 import { sendEmail } from "../lib/emailService.js";
+import mongoose from "mongoose";
+import { record, AUDIT_ACTIONS } from "../services/auditService.js";
+import { canEditDocument, canReadDocument, isAdmin } from "../middleware/documentAccess.js";
+
+const ASSIGNMENT_STATUSES = ["pending", "in-progress", "completed", "overdue"];
 
 /**
  * Create review assignments for a document
@@ -18,10 +23,31 @@ export async function createReviewAssignments(req, res) {
     try {
         const { documentId, assignments } = req.body; // assignments is an array of { assignee, dueDate, notes }
 
+        if (typeof documentId !== "string" || !mongoose.Types.ObjectId.isValid(documentId)) {
+            return res.status(400).json({ message: "A valid documentId is required." });
+        }
+        if (!Array.isArray(assignments) || assignments.length === 0) {
+            return res.status(400).json({ message: "assignments must be a non-empty array." });
+        }
+        if (assignments.some((a) => typeof a?.assignee !== "string" || !mongoose.Types.ObjectId.isValid(a.assignee))) {
+            return res.status(400).json({ message: "Every assignment needs a valid assignee id." });
+        }
+
         // Verify document exists
         const doc = await Doc.findById(documentId);
         if (!doc) {
             return res.status(404).json({ message: "Document not found." });
+        }
+        if (!canEditDocument(doc, req.user)) {
+            await record(req, {
+                action: AUDIT_ACTIONS.REVIEW_ASSIGN,
+                outcome: "denied",
+                resourceType: "document",
+                resourceId: documentId,
+                documentId,
+                summary: "Denied creating review assignments",
+            });
+            return res.status(403).json({ message: "Access denied." });
         }
 
         // Create review assignments
@@ -47,6 +73,17 @@ export async function createReviewAssignments(req, res) {
                 // Don't fail the entire operation if email fails
             }
         }
+
+        await record(req, {
+            action: AUDIT_ACTIONS.REVIEW_ASSIGN,
+            resourceType: "document",
+            resourceId: documentId,
+            documentId,
+            summary: `Assigned ${createdAssignments.length} reviewer(s)`,
+            metadata: {
+                assignments: createdAssignments.map((a) => ({ id: a._id, assignee: a.assignee, dueDate: a.dueDate })),
+            },
+        });
 
         // Populate the assignments with user details
         const populatedAssignments = await ReviewAssignment.find({
@@ -75,11 +112,17 @@ export async function createReviewAssignments(req, res) {
 export async function getDocumentReviewAssignments(req, res) {
     try {
         const { documentId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(documentId)) {
+            return res.status(400).json({ message: "Invalid document id." });
+        }
 
         // Verify document exists
         const doc = await Doc.findById(documentId);
         if (!doc) {
             return res.status(404).json({ message: "Document not found." });
+        }
+        if (!canReadDocument(doc, req.user)) {
+            return res.status(403).json({ message: "Access denied." });
         }
 
         // Clean up any orphaned and duplicate assignments first
@@ -129,7 +172,17 @@ export async function getDocumentReviewAssignments(req, res) {
 export async function getUserReviewAssignments(req, res) {
     try {
         const { userId } = req.params;
-        const { status } = req.query; // Optional filter by status
+        const status = typeof req.query.status === "string" ? req.query.status : undefined; // Optional filter by status
+
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ message: "Invalid user id." });
+        }
+        if (String(req.user.id || req.user._id) !== userId && !isAdmin(req.user)) {
+            return res.status(403).json({ message: "Access denied." });
+        }
+        if (status && !ASSIGNMENT_STATUSES.includes(status)) {
+            return res.status(400).json({ message: "Invalid status filter." });
+        }
 
         // Verify user exists
         const user = await User.findById(userId);
@@ -166,10 +219,41 @@ export async function updateReviewAssignment(req, res) {
         const { id } = req.params;
         const { status, requiresUpdates, updateNotes } = req.body;
 
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid review assignment id." });
+        }
         const assignment = await ReviewAssignment.findById(id);
         if (!assignment) {
             return res.status(404).json({ message: "Review assignment not found." });
         }
+
+        // Only the assignee (or an admin) may change an assignment
+        const isAssignee = String(assignment.assignee) === String(req.user.id || req.user._id);
+        if (!isAssignee && !isAdmin(req.user)) {
+            await record(req, {
+                action: AUDIT_ACTIONS.REVIEW_UPDATE,
+                outcome: "denied",
+                resourceType: "reviewAssignment",
+                resourceId: id,
+                documentId: assignment.document,
+                summary: "Denied updating another user's review assignment",
+            });
+            return res.status(403).json({ message: "Only the assigned reviewer or an admin can update this review." });
+        }
+        if (status !== undefined && (typeof status !== "string" || !ASSIGNMENT_STATUSES.includes(status))) {
+            return res.status(400).json({ message: `status must be one of: ${ASSIGNMENT_STATUSES.join(", ")}` });
+        }
+        if (requiresUpdates !== undefined && typeof requiresUpdates !== "boolean") {
+            return res.status(400).json({ message: "requiresUpdates must be a boolean." });
+        }
+        if (updateNotes !== undefined && updateNotes !== null && typeof updateNotes !== "string") {
+            return res.status(400).json({ message: "updateNotes must be a string." });
+        }
+        const beforeState = {
+            status: assignment.status,
+            requiresUpdates: assignment.requiresUpdates,
+            updateNotes: assignment.updateNotes,
+        };
 
         // Update fields if provided
         if (status) {
@@ -188,6 +272,17 @@ export async function updateReviewAssignment(req, res) {
         }
 
         await assignment.save();
+
+        await record(req, {
+            action: AUDIT_ACTIONS.REVIEW_UPDATE,
+            resourceType: "reviewAssignment",
+            resourceId: id,
+            documentId: assignment.document,
+            summary: `Review assignment ${status ? `set to ${status}` : "updated"}`,
+            changes: ["status", "requiresUpdates", "updateNotes"]
+                .filter((field) => String(beforeState[field] ?? "") !== String(assignment[field] ?? ""))
+                .map((field) => ({ field, from: beforeState[field] ?? null, to: assignment[field] ?? null })),
+        });
 
         // If updates are required, create a new assignment for the author
         if (requiresUpdates && requiresUpdates === true) {

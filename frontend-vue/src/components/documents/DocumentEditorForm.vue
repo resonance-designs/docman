@@ -143,6 +143,19 @@
             />
 
             <v-select
+              v-model="form.approvers"
+              class="mb-4"
+              label="Approvers"
+              hint="Approve new versions before they are published. Leave empty to use the owners."
+              persistent-hint
+              :items="users"
+              item-title="displayName"
+              item-value="_id"
+              chips
+              multiple
+            />
+
+            <v-select
               v-model="form.stakeholders"
               class="mb-4"
               label="Stakeholders"

@@ -2,15 +2,18 @@
  * @name docsRoutes
  * @file /docman/backend/src/routes/docsRoutes.js
  * @routes docsRoutes
- * @description Document management routes for CRUD operations, file uploads, version control, and review workflows
+ * @description Document routes: CRUD, secure file versions, change approval, revision history, audit trail.
+ *              Every /:id route passes through requireDocumentAccess() so access is checked per document,
+ *              not only per role.
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
-import uploadMid from "../middleware/uploadMid.js";
+import { requireDocumentAccess } from "../middleware/documentAccess.js";
+import uploadMid, { handleUploadError } from "../middleware/uploadMid.js";
 import { cacheUserData, setCacheHeaders } from "../middleware/cacheMiddleware.js";
 import {
     getAllDocs,
@@ -18,53 +21,66 @@ import {
     createDoc,
     updateDoc,
     deleteDoc,
-    getDocFiles,
+    restoreDoc,
+    listDeletedDocs,
     markDocAsReviewed,
-    getDocVersion,
-    getVersionHistory,
-    compareDocVersions,
 } from "../controllers/docsController.js";
-import { uploadFileVersion } from "../controllers/uploadFileController.js";
+import {
+    listFiles,
+    uploadVersion,
+    downloadFile,
+    getVersion,
+    getVersionHistory,
+    compareVersions,
+    approve,
+    reject,
+    withdraw,
+    pendingApprovals,
+    revisions,
+    documentAudit,
+} from "../controllers/versionController.js";
 
-/**
- * Express router for document management endpoints
- * Handles document CRUD operations, file uploads, version control, and review workflows
- * All routes require authentication with role-based access control
- * @type {express.Router}
- */
 const router = express.Router();
 
-// GET /api/docs - Get all documents (viewers, editors, admins, and superadmins can view documents)
-router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), cacheUserData(), setCacheHeaders(120), getAllDocs);
+const ANY_ROLE = requireRole("viewer", "editor", "admin", "superadmin");
+const EDITOR = requireRole("editor", "admin", "superadmin");
+const ADMIN = requireRole("admin", "superadmin");
 
-// GET /api/docs/:id - Get a specific document by ID (viewers, editors, admins, and superadmins can view documents)
-router.get("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getDocById);
+/** Run a multer middleware and turn its errors into clean 4xx responses. */
+function withUpload(middleware) {
+    return (req, res, next) => middleware(req, res, (err) => (err ? handleUploadError(err, req, res, next) : next()));
+}
 
-// GET /api/docs/:id/files - Get all files associated with a document (viewers, editors, admins, and superadmins can view files)
-router.get("/:id/files", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getDocFiles);
+// Collection-level routes (registered before /:id so they are not captured as ids)
+router.get("/", verifyAccessToken, ANY_ROLE, cacheUserData(), setCacheHeaders(120), getAllDocs);
+router.post("/", verifyAccessToken, EDITOR, withUpload(uploadMid.single("file")), createDoc);
+router.get("/approvals/pending", verifyAccessToken, ANY_ROLE, pendingApprovals);
+router.get("/deleted", verifyAccessToken, ADMIN, listDeletedDocs);
 
-// GET /api/docs/:id/version/:version - Get a specific version of a document (viewers, editors, admins, and superadmins can view versions)
-router.get("/:id/version/:version", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getDocVersion);
+// Read access (author, owners, stakeholders, approvers, review assignees, admins)
+router.get("/:id", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), getDocById);
+router.get("/:id/files", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), listFiles);
+router.get("/:id/files/:fileId/download", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), downloadFile);
+router.get("/:id/version/:version", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), getVersion);
+router.get("/:id/history", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), getVersionHistory);
+router.get("/:id/compare", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), compareVersions);
+router.get("/:id/revisions", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), revisions);
 
-// GET /api/docs/:id/history - Get version history for a document (viewers, editors, admins, and superadmins can view history)
-router.get("/:id/history", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getVersionHistory);
+// Audit trail (author, owners, approvers, admins)
+router.get("/:id/audit", verifyAccessToken, ANY_ROLE, requireDocumentAccess("audit"), documentAudit);
 
-// GET /api/docs/:id/compare - Compare versions of a document (viewers, editors, admins, and superadmins can compare versions)
-router.get("/:id/compare", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), compareDocVersions);
+// Edit access (editors who are the author or an owner, admins)
+router.put("/:id", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), withUpload(uploadMid.none()), updateDoc);
+router.post("/:id/upload", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), withUpload(uploadMid.single("file")), uploadVersion);
+router.put("/:id/review", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), markDocAsReviewed);
 
-// POST /api/docs - Create a new document (only editors, admins, and superadmins can create documents)
-router.post("/", verifyAccessToken, requireRole("editor", "admin", "superadmin"), uploadMid.single("file"), createDoc);
+// Change approval. Approver/uploader rules are enforced in approvalService and audited when denied.
+router.post("/:id/versions/:version/approve", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), approve);
+router.post("/:id/versions/:version/reject", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), reject);
+router.post("/:id/versions/:version/withdraw", verifyAccessToken, ANY_ROLE, requireDocumentAccess("read"), withdraw);
 
-// POST /api/docs/:id/upload - Upload a new version of a document file (only editors, admins, and superadmins can upload files)
-router.post("/:id/upload", verifyAccessToken, requireRole("editor", "admin", "superadmin"), uploadMid.single("file"), uploadFileVersion);
-
-// PUT /api/docs/:id - Update a document (only editors, admins, and superadmins can update documents)
-router.put("/:id", verifyAccessToken, requireRole("editor", "admin", "superadmin"), uploadMid.none(), updateDoc);
-
-// PUT /api/docs/:id/review - Mark a document as reviewed (only editors, admins, and superadmins can mark documents as reviewed)
-router.put("/:id/review", verifyAccessToken, requireRole("editor", "admin", "superadmin"), markDocAsReviewed);
-
-// DELETE /api/docs/:id - Delete a document (only admins and superadmins can delete documents)
-router.delete("/:id", verifyAccessToken, requireRole("admin", "superadmin"), deleteDoc);
+// Admin-only lifecycle
+router.delete("/:id", verifyAccessToken, ADMIN, requireDocumentAccess("read"), deleteDoc);
+router.post("/:id/restore", verifyAccessToken, ADMIN, requireDocumentAccess("read", { includeDeleted: true }), restoreDoc);
 
 export default router;

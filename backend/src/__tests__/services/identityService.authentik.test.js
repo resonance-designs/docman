@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/services/identityService.authentik.test.js
  * @description Unit tests for Authentik identity auto-linking and JIT provisioning
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import { jest } from "@jest/globals";

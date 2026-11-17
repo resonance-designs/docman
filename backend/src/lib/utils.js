@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 /**
@@ -35,6 +35,12 @@ export function areAllObjectFieldsEmpty(obj) {
  * @returns {string} Sanitized error message
  */
 export function sanitizeErrorMessage(error, defaultMessage = "An error occurred") {
+    // Messages that are safe to show in every environment (used for status-code mapping by controllers)
+    const safeMessage = /^(Access denied|Document not found|Insufficient permissions[\w\s]*|Invalid [\w\s:.-]+)$/;
+    if (error && typeof error.message === 'string' && safeMessage.test(error.message)) {
+        return error.message;
+    }
+
     // In production, don't expose detailed error messages
     if (process.env.NODE_ENV === 'production') {
         return defaultMessage;

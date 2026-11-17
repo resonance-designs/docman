@@ -4,7 +4,7 @@
  * @middleware uploadMid
  * @description File upload middleware for handling multipart form data and file validation
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import multer from "multer";
@@ -13,7 +13,7 @@ import path from "path";
 import crypto from "crypto";
 
 // Ensure uploads folder exists
-const uploadDir = path.join(process.cwd(), "uploads");
+const uploadDir = path.resolve(process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads"));
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }

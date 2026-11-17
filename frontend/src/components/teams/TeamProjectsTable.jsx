@@ -4,7 +4,7 @@
  * @component TeamProjectsTable
  * @description Specialized table component for managing projects in teams with checkbox selection and bulk actions
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 

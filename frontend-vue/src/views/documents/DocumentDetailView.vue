@@ -31,7 +31,9 @@
               </v-btn>
             </v-card-title>
             <v-card-subtitle>
-              Version {{ document.currentVersion || 1 }} · {{ reviewLabel }}
+              {{ document.currentVersion ? `Published version ${document.currentVersion}` : 'No published version yet' }}
+              <span v-if="document.latestVersion > document.currentVersion"> · v{{ document.latestVersion }} in approval workflow</span>
+              · {{ reviewLabel }}
             </v-card-subtitle>
             <v-card-text>
               <p class="text-body-1 mb-6">{{ document.description }}</p>
@@ -70,38 +72,102 @@
                 </v-chip>
               </v-chip-group>
               <div v-if="!document.owners?.length" class="text-medium-emphasis">No owners assigned.</div>
+              <div class="text-subtitle-2 mt-4 mb-2">Approvers</div>
+              <v-chip-group>
+                <v-chip v-for="approver in document.approvers || []" :key="approver._id || approver">
+                  {{ personName(approver) }}
+                </v-chip>
+              </v-chip-group>
+              <div v-if="!document.approvers?.length" class="text-medium-emphasis">Owners approve new versions.</div>
             </v-card-text>
+            <v-card-actions v-if="isAdmin">
+              <v-btn color="error" variant="text" prepend-icon="mdi-delete-outline" @click="deleteDialog = true">
+                Delete document
+              </v-btn>
+            </v-card-actions>
           </v-card>
         </v-col>
+
+        <v-col cols="12">
+          <DocumentVersionsPanel :document="document" :current-user="currentUser" @changed="refresh" />
+        </v-col>
+
+        <v-col cols="12">
+          <DocumentHistoryPanel ref="historyPanel" :document-id="document._id" />
+        </v-col>
       </v-row>
+
+      <v-dialog v-model="deleteDialog" max-width="520">
+        <v-card title="Delete document">
+          <v-card-text>
+            <p class="mb-3">
+              The document is hidden from everyone but kept with all of its versions, revision history, and audit trail.
+              An administrator can restore it later.
+            </p>
+            <v-textarea v-model="deleteReason" label="Reason (required)" rows="3" auto-grow />
+            <v-alert v-if="deleteError" type="error" variant="tonal">{{ deleteError }}</v-alert>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="deleteDialog = false">Cancel</v-btn>
+            <v-btn color="error" :loading="deleting" :disabled="!deleteReason.trim()" @click="deleteDocument">Delete</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </template>
   </v-container>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useResourceDetail } from '@/composables/useResourceDetail';
 import { useAuth } from '@/composables/useAuth';
 import { personName } from '@/lib/people';
+import { errorMessage, formatDate } from '@/lib/format';
+import { api } from '@/services/api';
+import DocumentVersionsPanel from '@/components/documents/DocumentVersionsPanel.vue';
+import DocumentHistoryPanel from '@/components/documents/DocumentHistoryPanel.vue';
 
 const route = useRoute();
+const router = useRouter();
 const { item: document, loading, error, load } = useResourceDetail((id) => `/docs/${id}`);
-const { hasRole } = useAuth();
+const { hasRole, state } = useAuth();
 
+const historyPanel = ref(null);
+const deleteDialog = ref(false);
+const deleteReason = ref('');
+const deleteError = ref('');
+const deleting = ref(false);
+
+const currentUser = computed(() => state.user);
+const isAdmin = computed(() => hasRole(['admin', 'superadmin']));
 const reviewLabel = computed(() => document.value?.reviewCompleted ? 'Review complete' : 'Review open');
-const canEdit = computed(() => hasRole(['editor', 'admin', 'superadmin']));
+const canEdit = computed(() => {
+  if (isAdmin.value) return true;
+  if (!hasRole(['editor'])) return false;
+  const userId = String(state.user?.id || state.user?._id || '');
+  const idOf = (value) => String(value?._id || value || '');
+  return idOf(document.value?.author) === userId || (document.value?.owners || []).some((owner) => idOf(owner) === userId);
+});
 
-function formatDate(value) {
-  if (!value) {
-    return 'Not set';
+async function refresh() {
+  await load(route.params.id);
+  historyPanel.value?.load();
+}
+
+async function deleteDocument() {
+  deleting.value = true;
+  deleteError.value = '';
+  try {
+    await api.delete(`/docs/${document.value._id}`, { data: { reason: deleteReason.value.trim() } });
+    deleteDialog.value = false;
+    await router.push('/documents');
+  } catch (err) {
+    deleteError.value = errorMessage(err, 'Delete failed.');
+  } finally {
+    deleting.value = false;
   }
-
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(value));
 }
 
 onMounted(() => load(route.params.id));

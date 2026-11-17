@@ -74,6 +74,12 @@ const navItems = [
     to: '/documents',
   },
   {
+    title: 'Approvals',
+    subtitle: 'Versions awaiting decision',
+    icon: 'mdi-check-decagram-outline',
+    to: '/approvals',
+  },
+  {
     title: 'Books',
     subtitle: 'Grouped document sets',
     icon: 'mdi-book-open-page-variant-outline',
@@ -98,6 +104,20 @@ const navItems = [
     icon: 'mdi-briefcase-outline',
     to: '/projects',
     roles: ['editor', 'admin', 'superadmin'],
+  },
+  {
+    title: 'Audit Log',
+    subtitle: 'Who did what, when',
+    icon: 'mdi-shield-search',
+    to: '/admin/audit',
+    roles: ['admin', 'superadmin'],
+  },
+  {
+    title: 'System Settings',
+    subtitle: 'Redis store, deleted documents',
+    icon: 'mdi-cog-outline',
+    to: '/admin/system',
+    roles: ['admin', 'superadmin'],
   },
   {
     title: 'Authentik Linking',

@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-2.2.7-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.7-green)
+![Static Badge](https://img.shields.io/badge/Version-2.3.0-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v2.3.0-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -13,7 +13,7 @@ DocMan is also the baseline UI guidepost for the larger Resonance Designs local 
 
 ### 📄 Document Management
 
-- **Upload & Storage**: Secure file upload with version control
+- **Upload & Storage**: Authenticated, checksum-verified file storage with version control
 - **Metadata Management**: Rich document metadata and categorization
 - **Search & Filter**: Full-text search with advanced filtering
 - **Access Control**: Role-based permissions and stakeholder management
@@ -29,7 +29,11 @@ DocMan is also the baseline UI guidepost for the larger Resonance Designs local 
 
 - **Authentication**: JWT-based secure authentication
 - **Authorization**: Role-based access control (Viewer, Editor, Admin)
-- **Audit Trail**: Complete activity logging
+- **Audit Trail**: Append-only, hash-chained audit log with export and integrity verification
+- **Change Approval**: New versions are published only after approval by designated approvers
+- **Revision History**: Every metadata change stored with before/after values
+
+See [docs/compliance-and-redis.md](docs/compliance-and-redis.md) for the audit log, approval workflow, Redis options (Upstash or self-hosted), and upgrade steps.
 - **Data Protection**: Input validation and sanitization
 
 ### 📊 Analytics & Reporting

@@ -4,7 +4,7 @@
  * @service userService
  * @description Business logic service for user operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import User from "../models/User.js";
@@ -312,7 +312,14 @@ export async function updateUser(userId, updateData, requestingUser) {
 
         // Only super admins can change roles, and admins can only create users with roles up to their own
         if (validation.sanitized.role) {
-            if (requestingUser.role === 'superadmin') {
+            const targetUser = await User.findById(userId).select("role").lean();
+            if (targetUser?.role === 'superadmin' && requestingUser.role !== 'superadmin') {
+                // Only superadmins can change a superadmin's role
+                delete validation.sanitized.role;
+            } else if (String(requestingUser.id) === String(userId) && requestingUser.role !== 'superadmin') {
+                // Nobody but a superadmin can change their own role
+                delete validation.sanitized.role;
+            } else if (requestingUser.role === 'superadmin') {
                 // Super admins can set any role
             } else if (requestingUser.role === 'admin') {
                 // Admins can only set roles up to admin (not superadmin)

@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 2.3.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";
@@ -11,13 +11,35 @@ const fileSchema = new mongoose.Schema({
     path: { type: String, required: true },
     mimetype: { type: String, required: true },
     size: { type: Number, required: true },
-    documentId: { type: mongoose.Schema.Types.ObjectId, ref: "Doc", required: true },
+    documentId: { type: mongoose.Schema.Types.ObjectId, ref: "Document", required: true },
     version: { type: Number, default: 1 }, // Version number for this file
     versionLabel: { type: String, default: "Initial Version" }, // Label for this version
     uploadedAt: { type: Date, default: Date.now },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Who uploaded this version
     changelog: { type: String, default: "" }, // Description of changes in this version
+    // SHA-256 of the stored bytes, recorded at upload and verified on every download.
+    sha256: { type: String, default: null },
+    // Change-approval workflow. Legacy files (uploaded before 2.3.0) default to "approved".
+    status: {
+        type: String,
+        enum: ["pending_approval", "approved", "rejected", "withdrawn", "superseded"],
+        default: "approved",
+    },
+    submittedAt: { type: Date, default: null },
+    approvals: [{
+        _id: false,
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        decision: { type: String, enum: ["approved", "rejected"] },
+        comment: { type: String, default: "" },
+        decidedAt: { type: Date, default: Date.now },
+    }],
+    decidedAt: { type: Date, default: null },
+    decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    rejectionReason: { type: String, default: null },
+    publishedAt: { type: Date, default: null },
 });
+
+fileSchema.index({ documentId: 1, status: 1 });
 
 fileSchema.index({ documentId: 1, version: 1 });
 
