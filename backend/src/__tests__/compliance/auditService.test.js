@@ -11,6 +11,7 @@ const mockStore = [];
 
 function mockChain(result) {
     const api = {
+        then: (resolve, reject) => api.lean().then(resolve, reject),
         sort: () => api,
         limit: (n) => { api._limit = n; return api; },
         lean: () => Promise.resolve(typeof result === "function" ? result(api) : result),
@@ -21,7 +22,8 @@ function mockChain(result) {
 jest.mock("../../models/AuditLog.js", () => ({
     __esModule: true,
     default: {
-        findOne: jest.fn(() => mockChain(() => {
+        findOne: jest.fn((filter = {}) => mockChain(() => {
+            if (filter.action) return mockStore.find(e => Object.entries(filter).every(([k, v]) => e[k] === v)) || null;
             const sorted = [...mockStore].sort((a, b) => b.sequence - a.sequence);
             return sorted[0] ? { sequence: sorted[0].sequence, hash: sorted[0].hash } : null;
         })),
@@ -31,7 +33,7 @@ jest.mock("../../models/AuditLog.js", () => ({
             .slice(0, api._limit || 1000)
             .map((entry) => JSON.parse(JSON.stringify(entry))))),
         create: jest.fn(async (entry) => {
-            if (mockStore.some((existing) => existing.sequence === entry.sequence)) {
+            if (mockStore.some((existing) => existing.sequence === entry.sequence || (entry.idempotencyKey && existing.idempotencyKey === entry.idempotencyKey))) {
                 throw Object.assign(new Error("duplicate"), { code: 11000 });
             }
             const saved = JSON.parse(JSON.stringify(entry));
@@ -41,6 +43,8 @@ jest.mock("../../models/AuditLog.js", () => ({
         }),
     },
 }));
+
+import AuditLog from "../../models/AuditLog.js";
 
 import {
     record,
@@ -106,6 +110,56 @@ describe("record + verifyChain", () => {
         await Promise.all(Array.from({ length: 10 }, (_, i) => record(req, { action: AUDIT_ACTIONS.DOCUMENT_VIEW, metadata: { i } })));
         expect(mockStore.map((e) => e.sequence)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         expect((await verifyChain()).valid).toBe(true);
+    });
+
+    test("simultaneous publication retries append one event without consuming sequence numbers", async () => {
+        const event = { action: AUDIT_ACTIONS.VERSION_PUBLISH, resourceType: "file", resourceId: "file1" };
+        const results = await Promise.all(Array.from({ length: 8 }, () => record(req, event)));
+        expect(mockStore).toHaveLength(1);
+        expect(results.every(entry => entry.sequence === 1)).toBe(true);
+        await record(req, { action: AUDIT_ACTIONS.FILE_DOWNLOAD });
+        expect(mockStore.map(e => e.sequence)).toEqual([1, 2]);
+        expect((await verifyChain()).valid).toBe(true);
+    });
+
+    test("a competing process wins the insert: return its event and preserve the chain", async () => {
+        const create = AuditLog.create.getMockImplementation();
+        AuditLog.create.mockImplementationOnce(async entry => {
+            await create(entry); // Another process inserts after our lookup.
+            throw Object.assign(new Error("duplicate key"), { code: 11000 });
+        });
+        const result = await record(req, { action: AUDIT_ACTIONS.VERSION_PUBLISH, resourceType: "file", resourceId: "file1" });
+        expect(result.sequence).toBe(1);
+        expect(mockStore).toHaveLength(1);
+        await record(req, { action: AUDIT_ACTIONS.FILE_DOWNLOAD });
+        expect((await verifyChain()).valid).toBe(true);
+    });
+
+    test("historical publications without a key are reused and their hashes remain valid", async () => {
+        await record(req, { action: AUDIT_ACTIONS.VERSION_PUBLISH, resourceType: "file", resourceId: "legacy" });
+        delete mockStore[0].idempotencyKey;
+        mockStore[0].hash = computeEntryHash(mockStore[0]);
+        resetAuditStateForTests();
+        await record(req, { action: AUDIT_ACTIONS.VERSION_PUBLISH, resourceType: "file", resourceId: "legacy" });
+        expect(mockStore).toHaveLength(1);
+        await record(req, { action: AUDIT_ACTIONS.FILE_DOWNLOAD });
+        expect((await verifyChain()).valid).toBe(true);
+    });
+
+    test("different publications and unsuccessful attempts remain distinct", async () => {
+        const event = { action: AUDIT_ACTIONS.VERSION_PUBLISH, resourceType: "file", resourceId: "file1" };
+        await record(req, event);
+        await record(req, { ...event, resourceId: "file2" });
+        await record(req, { ...event, outcome: "failure" });
+        await record(req, { ...event, outcome: "failure" });
+        expect(mockStore).toHaveLength(4);
+        expect((await verifyChain()).valid).toBe(true);
+    });
+
+    test("the idempotency key is covered by the hash", async () => {
+        await record(req, { action: AUDIT_ACTIONS.VERSION_PUBLISH, resourceType: "file", resourceId: "file1" });
+        mockStore[0].idempotencyKey = "tampered";
+        expect((await verifyChain()).reason).toBe("hash-mismatch");
     });
 
     test("actorUser overrides the request user (login events)", async () => {

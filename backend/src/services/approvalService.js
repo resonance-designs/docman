@@ -22,7 +22,6 @@
 import fs from "fs";
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
-import AuditLog from "../models/AuditLog.js";
 import { record, AUDIT_ACTIONS } from "./auditService.js";
 import { recordRevision, snapshotDocument } from "./revisionService.js";
 import { sha256File } from "../lib/fileIntegrity.js";
@@ -91,14 +90,8 @@ async function publishVersion(req, doc, file) {
     Object.assign(doc, { currentVersion: publishedDoc.currentVersion, versionHistory: publishedDoc.versionHistory });
     await recordRevision({ doc: publishedDoc, before, action: "publish", user: req.user,
         reason: `Published version ${file.version}`, publicationFileId: file._id });
-    // Retrying an interrupted publication must not log the publication twice.
-    const alreadyLogged = await AuditLog.exists({
-        action: AUDIT_ACTIONS.VERSION_PUBLISH,
-        resourceType: "file",
-        resourceId: String(file._id),
-        outcome: "success",
-    });
-    if (!alreadyLogged) await record(req, {
+    // auditService deduplicates this event atomically, including across processes.
+    await record(req, {
         action: AUDIT_ACTIONS.VERSION_PUBLISH,
         resourceType: "file",
         resourceId: file._id,

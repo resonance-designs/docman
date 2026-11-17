@@ -115,4 +115,7 @@ step "End-to-end smoke test"
   SMOKE_EXPECT_REDIS_PROVIDER="${REDIS_URL:+local}" \
   node src/scripts/smokeTest.js) || { echo; echo "server log tail:"; tail -n 40 "$LOG_DIR/server.log"; fail "smoke test failed"; }
 
+step "Concurrent publication recovery (independent processes)"
+(cd backend && NODE_ENV=verify MONGO_URI="$DB_URI" AUDIT_FAIL_CLOSED=true node src/scripts/verifyAuditConcurrency.js) || fail "concurrent audit verification failed"
+
 step "All checks passed"

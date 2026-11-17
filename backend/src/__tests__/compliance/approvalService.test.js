@@ -61,16 +61,12 @@ jest.mock("../../models/Doc.js", () => ({ __esModule: true, default: {
 const mockAudit = [];
 jest.mock("../../services/auditService.js", () => ({
     __esModule: true,
-    record: jest.fn(async (_req, event) => { mockAudit.push({ outcome: "success", ...event }); return null; }),
+    record: jest.fn(async (_req, event) => {
+        // Contract of auditService.record; its actual database arbitration is tested separately.
+        if (event.action === "version_publish" && mockAudit.some(e => e.action === event.action && e.resourceId === event.resourceId)) return null;
+        mockAudit.push({ outcome: "success", ...event }); return null;
+    }),
     AUDIT_ACTIONS: new Proxy({}, { get: (_, key) => String(key).toLowerCase() }),
-}));
-jest.mock("../../models/AuditLog.js", () => ({
-    __esModule: true,
-    default: {
-        exists: jest.fn(async (filter) => mockAudit.some((entry) => entry.action === filter.action
-            && String(entry.resourceId) === String(filter.resourceId)
-            && (entry.outcome || "success") === filter.outcome) || null),
-    },
 }));
 jest.mock("../../services/revisionService.js", () => ({
     __esModule: true,

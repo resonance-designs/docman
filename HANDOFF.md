@@ -9,6 +9,66 @@ deployed with `scripts/apache_production_*.sh`). No Docker is used anywhere, and
 
 ---
 
+## Standing user requirement: deployment walkthrough
+
+The deployment documentation must be a **complete end-to-end walkthrough that anyone can follow**, including a beginner with no server-administration experience. This is an explicit user requirement, not an optional documentation preference.
+
+The user's stated usability target is a new computer student around age 12: do not assume they know shell prompts,
+what an empty result means, how to create/save a configuration file, or whether a displayed error is expected.
+
+- **Required outcome: independent deployment without this chat or an AI assistant.** A beginner must be able to start with a fresh server and complete the documented deployment using the walkthrough itself. Do not leave essential instructions, explanations, troubleshooting, or success criteria only in conversation. Requiring the user to return for missing instructions is a documentation defect, not an acceptable workflow.
+- Treat every installation question, confusing prompt, and encountered failure as evidence to review the relevant instructions. Add the missing explanation and concrete recovery steps to the canonical guide in the same work session, before continuing past that step; update related examples and the confirmed/pending checkpoint. Do not merely promise to document it later.
+- Before describing the walkthrough as complete, review it from a beginner's perspective: can the reader identify their current prompt, perform each action, recognize success or failure, recover from the documented failures, and find the next step without asking us? Fix any gaps found. For genuinely environment-specific information, identify exactly what must be obtained and from whom (for example, the NOC), rather than making this chat a prerequisite. Distinguish documentation review and syntax checks from steps actually verified on the target server.
+- Always target the **latest stable Ubuntu Server LTS**. The current target is **26.04 LTS**. Verify the latest LTS against official Ubuntu sources when maintaining the guide; do not assume a previously recorded version is still current. Interim releases, development previews, and release candidates are not the target.
+- Provide **one clear installation sequence**, not parallel instructions for older Ubuntu releases. Keep the specific target version/codename visible so users select the correct packages; do not replace concrete instructions with vague “latest” placeholders.
+- Cover every prerequisite: obtaining/installing the OS where needed, access, dependency installation and configuration, application deployment, initial accounts/reference data, startup, verification, and operational setup/recovery. Do not assume an unstated prerequisite is already configured.
+- Give exact commands, where to run them, files to edit and their contents, values to replace, expected results, and what to do when a check fails. Explain necessary terminology in beginner-friendly language.
+- Apply that rule to **every stage**, not just isolated examples: explain silent success, interactive prompts, positive and deliberately negative checks, and a concrete next action on failure. Separate commands at checkpoints so a beginner does not paste past a failed migration, backup, or restore. Do not call syntax checking proof of an executed deployment.
+- Keep the canonical guide in sync with guided deployment. Any new or corrected installation step given in conversation must also be documented before proceeding beyond it. Clearly separate confirmed results from pending checks.
+- When a new LTS becomes available, verify dependency support, update the single walkthrough and related documentation together, and validate the changed steps. If compatibility blocks that update, state the specific blocker; do not silently retain an older-LTS alternative or claim an untested configuration works.
+- For the current NMDOH POC, respect the requested order: install the application and verify local startup first, then configure internal DNS/HTTPS and browser access. Do not make public DNS, a DMZ, or external access prerequisites for this internal deployment.
+
+Canonical document: [complete Ubuntu installation guide](docs/deployment/ubuntu-server-installation.md). Preserve this requirement across handoffs and future documentation edits.
+
+## Complete Ubuntu installation documentation — November 17, 2026
+
+The full walkthrough has had a beginner-usability pass across setup, accounts/configuration, deployment, TLS,
+email, backup scheduling, recovery, and updates. Added prompt/location explanations, exact file-edit commands,
+expected outputs and failure actions. Migration/build/update steps now stop at explicit checkpoints. Corrected
+private-certificate site activation order and explained successful inactive oneshot jobs versus failed services.
+The current remote installation checkpoint below remains unchanged; documentation edits do not complete server tasks.
+
+The canonical fresh-server runbook is [docs/deployment/ubuntu-server-installation.md](docs/deployment/ubuntu-server-installation.md).
+It provides one Ubuntu 26.04 LTS walkthrough with Ubuntu Node 22 packages, MongoDB 9.0, native Apache,
+and Redis, and includes OS/SSH/DNS/firewall setup,
+account-only provisioning, environment files, migrations, systemd, TLS, SES, encrypted off-server backups,
+restoration, maintenance, and acceptance checks. Local authentication is sufficient; Authentik is optional.
+Uploads live outside the checkout. The old destructive manual replacement procedure has been superseded.
+This documentation does not claim a completed Ubuntu 26.04 LTS application deployment or live AWS/DNS/certificate validation.
+Guide verification: Bash/Python/embedded-JavaScript/JSON syntax and local links pass; both Apache examples pass isolated
+syntax checks; the documentation site builds. Systemd parsing reports expected absent target-installation dependencies
+in the verification environment. The guide explicitly handles the Vue category-creation and password-reset UI gaps
+with category bootstrap instructions and an operator-assisted backend reset procedure.
+
+## NMDOH internal POC installation — current checkpoint
+
+The user accesses an NMDOH workstation through NinjaOne, then connects to the internal development server.
+They have sudo access. The server is internal-only, not in the DMZ; no application HTTPS setup has been completed.
+The user explicitly wants application installation/local startup first, before DNS/certificate work.
+
+User-provided output confirms Ubuntu 26.04.1 LTS (`resolute`), x86-64 with AVX, 7.3 GiB RAM and 39 GB free on `/`.
+Basic build/download tools installed successfully. Installed versions: Node 22.22.1, npm 9.2.0, Redis 8.0.5 (`PONG`),
+MongoDB Community 9.0.8 (`active`, `{ ok: 1 }`, bound to `127.0.0.1:27017`).
+
+**Current account checkpoint:** both MongoDB accounts were created with `ok: 1`; authentication is enabled, the application account successfully listed collections (`[]`), and unauthenticated collection listing was denied. Redis failed because line 112 contained `port protected-mode yes`; after correction the user reported startup success. Redis authentication is now verified: the user supplied authenticated `PONG` and unauthenticated `NOAUTH Authentication required` results. Section 9.1 is confirmed: docman uid=999/gid=983; uploads and logs are docman:docman 750, checkout directory rbakos:rbakos 755, and public directory root:root 755. Repository cloning is confirmed at /var/www/docman. The initial clone selected master at 000274b (2.2.7 merge). The user then switched the server to feature/compliance-hardening tracking origin/feature/compliance-hardening at 4178135; git status confirms a clean working tree. Final deployment commit selection remains pending publication of the local fixes. Local uncommitted application fixes must be included in the deployment source before installing. Application deployment, HTTPS, email, and backups remain unconfirmed. Section 8 now includes the exact diagnostic/fix sequence, expected output, nano save steps, and password-test explanations.
+
+**Explicit development-password requirement:** use passwords chosen by the user, at least 18 characters long. Do not prescribe generated hexadecimal passwords or manual transcription of long generated strings. Explain that `passwordPrompt()` inside `db.createUser` assigns a NEW password; it is not asking for a preexisting MongoDB credential. Preserve the user's working password. URI/configuration examples must correctly encode/quote punctuation and spaces. Machine signing keys (JWT) remain distinct from login passwords. Documentation changes do not change application password validators or live server credentials.
+
+Earlier troubleshooting showed altered/control-character input through nested remote connections. That is historical context, not an instruction to repeat the failed password workflow. The user subsequently resumed guided deployment. Keep the guide and this checkpoint synchronized with confirmed results; do not treat proposed checks as completed.
+
+The canonical guide now includes this internal POC sequence, exact package commands used, database account/authentication
+steps, expected outputs, and the installation checkpoint. Keep it updated as guided deployment progresses.
+
 ## Verification follow-up — November 17, 2026
 
 The secure document-sharing follow-up is implemented in this working tree. Scope remains authenticated upload,
@@ -17,7 +77,10 @@ download and file replacement; no new project or invitation workflow was introdu
 Verified in an isolated WSL Ubuntu 22.04 copy with Node 22.23.4, MongoDB 8.0.34 and Redis 7.0.15:
 
 - Clean `npm ci` for backend, Vue and legacy React; Vue Vite 8 production build, remote bundle and React build pass.
-- 69 targeted security/compliance/identity tests pass (7 suites). The Authentik suite now runs under the existing Jest configuration.
+- 78 targeted security/compliance/identity tests pass (7 suites). The Authentik suite now runs under the existing Jest configuration.
+- Forced simultaneous publication retries from two independent Node processes against MongoDB: one publication
+  audit entry, one history entry, one revision, and a valid gap-free hash chain. `verifyAuditConcurrency.js` also
+  confirms the database rejects a duplicate event even with a different available sequence number.
 - Expanded real-database smoke test: 24 checks pass using both memory and real local Redis; no Redis fallback.
 - Browser: local sign-in, replacement upload, separate approver inbox/approval, published version and superseded
   history, authenticated download (HTTP 200), revision and audit views. The live Authentik provider was not contacted.
@@ -32,11 +95,14 @@ unique version and active-upload indexes; resumable publication with a unique pu
 and an approver display-name fix. Logout reports failure if token invalidation cannot be persisted.
 
 Publication uses a durable `publishing` state for standalone MongoDB compatibility. A crash can leave publication
-incomplete until an authorized user clicks **Retry publication**. History/revision writes are idempotent; audit
-records may show repeated publication attempts. This is recovery across multiple writes, not a cross-collection transaction.
+incomplete until an authorized user clicks **Retry publication**. History/revision writes and successful publication
+audit entries are idempotent. Audit deduplication is enforced by a sparse unique database key, including across server
+processes; retries do not emit duplicate stdout audit records. Existing audit records/hashes are preserved.
+This is recovery across multiple writes, not a cross-collection transaction.
 
 Before release, run the compliance migration while writes are stopped. It checks for conflicting existing versions
 and refuses to silently renumber/discard them, then replaces the old nonunique version index and adds the new indexes.
+This includes the unique audit idempotency-key index; install it before resuming writes and update every application process.
 The partial active-version index uses MongoDB 6+ syntax; the verified deployment target is MongoDB 8.0.34.
 Do not roll back application code alone across a migrated production database without a tested recovery plan.
 
@@ -48,6 +114,9 @@ Reproducible checks:
 
 ```bash
 REDIS_URL=redis://127.0.0.1:6399/0 MONGO_URI=mongodb://127.0.0.1:27199 bash scripts/verify-linux.sh
+# Run just the independent-process audit race (creates its own disposable database):
+NODE_ENV=verify MONGO_URI=mongodb://127.0.0.1:27199/docman_verify_audit \
+  AUDIT_FAIL_CLOSED=true node backend/src/scripts/verifyAuditConcurrency.js
 # After smoke-testing and restoring a disposable DB and its uploaded files:
 NODE_ENV=verify MONGO_URI=mongodb://127.0.0.1:27199/docman_verify_restored \
   UPLOAD_DIR=/path/to/restored-test-uploads node backend/src/scripts/verifyWorkflowRecovery.js

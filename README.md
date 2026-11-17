@@ -45,6 +45,8 @@ See [docs/compliance-and-redis.md](docs/compliance-and-redis.md) for the audit l
 
 ## 🚀 Quick Start
 
+**Installing on an Ubuntu server? Start with the [complete Ubuntu installation guide](docs/deployment/ubuntu-server-installation.md).** It provides one Ubuntu 26.04 LTS installation walkthrough and an internal POC sequence that installs the application before DNS/HTTPS setup. It covers every required service, local accounts, HTTPS, email, backups, restore drills, updates, and troubleshooting. The local development commands below are not the production installation procedure.
+
 ### Prerequisites
 
 - Node.js 20.19+ or 22.12+

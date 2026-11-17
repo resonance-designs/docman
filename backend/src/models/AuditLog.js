@@ -23,6 +23,7 @@ const changeSchema = new mongoose.Schema(
 const auditLogSchema = new mongoose.Schema(
     {
         sequence: { type: Number, required: true, unique: true },
+        idempotencyKey: { type: String },
         timestamp: { type: Date, required: true, default: Date.now },
         action: { type: String, required: true },
         outcome: { type: String, enum: ["success", "denied", "failure"], default: "success" },
@@ -51,6 +52,8 @@ const auditLogSchema = new mongoose.Schema(
 );
 
 auditLogSchema.index({ timestamp: -1 });
+// Optional so historical audit entries remain untouched and retain their hashes.
+auditLogSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 auditLogSchema.index({ action: 1, timestamp: -1 });
 auditLogSchema.index({ "actor.id": 1, timestamp: -1 });
 auditLogSchema.index({ documentId: 1, timestamp: -1 });

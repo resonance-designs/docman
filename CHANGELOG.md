@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+Follow-up changes and verification recorded on 2026-11-17; these do not represent a new release.
+
+### Added
+
+- Complete beginner-oriented Ubuntu 26.04 LTS server installation and operations guide, including prerequisites, secure native services, local account provisioning, HTTPS, SES, encrypted off-server backups, restore drills, and safe updates. Supersedes the old manual checkout-deletion procedure.
+
+### Security
+
+- Applied document visibility rules to book/project responses, analytics exports, and custom document charts to prevent metadata exposure through related endpoints.
+- Enforced token blacklisting for Authentik sessions and report logout failure when token invalidation cannot be persisted.
+- Removed document-list and analytics response caching so permission changes take effect on subsequent requests; added no-store headers for API responses.
+- Removed server file paths and internal publication snapshots from version and approval responses.
+
+### Fixed
+
+- Prevented concurrent uploads from creating duplicate version numbers or multiple active versions using database uniqueness constraints.
+- Made interrupted publication resumable through a durable `publishing` state and a Vue **Retry publication** action; retries preserve a single version-history entry and publication revision.
+- Made successful publication audit events idempotent across concurrent server processes using a sparse unique database key. Retries reuse the existing event without consuming audit sequence numbers or emitting duplicate stdout records; historical entries and hashes remain unchanged.
+- Updated the compliance migration to detect conflicting existing versions before changes and replace the old nonunique version index.
+- Clear the Vue reactive session on HTTP 401 and display approver names in document details.
+- Repaired the Authentik identity test suite for the existing Jest configuration and made Linux verification propagate test failures.
+
+### Changed
+
+- Expanded Redis deployment instructions with startup-error diagnosis, malformed-line correction, restart-limit recovery, and step-by-step authentication checks; updated confirmed NMDOH installation checkpoints.
+- Replaced generated hexadecimal password instructions with user-chosen passwords of at least 18 characters for the development walkthrough; clarified new-password prompts and safe configuration quoting/URL encoding, and synchronized Redis guidance and the handoff.
+- Revised the deployment walkthrough throughout for beginner usability: explicit prompts, file-edit commands, expected outputs, failure actions, and staged migration/backup/restore/update checks; corrected private-certificate Apache activation order.
+- Recorded the standing deployment-documentation requirement: one complete beginner-followable walkthrough for the latest stable Ubuntu Server LTS, covering all prerequisites and kept synchronized with guided installation steps.
+- Updated the Ubuntu deployment guide with a single Ubuntu 26.04 LTS installation path, the internal NMDOH POC installation sequence, MongoDB 9 repository commands, database authentication checks, and explicit completed/pending deployment checkpoints.
+- Updated the GitHub deployment workflow to accept and validate Authentik build variables, run security/identity tests, build and publish the Vue remote bundle, and run migration preflight and migration.
+- Raised the documented MongoDB minimum to 6.0 for the partial active-version index; verified with MongoDB 8.0.34.
+- Expanded workflow smoke tests and added `backend/src/scripts/verifyWorkflowRecovery.js` for disposable-database recovery and signed-token revocation checks.
+
+### Verification
+
+- Passed 78 targeted security, compliance, and identity tests across seven suites.
+- Forced two independent Node processes to retry the same publication simultaneously against MongoDB; verified one publication audit entry, one history entry, one revision, database uniqueness, and a valid gap-free audit chain (`verifyAuditConcurrency.js`).
+- Passed 24 end-to-end checks against real MongoDB with both memory and local Redis 7 rate limiting, without Redis fallback.
+- Completed clean Linux installs and production builds for Vue (Vite 8), the Vue remote bundle, and legacy React.
+- Exercised browser sign-in, replacement upload, separate-user approval, authenticated download, revision history, and audit views.
+- Restored a disposable MongoDB backup and uploaded files; verified checksums and audit integrity, recovered an injected publication failure without duplicate history/revisions, and tested revocation of a real RSA-signed test Authentik token.
+
+### Upgrade Notes
+
+- Stop writes and run the compliance migration before release. Conflicting existing versions require resolution before the new indexes can be created.
+- The migration also creates the unique audit idempotency-key index. Install it before resuming writes and run the updated code on every application process; no historical audit backfill or deletion is needed.
+- An interrupted publication requires an authorized retry; this is recovery across multiple writes, not a cross-collection transaction.
+- Verification used isolated test services and synthetic data. Production deployment, live Authentik/Upstash configuration, and the unrelated failing legacy backend test suites were not verified as passing.
+
 ## [2.3.0] - 2026-11-16
 
 ### Added
@@ -26,38 +77,6 @@ All notable changes to this project will be documented in this file.
 - Admins can no longer change superadmin roles or their own role.
 - `trust proxy` configured so audit and rate limiting see real client IPs.
 - Swagger UI and destructive maintenance tools disabled in production by default.
-- Applied document visibility rules to book/project responses, analytics exports, and custom document charts to prevent metadata exposure through related endpoints.
-- Enforced token blacklisting for Authentik sessions and report logout failure when token invalidation cannot be persisted.
-- Removed document-list and analytics response caching so permission changes take effect on subsequent requests; added no-store headers for API responses.
-- Removed server file paths and internal publication snapshots from version and approval responses.
-
-### Fixed
-
-- Prevented concurrent uploads from creating duplicate version numbers or multiple active versions using database uniqueness constraints.
-- Made interrupted publication resumable through a durable `publishing` state and a Vue **Retry publication** action; retries preserve a single version-history entry and publication revision.
-- Updated the compliance migration to detect conflicting existing versions before changes and replace the old nonunique version index.
-- Clear the Vue reactive session on HTTP 401 and display approver names in document details.
-- Repaired the Authentik identity test suite for the existing Jest configuration and made Linux verification propagate test failures.
-
-### Changed
-
-- Updated the GitHub deployment workflow to accept and validate Authentik build variables, run security/identity tests, build and publish the Vue remote bundle, and run migration preflight and migration.
-- Raised the documented MongoDB minimum to 6.0 for the partial active-version index; verified with MongoDB 8.0.34.
-- Expanded workflow smoke tests and added `backend/src/scripts/verifyWorkflowRecovery.js` for disposable-database recovery and signed-token revocation checks.
-
-### Verified — 2026-11-17
-
-- Passed 69 targeted security, compliance, and identity tests across seven suites.
-- Passed 24 end-to-end checks against real MongoDB with both memory and local Redis 7 rate limiting, without Redis fallback.
-- Completed clean Linux installs and production builds for Vue (Vite 8), the Vue remote bundle, and legacy React.
-- Exercised browser sign-in, replacement upload, separate-user approval, authenticated download, revision history, and audit views.
-- Restored a disposable MongoDB backup and uploaded files; verified checksums and audit integrity, recovered an injected publication failure without duplicate history/revisions, and tested revocation of a real RSA-signed test Authentik token.
-
-### Upgrade Notes
-
-- Stop writes and run the compliance migration before release. Conflicting existing versions require resolution before the new indexes can be created.
-- An interrupted publication requires an authorized retry; this is recovery across multiple writes, not a cross-collection transaction.
-- Verification used isolated test services and synthetic data. Production deployment, live Authentik/Upstash configuration, and the unrelated failing legacy backend test suites were not verified as passing.
 
 ### Removed
 

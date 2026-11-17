@@ -12,6 +12,8 @@
  *    business operation; failures are written to stderr as structured JSON for journald/SIEM pickup.
  *    Set AUDIT_FAIL_CLOSED=true to make record() throw instead.
  *  - Set AUDIT_STDOUT=true to also emit each entry as a JSON line on stdout (for log forwarding).
+ *  - Successful file-publication events use a unique database key for cross-process deduplication.
+ *    Replays return the original entry; historical records without keys are left unchanged.
  * @author Richard Bakos
  * @version 2.3.0
  * @license UNLICENSED
@@ -112,6 +114,7 @@ export function canonicalStringify(value) {
 
 function hashableView(entry) {
     return {
+        ...(entry.idempotencyKey ? { idempotencyKey: entry.idempotencyKey } : {}),
         sequence: entry.sequence,
         timestamp: entry.timestamp instanceof Date ? entry.timestamp.toISOString() : entry.timestamp,
         action: entry.action,
@@ -163,7 +166,16 @@ async function loadChainHead() {
 }
 
 async function appendEntry(fields) {
+    const publicationFilter = fields.idempotencyKey ? {
+        action: fields.action, resourceType: fields.resourceType,
+        resourceId: fields.resourceId, outcome: fields.outcome,
+    } : null;
     for (let attempt = 1; attempt <= MAX_APPEND_ATTEMPTS; attempt += 1) {
+        // This also recognizes legacy publication events without an idempotency key.
+        if (publicationFilter) {
+            const existing = await AuditLog.findOne(publicationFilter);
+            if (existing) return { entry: existing, inserted: false };
+        }
         const head = chainHead || (await loadChainHead());
         const entry = {
             ...fields,
@@ -174,8 +186,17 @@ async function appendEntry(fields) {
         try {
             const created = await AuditLog.create(entry);
             chainHead = { sequence: entry.sequence, hash: entry.hash };
-            return created;
+            return { entry: created, inserted: true };
         } catch (error) {
+            if (error?.code === 11000 && publicationFilter) {
+                // Another process may have inserted the same publication. The unique
+                // index, not the preceding lookup, arbitrates concurrent writers.
+                const existing = await AuditLog.findOne(publicationFilter);
+                if (existing) {
+                    chainHead = null;
+                    return { entry: existing, inserted: false };
+                }
+            }
             if (error?.code === 11000 && attempt < MAX_APPEND_ATTEMPTS) {
                 await loadChainHead();
                 continue;
@@ -218,11 +239,15 @@ export function record(context, event) {
         metadata: toPlain(event.metadata || {}),
         request: buildRequestInfo(context),
     };
+    if (fields.action === AUDIT_ACTIONS.VERSION_PUBLISH && fields.resourceType === "file"
+        && fields.resourceId && fields.outcome === "success") {
+        fields.idempotencyKey = `version.publish:file:${fields.resourceId}`;
+    }
 
     const run = async () => {
         try {
-            const created = await appendEntry(fields);
-            if (envFlag("AUDIT_STDOUT")) {
+            const { entry: created, inserted } = await appendEntry(fields);
+            if (inserted && envFlag("AUDIT_STDOUT")) {
                 process.stdout.write(`${JSON.stringify({ type: "audit", ...hashableView(created.toObject()), hash: created.hash })}\n`);
             }
             return created;

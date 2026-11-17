@@ -135,23 +135,11 @@ stores which provider is selected. Switching tests the connection first and is w
 can be configured at the same time so leadership can switch without a redeploy. If the active store becomes unreachable,
 requests fall back to the in-memory limiter (shown as a warning on the System Settings page) instead of failing.
 
-### Installing Redis on Ubuntu 24.04 LTS (same server as DocMan)
+### Installing Redis on Ubuntu LTS (same server as DocMan)
 
-```bash
-sudo apt update && sudo apt install -y redis-server
-sudo sed -i 's/^supervised .*/supervised systemd/' /etc/redis/redis.conf
-# Listen only on localhost, require a password, keep protected mode on
-sudo sed -i 's/^bind .*/bind 127.0.0.1 -::1/' /etc/redis/redis.conf
-sudo sed -i 's/^protected-mode .*/protected-mode yes/' /etc/redis/redis.conf
-REDIS_PASS=$(openssl rand -hex 32)
-echo "requirepass $REDIS_PASS" | sudo tee -a /etc/redis/redis.conf >/dev/null
-sudo systemctl enable --now redis-server && sudo systemctl restart redis-server
-redis-cli -a "$REDIS_PASS" ping   # PONG
-echo "REDIS_URL=redis://:$REDIS_PASS@127.0.0.1:6379/0"   # add to backend/.env.prod
-```
+Follow [the complete Ubuntu LTS walkthrough](deployment/ubuntu-server-installation.md#8-install-and-secure-redis) for installation, configuration, and expected results. For the development environment, choose your own Redis password of at least 18 characters. The walkthrough explains quoting/URL encoding so spaces and punctuation work correctly. It does not require a generated hexadecimal password.
 
-Then set `REDIS_PROVIDER=local` (or leave it empty and pick **Self-hosted Redis** in System Settings) and restart the
-`docman` service.
+Set `REDIS_PROVIDER=local` and the documented Redis connection URL, then restart `docman-backend` and verify the actual provider. Keep installation commands in the canonical walkthrough so this reference does not drift into a different Ubuntu/password setup.
 
 ## 7. Other security fixes in this release
 
