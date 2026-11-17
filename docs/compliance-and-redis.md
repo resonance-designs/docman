@@ -178,6 +178,7 @@ git pull && npm ci
 # 2. Preview, then run the data migration (idempotent)
 NODE_ENV=production npm run migrate:compliance:dry-run
 NODE_ENV=production npm run migrate:compliance
+# (scripts/apache_production_update.sh now runs step 2 for you)
 # 3. Rebuild the Vue frontend and restart
 sudo systemctl restart docman
 # 4. Sign in as superadmin → Audit Log → Verify integrity
@@ -187,7 +188,26 @@ The migration marks existing file versions as approved (they were already live),
 reports files that are missing on disk, creates a baseline revision for every document, and writes a
 `system.migration` audit entry.
 
-## 9. Known limitations
+## 9. Verifying on Linux (Ubuntu, WSL, CI)
+
+Everything builds and runs on Linux; nothing depends on Windows. One script does a clean install, the unit tests,
+both frontend builds, and an end-to-end smoke test against real MongoDB and Redis:
+
+```bash
+git clone <repo> ~/docman && cd ~/docman && git checkout <branch>
+bash scripts/verify-linux.sh                     # uses Docker for MongoDB + Redis (docker-compose.yml)
+MONGO_URI=mongodb://127.0.0.1:27017 REDIS_URL=redis://:pass@127.0.0.1:6379/0 bash scripts/verify-linux.sh   # your own services
+SKIP_E2E=1 bash scripts/verify-linux.sh          # no database available
+```
+
+The smoke test (`backend/src/scripts/smokeTest.js`) can also be pointed at any running instance:
+`SMOKE_BASE_URL=https://docman.example.gov SMOKE_ADMIN_EMAIL=... SMOKE_ADMIN_PASSWORD=... node src/scripts/smokeTest.js`.
+It creates a category, a document, and test viewer accounts, so run it against a dev/staging server, not production.
+
+`MONGO_URI` (or `MONGODB_URI`) now works for any environment, not only Atlas; the existing `MONGO_HOST`/`MONGO_PORT`/…
+variables keep working when it is not set. The Apache update scripts now run the 2.3.0 data migration automatically.
+
+## 10. Known limitations
 
 * The audit hash chain is tamper-*evident*, not tamper-*proof*: someone with direct database write access can alter
   entries, but verification will detect it. Off-server copies (SIEM) provide recoverability.

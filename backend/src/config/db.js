@@ -88,8 +88,15 @@ const buildAtlasMongoUri = () => {
 export const connectDB = async () => {
     try {
         let mongoUri;
+        const directUri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-        if (process.env.ATLAS === 'no' && process.env.ENV === 'Development') {
+        if (isSet(directUri) && process.env.ATLAS !== 'yes') {
+            // A full connection string works for any host (local, container, managed) and any environment.
+            mongoUri = directUri;
+            console.log('MongoDB connection target:', getMongoUriSummary(mongoUri));
+            await mongoose.connect(mongoUri);
+            console.log('MongoDB connected via MONGO_URI.');
+        } else if (process.env.ATLAS === 'no' && process.env.ENV === 'Development') {
             // Connect to MongoDB using the provided credentials and host
             mongoUri = buildLocalMongoUri();
             console.log('MongoDB connection target:', getMongoUriSummary(mongoUri));
