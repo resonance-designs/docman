@@ -94,6 +94,8 @@ const userSchema = new mongoose.Schema(
             required: false,
             maxlength: 500,
         },
+        isActive: { type: Boolean, default: true },
+        sessionVersion: { type: Number, default: 0 },
         resetPasswordToken: String,
         resetPasswordExpires: Date,
         refreshTokenHash: { type: String },

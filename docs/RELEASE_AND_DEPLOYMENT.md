@@ -12,6 +12,8 @@ Update the guide whenever guided deployment introduces or corrects a step. For a
 
 Before accepting an edit, read it as a first-time terminal user: can the reader identify the right computer/prompt, enter each value, recognize successful or deliberately denied output, and know exactly where to stop on failure? Include silent-success behavior and interactive answers where relevant. Put checkpoints before dependent mutations rather than explaining a failed preflight after a block that already applies the change. Review this across the entire walkthrough, including optional services and recovery, not only the example reported by a user.
 
+Documentation corrections are maintainer work. When the user requests a complete fresh-server guide, audit the repository and the guide locally; do not substitute a new server diagnostic exercise for repairing the instructions. Keep one base package list, install each prerequisite before first use, and distinguish required runtime components from optional integrations and separate backup-host requirements. A permission check does not prove a package is installed. Keep a single current installation-status table in HANDOFF rather than contradictory appended checkpoints. State whether edits are local or published, and distinguish syntax validation from a target-server deployment test.
+
 ## Deployment Targets
 
 DocMan is intended to run in two production-like places:

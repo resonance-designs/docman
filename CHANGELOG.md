@@ -8,9 +8,13 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 
 ### Added
 
+- Superadmin-only Users interface for account creation, profile/role editing, password resets, and disabling/re-enabling accounts, with pagination/search and audit records. Self-registration remains independently disabled.
+
 - Complete beginner-oriented Ubuntu 26.04 LTS server installation and operations guide, including prerequisites, secure native services, local account provisioning, HTTPS, SES, encrypted off-server backups, restore drills, and safe updates. Supersedes the old manual checkout-deletion procedure.
 
 ### Security
+
+- Enforced account-management authorization server-side; reject disabled accounts and invalidate local sessions after administrator password/status changes. Protect existing superadmins against demotion/disablement/deletion, including legacy API paths.
 
 - Applied document visibility rules to book/project responses, analytics exports, and custom document charts to prevent metadata exposure through related endpoints.
 - Enforced token blacklisting for Authentik sessions and report logout failure when token invalidation cannot be persisted.
@@ -28,6 +32,14 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 
 ### Changed
 
+- Completed time-service installation/internal-source guidance, outbound dependency-access requirements, and application file-log rotation/retention instructions after a fresh-server dependency cross-check.
+
+- Reworked fresh-server preparation into ordered package/update/time checkpoints, documented stage completion criteria, separated backup-host prerequisites, protected existing settings and certificate requests on retries, and replaced conflicting handoff progress notes with a current-status table.
+
+- Consolidated fresh-server prerequisite installation, added explicit tool/time and backup-tool checks, corrected backup-user prompt sequencing, and reconciled current NMDOH deployment status with confirmed evidence.
+
+- Added an explicit Apache installation/version checkpoint before website configuration; clarified that the www-data permission check does not prove Apache is installed.
+- Added an explicit save-before-edit checkpoint for encoded database/Redis credentials and the JWT key, with recovery after clearing the terminal or interrupting configuration editing.
 - Expanded Redis deployment instructions with startup-error diagnosis, malformed-line correction, restart-limit recovery, and step-by-step authentication checks; updated confirmed NMDOH installation checkpoints.
 - Replaced generated hexadecimal password instructions with user-chosen passwords of at least 18 characters for the development walkthrough; clarified new-password prompts and safe configuration quoting/URL encoding, and synchronized Redis guidance and the handoff.
 - Revised the deployment walkthrough throughout for beginner usability: explicit prompts, file-edit commands, expected outputs, failure actions, and staged migration/backup/restore/update checks; corrected private-certificate Apache activation order.
@@ -38,6 +50,8 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 - Expanded workflow smoke tests and added `backend/src/scripts/verifyWorkflowRecovery.js` for disposable-database recovery and signed-token revocation checks.
 
 ### Verification
+
+- User management: passed 39 targeted tests and 25 disposable-MongoDB integration checks; built Vue and verified browser account creation and disabling. NMDOH deployment of this update remains pending.
 
 - Passed 78 targeted security, compliance, and identity tests across seven suites.
 - Forced two independent Node processes to retry the same publication simultaneously against MongoDB; verified one publication audit entry, one history entry, one revision, database uniqueness, and a valid gap-free audit chain (`verifyAuditConcurrency.js`).

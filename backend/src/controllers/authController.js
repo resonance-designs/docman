@@ -124,13 +124,16 @@ export async function register(req, res) {
         await user.save();
 
         // Create tokens
-        const accessToken = createAccessToken(user._id, user.role);
+        const accessToken = createAccessToken(user._id, user.role, user.sessionVersion || 0);
 
         // Create opaque refresh token and store its hash
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashed = await bcrypt.hash(refreshToken, 12);
-        user.refreshTokenHash = hashed;
-        await user.save();
+        const loginUpdate = await User.updateOne(
+            { _id: user._id, isActive: { $ne: false }, $or: [{ sessionVersion: user.sessionVersion || 0 }, ...(user.sessionVersion ? [] : [{ sessionVersion: { $exists: false } }])] },
+            { $set: { refreshTokenHash: hashed } }
+        );
+        if (!loginUpdate.matchedCount) return res.status(401).json({ message: 'Account changed; sign in again.' });
 
         setRefreshCookie(res, refreshToken);
 
@@ -166,7 +169,7 @@ export async function login(req, res) {
         const user = await User.findOne({
             $or: [{ email: email }, { username: email }]
         });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user || user.isActive === false || !(await bcrypt.compare(password, user.password))) {
             await record(req, {
                 action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
                 outcome: "failure",
@@ -179,14 +182,17 @@ export async function login(req, res) {
         }
 
         console.log("🔑 Creating access token for user:", user._id, "with role:", user.role);
-        const accessToken = createAccessToken(user._id, user.role);
+        const accessToken = createAccessToken(user._id, user.role, user.sessionVersion || 0);
         console.log("🔑 Access token created, length:", accessToken.length);
 
         // Rotate refresh token: create new opaque token/hash
         const refreshToken = crypto.randomBytes(64).toString('hex');
         const hashed = await bcrypt.hash(refreshToken, 12);
-        user.refreshTokenHash = hashed;
-        await user.save();
+        const loginUpdate = await User.updateOne(
+            { _id: user._id, isActive: { $ne: false }, $or: [{ sessionVersion: user.sessionVersion || 0 }, ...(user.sessionVersion ? [] : [{ sessionVersion: { $exists: false } }])] },
+            { $set: { refreshTokenHash: hashed } }
+        );
+        if (!loginUpdate.matchedCount) return res.status(401).json({ message: 'Account changed; sign in again.' });
 
         setRefreshCookie(res, refreshToken);
 
@@ -295,16 +301,19 @@ export async function refreshToken(req, res) {
         for (const u of users) {
             if (u.refreshTokenHash && await bcrypt.compare(cookieToken, u.refreshTokenHash)) { found = u; break; }
         }
-        if (!found) return res.status(401).json({ message: "Invalid refresh token." });
+        if (!found || found.isActive === false) return res.status(401).json({ message: "Invalid refresh token." });
 
         // Rotate
         const newRefresh = crypto.randomBytes(64).toString('hex');
         const newHash = await bcrypt.hash(newRefresh, 12);
-        found.refreshTokenHash = newHash;
-        await found.save();
+        const refreshUpdate = await User.updateOne(
+            { _id: found._id, isActive: { $ne: false }, $or: [{ sessionVersion: found.sessionVersion || 0 }, ...(found.sessionVersion ? [] : [{ sessionVersion: { $exists: false } }])], refreshTokenHash: found.refreshTokenHash },
+            { $set: { refreshTokenHash: newHash } }
+        );
+        if (!refreshUpdate.matchedCount) return res.status(401).json({ message: 'Session changed; sign in again.' });
 
         // Issue new access token
-        const newAccess = createAccessToken(found._id, found.role);
+        const newAccess = createAccessToken(found._id, found.role, found.sessionVersion || 0);
         setRefreshCookie(res, newRefresh);
         res.json({ token: newAccess });
     } catch (error) {

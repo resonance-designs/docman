@@ -508,3 +508,7 @@ This project is licensed under the UNLICENSED License - see the [LICENSE](LICENS
 
 For more information, visit our [documentation](./docs/) or check out the [developer onboarding guide](./docs/DEVELOPER_ONBOARDING.md).
 
+
+### Superadmin account management
+
+Superadmins can use **Users** (`/admin/users`) to create local accounts, edit profiles/roles, reset other local users' passwords, and disable/re-enable accounts while preserving document history. The API enforces superadmin access; self-registration can remain disabled. Bootstrap the first superadmin using the [Ubuntu walkthrough](docs/deployment/ubuntu-server-installation.md#11-create-accounts-and-initialize-the-database). Existing superadmins cannot be demoted/disabled through this interface. Deploy the updated backend and rebuilt Vue frontend together.

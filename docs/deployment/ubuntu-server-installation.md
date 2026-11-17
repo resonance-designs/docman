@@ -20,7 +20,8 @@ MongoDB supports Ubuntu 26.04 starting with 9.0.4. These instructions use its `r
 
 **For an existing NOC-provisioned, internal-only development server:** use the existing access route, such as NinjaOne to an NMDOH workstation and then a terminal on the server. Skip OS provisioning and changes to NOC-managed SSH/network settings. Start with [the internal POC sequence](#44-internal-poc-installation-sequence). Install dependencies and establish local application startup first. Public DNS, DMZ placement, and public certificate issuance are not prerequisites for those installation steps. Internal HTTPS is a later stage of making the application available to demonstration users.
 
-**Verification boundary:** on the NMDOH Ubuntu 26.04.1 server, the user has confirmed Node 22.22.1, npm 9.2.0, Redis 8.0.5 responding `PONG`, and MongoDB 9.0.8 active, responding `{ ok: 1 }`, and bound to `127.0.0.1:27017`. Both MongoDB accounts were created successfully. The application account returned `[]` from `db.getCollectionNames()`, and the same command without credentials returned `requires authentication`. Redis startup succeeded after correcting a malformed configuration line; authenticated `PONG` and unauthenticated `NOAUTH Authentication required` results now confirm password protection. Application service-account and directory creation (section 9.1) is confirmed with the expected owners and permissions. Repository cloning (section 9.2) succeeded. The server was then switched from master to `feature/compliance-hardening`, tracking its remote branch at `4178135`, with a clean working tree. Final deployment commit selection remains pending publication of the local fixes. Application deployment has not yet been confirmed. Earlier application workflow tests used MongoDB 8.0 and Redis 7; they do not establish compatibility of the full application with MongoDB 9/Redis 8. Run the migration, audit, and document workflow checks below on this installation before declaring the POC ready.
+**Verification boundary:** NMDOH user output confirms Ubuntu 26.04.1, Node 22.22.1/npm 9.2.0, MongoDB 9.0.8 and Redis 8.0.5 with successful authentication/denial checks, checkout e9df951, application accounts/category, migration and valid audit chain, frontend build/publication, and backend startup with local Redis and HTTP 401 from the unauthenticated API. The user reports the application URLs now use the existing internal DNS name `docman-dev.doh.nm.gov`. Apache 2.4.66 and the required proxy/headers/rewrite/SSL modules are now confirmed; restart returned without error. The DocMan site is active with a NOC-approved self-signed certificate; server-side HTTPS checks returned 200 for the website and 401 for the unauthenticated API. The user confirms browser login as RBakos after the workstation certificate-transfer/trust instructions. Document workflow tests remain pending. Clock synchronization and active NTP are confirmed. Base-tool completeness, firewall restrictions, certificate issuance/trust, Apache configuration, workstation/browser workflows, email, and backup recovery still require verification. Reported npm vulnerabilities remain unresolved. This is not a completed or security-approved deployment. Earlier isolated workflow tests do not replace acceptance testing on this server. Recent local documentation edits may not yet be present in its checkout.
+
 
 ## Contents
 
@@ -165,6 +166,22 @@ This setup policy changes documentation and the helper shown here, not every pas
 
 For physical storage encryption, enable your organization's supported encrypted-disk option during provisioning. Encryption at rest is an operating-system/storage choice; DocMan does not encrypt every uploaded file itself. Keep disk recovery keys outside the server. A physical Ubuntu encrypted installation may require someone to unlock the disk after reboot; plan for that before using it remotely.
 
+### Installation milestones
+
+Follow the numbered sections in order, or the explicit internal-server sequence in section 4.4. A milestone is complete only after its expected result is observed.
+
+| Milestone | Required work | Completion evidence |
+| --- | --- | --- |
+| Prepared server | OS/access, base packages, time and firewall policy (sections 3–5) | Correct OS, successful installs, Apache version, synchronized clock, recorded network restrictions |
+| Database services | Node/npm, MongoDB, Redis (sections 6–8) | Versions, active services, successful authenticated and denied unauthenticated checks |
+| Application installed | Approved source, dependencies, saved configuration, accounts/category, migration (sections 9–11) | Correct commit, successful installs, readable settings, created accounts/category, completed migration and valid audit chain |
+| Local startup | Frontend build/publication and backend service (sections 12–13) | Website files, active backend, local Redis selected, API HTTP 401 |
+| Browser access | Certificate, Apache modules/site, client trust/DNS (section 14) | Valid HTTPS response from the intended workstation; localhost startup alone does not count |
+| Working document sharing | Login and role-separated document workflows (section 15) | Upload/replacement/approval/download and denied-access tests pass |
+| Operations | Email if used, backups, restoration, renewal and maintenance (sections 16–22) | Recorded feature checks, usable off-server backup, successful recovery test, assigned operational ownership |
+
+If waiting for an external prerequisite such as a NOC certificate, record the pending item and preserve the files already created. Do not redo successful setup or label browser access complete while waiting.
+
 ### 2.2 Installed components
 
 | Component | Purpose | Network exposure |
@@ -174,7 +191,7 @@ For physical storage encryption, enable your organization's supported encrypted-
 | MongoDB Community 9.0 | Stores users, document metadata, versions, and audit records | Loopback TCP 27017 only |
 | Redis | Shares rate-limit counters across requests/processes | Loopback TCP 6379 only |
 | systemd | Starts services after reboot and restarts the backend after failure | No additional public port |
-| Certbot | Obtains and renews the website certificate | Uses the website's HTTP challenge path |
+| Certbot (public-certificate route only) | Obtains and renews public certificates; not used for the NMDOH internal certificate | Uses the website's HTTP challenge path |
 | MongoDB Database Tools | Creates/restores database backups | Connects locally to MongoDB |
 | restic + OpenSSH | Encrypts and transfers backups to another server | Outbound SSH to backup host |
 
@@ -304,24 +321,117 @@ The first command should produce no error. Effective password authentication, ke
 
 ### 4.3 Install operating-system tools
 
-All remaining installation commands run on the server as your sudo-enabled account unless stated otherwise:
+All commands in this section run on the **Ubuntu server**, at your normal sudo-enabled account's `$` prompt. A fresh installation does not imply Apache, Node, MongoDB, Redis, or the tools below are present.
+
+First check the OS and CPU:
 
 ```bash
 cat /etc/os-release
 uname -m
 lscpu | grep -w avx
+```
+
+Expect Ubuntu `26.04`, `x86_64`, and a CPU flags line containing `avx`. Stop on a different target or missing AVX; fix the machine configuration before installing MongoDB.
+
+Refresh the available package list:
+
+```bash
 sudo apt update
+```
+
+Wait for it to finish without `E:` or download errors. If a repository is unreachable, correct the network/proxy/repository issue before continuing.
+
+Apply Ubuntu updates:
+
+```bash
 sudo apt upgrade -y
+```
+
+Wait for completion. For a NOC-managed server, follow its approved update window and configuration policy. Do not overwrite organization-managed configuration when prompted.
+
+Install the common prerequisites. Copy this complete command, including both continued lines:
+
+```bash
 sudo apt install -y ca-certificates curl gnupg git rsync nano jq openssl \
-  build-essential python3 apache2 ufw redis-server snapd restic \
-  unattended-upgrades dnsutils util-linux
-sudo timedatectl set-timezone UTC
-sudo timedatectl set-ntp true
-timedatectl status
+  build-essential python3 apache2 ufw redis-server restic openssh-client \
+  unattended-upgrades dnsutils util-linux logrotate
+```
+
+**Expected:** package installation completes without an error; “already the newest version” also counts as success. This installs Apache explicitly. It does not install Node/npm or MongoDB; those follow in sections 6–7. It may start Apache's default site and Redis, which are not yet configured for DocMan.
+
+| Packages | Why they are installed |
+| --- | --- |
+| ca-certificates, curl, gnupg | Trusted HTTPS downloads and repository signing-key setup |
+| git, rsync | Download the approved source and publish the website build |
+| nano, jq, openssl | Edit files, inspect JSON, format/generate cryptographic material |
+| build-essential, python3 | Build native npm dependencies and run setup helpers |
+| apache2 | Serve the website and proxy its API over HTTPS |
+| redis-server | Run the local rate-limit store; secure it in section 8 |
+| ufw | Host firewall when NOC has not supplied another managed implementation |
+| dnsutils, util-linux | DNS checks and utilities such as runuser/flock |
+| restic, openssh-client | Encrypted off-server backups; configure in section 17 |
+| unattended-upgrades | Ubuntu security updates, subject to NOC policy |
+
+Verify Apache is actually installed:
+
+```bash
+apache2 -v
+```
+
+**Expected:** `Server version: Apache/2.4...`. `command not found` means installation is incomplete; resolve the apt error before continuing. Apache configuration and certificate installation come later, in section 14.
+
+On a server you administer independently, enable Ubuntu security updates:
+
+```bash
 sudo dpkg-reconfigure -plow unattended-upgrades
 ```
 
-Expect Ubuntu `26.04`, architecture `x86_64`, and a CPU flags line containing `avx`. If AVX is absent, change the VM CPU configuration or machine before installing MongoDB. In the unattended-upgrades dialog, enable automatic security updates. Third-party repositories such as MongoDB may require separately planned updates; enabling Ubuntu unattended upgrades is not proof those packages update automatically.
+Choose **Yes** in the dialog, then press Enter. On a NOC-managed server, confirm its existing update policy instead of replacing it. MongoDB's third-party packages need a separate update plan; Ubuntu automatic updates alone do not establish that plan.
+
+Check the clock:
+
+```bash
+timedatectl status
+```
+
+Expect `System clock synchronized: yes`. Preserve NOC's configured time provider. For an independently administered server using its supplied NTP service, run the following if synchronization is not enabled:
+
+```bash
+sudo timedatectl set-timezone UTC
+sudo timedatectl set-ntp true
+timedatectl status
+```
+
+The first two commands normally print nothing. If NTP is unsupported or synchronization remains `no`, resolve the time-service configuration and access to an approved time source before authentication testing. Do not assume an active service means the clock is synchronized.
+
+**If time synchronization needs installation/configuration:** Ubuntu 26.04 uses Chrony by default. Preserve a working NOC-managed provider. On a fresh server without a managed provider, install and start Chrony:
+
+```bash
+sudo apt install -y chrony
+sudo systemctl enable --now chrony
+systemctl is-active chrony
+chronyc tracking
+chronyc sources -v
+```
+
+Expect `active`, a tracking report with `Leap status: Normal`, and a selected source marked `^*`. Initial synchronization may take a short time. If sources remain unreachable, obtain the approved time-server hostname/IP from NOC and check its network reachability rather than repeatedly restarting the application.
+
+For an internal NTP source supplied by NOC, open `sudo nano /etc/chrony/sources.d/docman-internal.sources` and enter:
+
+```text
+server CHANGE_ME_NOC_TIME_SERVER iburst
+```
+
+Replace the placeholder with the actual NOC hostname/IP, save with Ctrl+O, Enter, and exit with Ctrl+X. This example is for ordinary NTP; if NOC requires authenticated NTS, obtain its specific source/trust settings. If public sources are prohibited, comment out the `pool` lines in `/etc/chrony/sources.d/ubuntu-ntp-pools.sources`; preserve NOC-managed sources and DHCP configuration. Restart and verify:
+
+```bash
+sudo systemctl restart chrony
+chronyc sources -v
+chronyc tracking
+timedatectl status
+```
+
+Expect a selected source, `Leap status: Normal`, and `System clock synchronized: yes`. For startup errors inspect `sudo journalctl -u chrony -n 50 --no-pager`. Ordinary NTP uses outbound UDP 123; Ubuntu's default NTS sources also need outbound TCP 4460. This configures a time client, not a time server for other computers. See [Ubuntu's Chrony setup](https://ubuntu.com/server/docs/how-to/networking/chrony-client/).
 
 If `/var/run/reboot-required` exists, reboot now with `sudo reboot`, wait for the server to return, and reconnect over SSH. A reboot closes your terminal connection.
 
@@ -353,31 +463,43 @@ For a fresh, already provisioned internal server, work in this order. Run comman
 
    **Expected:** Ubuntu `26.04`, `x86_64`, and a flags line containing `avx`. In `free -h`, inspect the `Mem:` row; `available` is the memory left for applications. In `df -h /`, `Avail` is free disk space. The supplied NMDOH server had 7.3 GiB total memory and 39 GB available disk. A blank AVX result or a different OS/architecture is a reason to stop before installing MongoDB.
 
-2. Install the basic tools and inspect package candidates:
+2. Complete **section 4.3's operating-system package installation** before continuing. This is the same prerequisite list for the internal POC; do not use a smaller substitute list and postpone missing tools. Respect NOC-managed update/time policies. Then inspect package candidates:
 
    ```bash
-   sudo apt update
-   sudo apt install -y git curl ca-certificates gnupg build-essential python3 rsync
    apt-cache policy nodejs redis-server
    ```
 
-   **Expected:** apt finishes without an error. For each package, `Candidate:` contains a version, not `(none)`. `Installed: (none)` is normal before installation. The observed Node candidate was `22.22.1...`; Redis was `5:8.0.5...` (the leading `5:` is package metadata, not Redis's major version). If the candidate is missing, check the apt update errors and repository/network configuration before continuing.
+   **Expected:** each package has a `Candidate:` version, not `(none)`. `Installed: (none)` is normal before installation. If a candidate is missing, resolve the apt/repository error first.
 
 3. Follow section 6 to install Node.js, npm, and Redis. Confirm the version outputs and `PONG`.
 4. Follow section 7's MongoDB installation commands. Confirm its version, active service, successful ping, and localhost listener. Then create database accounts and enable authentication using sections 7.2–7.3.
 5. Complete Redis password configuration in section 8. The earlier `PONG` confirms connectivity only; it does not mean Redis has been password-protected yet.
-6. Follow sections 9–13 to install the application, configure it, provision users/category, migrate, build, and check backend startup locally. Install the remaining utilities below before those steps. Supply the intended application URL when writing settings; the URL does not need to be reachable just to test `http://127.0.0.1:5001/api/docs` on the server. Its expected unauthenticated response is 401. This is a backend startup check, not a browser login acceptance test.
-7. After local startup works, complete internal DNS/network access and organization-trusted HTTPS in sections 5 and 14, then section 15's browser workflow tests. Use section 14's organization-certificate route for the internal POC. Do not open public firewall access or request a public certificate for a short internal machine name.
+6. Confirm section 5.2’s host/NOC firewall restrictions before starting the backend; it listens on all interfaces. Then follow sections 9–13 to install the application, configure it, provision users/category, migrate, build, and check backend startup locally. Pass the prerequisite checkpoint below before those steps. Supply the intended application URL when writing settings; the URL does not need to be reachable just to test `http://127.0.0.1:5001/api/docs` on the server. Its expected unauthenticated response is 401. This is a backend startup check, not a browser login acceptance test.
+7. After local startup works, complete browser DNS/reachability and organization-trusted HTTPS in sections 5 and 14, then section 15's browser workflow tests. Use section 14's organization-certificate route for the internal POC. Do not open public firewall access or request a public certificate for a short internal machine name.
 8. Complete email, backup/recovery, and operational checks as applicable before handing the POC to users. Their status must be recorded separately from basic application startup.
 
-Remaining utilities for step 6 and the later operational sections:
+**Required prerequisite checkpoint:** after section 4.3, run this whole block on the server:
 
 ```bash
-sudo apt install -y nano jq openssl apache2 restic dnsutils util-linux
+missing_tools=0
+for tool in git curl gpg rsync nano jq openssl python3 make gcc g++ apache2 ssh dig flock ss; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    printf 'FOUND: %s\n' "$tool"
+  else
+    printf 'MISSING: %s\n' "$tool"
+    missing_tools=1
+  fi
+done
+if [ "$missing_tools" -eq 0 ]; then
+  echo 'Base tools found; continue with version and service checks'
+else
+  echo 'STOP: complete the package installation in section 4.3'
+fi
+apache2 -v
 timedatectl status
 ```
 
-**Expected:** installation completes without an apt error; the clock is synchronized. If `sudo` is denied, you need your assigned sudo access corrected by NOC. If package downloads fail, send NOC the failing repository hostname and error, not your password. Do not skip a missing package and hope a later step will install it.
+**Expected:** every tool says `FOUND`, the final tool message says `Base tools found`, Apache prints `Server version: Apache/2.4...`, and the clock says `System clock synchronized: yes`. A missing tool means the installation is not complete; revisit section 4.3 and resolve apt errors. These checks do not prove Apache is configured or network access is permitted. Node/npm, MongoDB, and Redis have their own version/service/authentication checks in sections 6–8. Record actual results rather than assuming a command in this guide has already been executed.
 
 Use NOC's existing firewall and update policies. If this server needs its own UFW/security-update setup, apply sections 4.3 and 5 with the actual administrator access path accounted for. Do not replace NOC-managed SSH settings simply because the fresh standalone-server example includes them. Snap/Certbot is only necessary if you later choose the public-certificate route.
 
@@ -415,6 +537,23 @@ DNS changes can take time to propagate. The A result must match your intended ad
 | First DocMan administrator email/username/password | Your values |
 | Backup host and encryption password | Section 17 |
 
+### Network prerequisites for package installation and operation
+
+Internal-only hosting still needs access to approved software sources. Before installation, have NOC provide the server's DNS resolvers, permitted package-access route (direct or managed proxy/mirror), and time source. Exact proxy addresses, credentials, and organization CA certificates must come from NOC; this guide cannot invent them.
+
+| Connection | Needed for |
+| --- | --- |
+| Approved Ubuntu mirrors, using their configured HTTP/HTTPS ports | OS packages and updates |
+| HTTPS to `pgp.mongodb.com` and `repo.mongodb.org` | MongoDB signing key and packages |
+| HTTPS to `github.com` and download destinations it redirects to | Source checkout and dependency-hosted downloads |
+| HTTPS to `registry.npmjs.org` and destinations specified by the lockfiles | `npm ci`; allow the actual failing download host if an npm dependency uses another source |
+| Approved DNS resolvers | Resolving package, website, database-tool, and integration hostnames |
+| Approved time source | UDP 123; TCP 4460 additionally for Ubuntu NTS sources |
+| AWS SES regional HTTPS endpoint, if email is enabled | Outgoing application email |
+| Approved backup host SSH/SFTP port, usually TCP 22 | Off-server backups |
+
+These are destination/service requirements, not instructions to expose inbound database ports. A blocked download is an unresolved prerequisite. Use the error's hostname to request the appropriate NOC rule or mirror/proxy configuration. If TLS inspection is required, obtain the verified organization CA and install its trust as described in section 14.3; do not disable TLS verification in npm, curl, or Git. Proxy-required sites must obtain NOC's apt/Git/npm proxy settings before the package steps can succeed. Working apt access alone does not prove Git/npm access.
+
 ### 5.2 Two firewall layers
 
 If your hosting provider has a security group/cloud firewall, configure it too:
@@ -437,6 +576,8 @@ sudo ufw status verbose
 Answer `y` when prompted. Check a second SSH connection immediately.
 
 `ufw status verbose` must show `Status: active`, default incoming policy `deny`, and allow rules for OpenSSH/22 and Apache's 80/443 ports. If it says `inactive`, UFW is not enforcing these rules. If NOC manages another firewall instead, verify its equivalent rules with NOC; do not treat an absent UFW command as proof the server is protected. Rule names may be shown as port numbers, and IPv6 rules may appear separately. The general OpenSSH rule allows port 22; organizations can narrow it to known administrator networks after confirming those addresses and keeping console access. Do not guess your source IP and lock yourself out. [Ubuntu's firewall documentation](https://ubuntu.com/server/docs/firewalls/) describes UFW rules.
+
+**NMDOH observed checkpoint:** MongoDB and Redis are loopback-only, Node listens on `*:5001`, Apache listens on ports 80/443, and UFW reports `inactive`. This does not prove public exposure or that NOC filtering blocks internal clients. Confirm the applicable host/network firewall policy and required management access before enabling UFW. Apache listening on 443 alone does not prove the disabled DocMan HTTPS site has a certificate or works.
 
 **Application-specific detail:** the backend currently listens on all interfaces; it does not implement a `HOST=127.0.0.1` setting. This guide therefore relies on the host and network firewalls to prevent direct access to port 5001. Apache connects to it through loopback. MongoDB and Redis will additionally bind to loopback themselves.
 
@@ -840,12 +981,49 @@ This command normally prints nothing. It changes only this checkout's local igno
 
 ### 10.1 Backend environment
 
-Run `openssl rand -hex 64`: expect one line of **128 hexadecimal characters**. Save the complete line as **JWT secret**. This is a machine signing key, **not a user-chosen login password**. It is copied into a configuration file and never manually typed at a password prompt. The chosen-password rule below does not replace this cryptographic key with an 18-character password.
+#### Prepare and save the values before opening the editor
 
-The following `install /dev/null` command creates an **empty** file and sets its permissions. It also empties an existing file. Run it only for the first creation; if `.env.prod` already exists, skip that line and edit the existing file with nano instead. Create the backend configuration with restricted permissions before editing it:
+Do this at the Ubuntu `$` prompt on the server. **Do not open nano yet.** You need three saved values: an encoded MongoDB application password, an encoded Redis password, and a JWT signing key. Keep them in private notes or your password manager, not in chat.
+
+“URL-encoded” means the same password with special characters represented by codes so they work inside a connection address. For example, `@` becomes `%40`. This does not change the account password and does not conceal it. Use your original password at login prompts; use the encoded value only inside the connection URL.
+
+Paste this complete command:
 
 ```bash
-sudo install -o root -g docman -m 0640 /dev/null /var/www/docman/backend/.env.prod
+python3 -c '
+import getpass
+from urllib.parse import quote
+for label in ("MongoDB application password", "Redis password"):
+    value = getpass.getpass(label + ": ")
+    print("URL-encoded value:", quote(value, safe=""))
+'
+```
+
+At the first prompt, enter the original password for `docman_app` and press Enter. Input stays hidden. Save the text printed after `URL-encoded value:` as **Encoded MongoDB application password**. At the second prompt, enter the original Redis password and save the resulting value as **Encoded Redis password**. Save only the value, without the label. If the output looks unchanged, the password did not need special characters encoded.
+
+If you ran `clear` or lost the output, run this formatter again with the original passwords. It does not create or change passwords. Never feed an already encoded value back into the formatter.
+
+If nano is already open, save your progress with **Ctrl+O**, **Enter**, then exit with **Ctrl+X** before running terminal commands. Reopen the existing file later with `sudo nano /var/www/docman/backend/.env.prod`; do not repeat the file-creation command, which would erase its contents.
+
+Run `openssl rand -hex 64`: expect one line of **128 hexadecimal characters**. Save the complete line as **JWT secret**. This is a machine signing key, **not a user-chosen login password**. It is copied into a configuration file and never manually typed at a password prompt. The chosen-password rule below does not replace this cryptographic key with an 18-character password.
+
+If you already generated and saved the JWT key for this installation, use that saved key. **Checkpoint: before continuing, confirm all three labeled values are saved and available to copy.** Both JWT fields below use the same saved key. Both password placeholders use the saved text printed by the formatter, including its `%` codes.
+
+#### Create and edit the configuration file
+
+The block below checks whether the backend settings file already exists. It preserves existing settings; otherwise it creates an empty file with restricted permissions. Copy the entire block:
+
+```bash
+if sudo test -e /var/www/docman/backend/.env.prod; then
+  echo 'Existing settings preserved; edit them below'
+else
+  sudo install -o root -g docman -m 0640 /dev/null /var/www/docman/backend/.env.prod
+fi
+```
+
+If the file exists, expect the preservation message. Otherwise creation normally prints nothing. Stop on an error. Then open the file:
+
+```bash
 sudo nano /var/www/docman/backend/.env.prod
 ```
 
@@ -947,7 +1125,7 @@ The production frontend uses same-origin `/api`, so it needs no separate API hos
 
 ### 11.1 Install an account-creation command
 
-The current Vue interface does not provide a complete local-account provisioning screen. This small administrator command uses the application's actual User model, including its password hashing. It creates only the requested person, not sample projects or documents. It prompts for passwords instead of putting them in shell history. Only Ubuntu administrators can run it.
+Use this command to create the **first superadmin**, before anyone can sign in to the website. Once signed in, superadmins can create and manage other accounts through **Users** in the navigation menu; see the browser instructions below. The bootstrap command uses the actual User model and password hashing, prompts privately, and creates no sample documents. Only Ubuntu administrators can run it.
 
 Create `/usr/local/sbin/docman-create-user`:
 
@@ -1029,11 +1207,25 @@ Create the first person with role **superadmin**. Use an actual monitored email 
 
 `chown`/`chmod` normally print nothing. A Python `SyntaxError` means the pasted program is damaged or incomplete; reopen the file and compare it with the whole block. `MONGO_URI is missing` points to section 10. `Authentication failed` points to the app database credentials from section 7. A duplicate-email/username message means no new account was created; do not delete the existing account to bypass it.
 
-Run the command again for the second person with role **editor** or **admin**, as appropriate, and a third test account with role **viewer**. Give each person their own account. Share initial credentials through your organization's approved secure channel. Do not send passwords in ordinary email. This maintenance command writes directly to the database and does not create an application audit event; record administrative provisioning in your change log.
+After deploying the user-management update, create the second person with role **editor** or **admin** and a third account with role **viewer** using the Users page below. If testing before browser access is configured, the bootstrap command can still provision them. Give each person their own account. Share initial credentials through your organization's approved secure channel. Do not send passwords in ordinary email. This maintenance command writes directly to the database and does not create an application audit event; record administrative provisioning in your change log.
 
 Role guide: viewers read permitted documents; editors work with documents they are allowed to manage; admins have broader administration rights; superadmins manage system settings. Roles do not replace document-level access controls. Give ordinary external users the minimum role needed and explicitly assign document access.
 
 Choose your own password of at least 18 characters and save it privately. This account-creation helper does not require a particular character mix. The 72-byte maximum reflects the application’s existing bcrypt password storage limit; it is not a MongoDB limit. The current Vue login page can still contain suite/legacy wording even with Authentik disabled; choose **Sign in with local DocMan account**. It does not require a Resonance account for this installation.
+
+#### Manage accounts from the website after the first login
+
+These instructions require the user-management update, not the older e9df951 server checkout. Deploy the backend changes and rebuilt Vue frontend together before looking for the menu.
+
+1. Sign in as a **superadmin**. Choose **Users** in the navigation menu. Admins, editors, and viewers do not receive this menu and cannot call its management API.
+2. Click **Create user**. Enter first/last name, email, username, and role. Department/job title are optional. New usernames are saved in lowercase and accept 3–50 letters, digits, dots, underscores, or hyphens.
+3. Choose and privately save an initial password before submitting. Use at least 18 characters, no control characters, and at most 72 UTF-8 bytes (ordinary ASCII characters each use one byte). Spaces and punctuation are allowed. Enter the password twice. This is the person's DocMan login password; do not URL-encode it.
+4. Click **Create user**. Expect an account-created message and the new row. Share the saved credentials using the approved secure channel; the app does not email or redisplay the password. Duplicate emails/usernames produce an error and should be resolved without deleting an existing account.
+5. **Edit** changes profile details and role. **Reset password** sets a new local password for another user and invalidates their previous local access/refresh sessions. Passwords for linked SSO accounts belong in the identity provider. Use another superadmin or the existing recovery procedure if your own password needs resetting.
+6. **Disable** asks for confirmation, blocks login and existing requests, and preserves the account's document/audit history. **Enable** permits fresh login; previous local sessions remain invalid. The interface does not permanently delete accounts.
+7. Existing superadmin accounts cannot be demoted or disabled here, preserving administrative access even under concurrent requests. Role, status, creation, and password-reset actions are audited without passwords/hashes.
+
+Keep `LOCAL_SELF_REGISTRATION_ENABLED=false`. Administrator provisioning does not require enabling registration, inviting users into projects, or configuring email. Verify the new user's permitted access with a separate browser profile; a role alone does not assign access to every document.
 
 ### 11.2 Create the first document category
 
@@ -1072,7 +1264,7 @@ cd /var/www/docman/backend
 sudo -u docman env NODE_ENV=production /usr/bin/node src/scripts/migrateComplianceFields.js --dry-run
 ```
 
-**Expected:** the summary begins `[migrateComplianceFields] Dry run complete.` and its `missingFiles` count is `0`. On this new database, document/file update counts will normally be zero. `Dry run` means “show what would happen without applying the migration.” A `Failed:` line, missing files, or conflicting versions means stop here and investigate.
+**Expected:** the summary begins `[migrateComplianceFields] Dry run complete.` and its `missingFiles` count is `0`. On this new database, document/file update counts will normally be zero. `--dry-run` skips the migration’s record updates, but its database connection setup can create indexes, as observed on the NMDOH server. It is not a strictly read-only operation. A `Failed:` line, missing files, or conflicting versions means stop here and investigate.
 
 Only after that check passes, apply the migration:
 
@@ -1169,6 +1361,8 @@ sudo systemd-analyze verify /etc/systemd/system/docman-backend.service
 
 **Expected:** no diagnostics and exit status `0` (check with `echo $?` immediately). An unknown setting, missing executable, or missing dependency is a reason to fix this unit or the earlier package installation before starting it. This command checks the unit definition; it does not prove the app can connect to its database.
 
+On the NMDOH Ubuntu server, verification returned `0` while warning that `CPUAccounting=` was removed in the unrelated `xfs_scrub_all.service` and `system-xfs_scrub.slice` units. Those specific warnings did not prevent DocMan startup. Check the named file and exit code: do not edit unrelated system units or treat errors in `docman-backend.service` as harmless.
+
 Load and start the service:
 
 ```bash
@@ -1188,6 +1382,16 @@ If Redis falls back to memory, fix its URL/password and restart.
 The backend logs should include `Rate limiting store: local`. A line saying `using in-memory fallback` is a failure of the intended Redis setup even if the API returns 401. Never publish a successful Redis configuration checkpoint based on service status alone. A running website alone does not prove the configured rate-limit store works. Check System Settings after login too; a saved runtime provider setting can override your environment on an existing database.
 
 ## 14. Configure Apache and HTTPS
+
+**Verify the prerequisite before configuring the website.** A fresh Ubuntu server does not necessarily have Apache installed. Earlier package lists include it, but a successful `www-data` file-read check only verifies permissions, not Apache installation. If you skipped or have not confirmed that package step, run these commands one at a time at the server's Ubuntu `$` prompt:
+
+```bash
+sudo apt update
+sudo apt install -y apache2
+apache2 -v
+```
+
+The update and installation must finish without errors. “Already the newest version” is also success. The version command must print `Server version: Apache/2.4...`; patch numbers may differ. If it says `command not found`, installation is not complete. Stop and resolve the package error before editing Apache configuration. Installation may start Apache with its default site; that is not the DocMan site and does not establish HTTPS access. Record installation as confirmed only after seeing the version output.
 
 ### 14.1 Choose the certificate route
 
@@ -1258,6 +1462,8 @@ Do not install both apt and snap copies of Certbot. If the symlink already exist
 
 ### 14.3 Route B: organization-issued certificate
 
+**NMDOH POC hostname:** the user confirmed `docman-dev.doh.nm.gov` already has an internal DNS A record pointing to `dohr2simdocmdev`. ITSD NOC issues internal certificates. Use `docman-dev.doh.nm.gov` wherever this section and section 14.4 show `docs.example.org`, and set all three backend URL values (`APP_BASE_URL`, `FRONTEND_URL`, `PRODUCTION_URL`) to `https://docman-dev.doh.nm.gov` before browser testing. The machine’s short name is not the browser certificate name.
+
 For a private server, obtain a certificate signed by a CA trusted by every intended user's computer. Your organization's PKI team supplies its issuance process and renewal schedule.
 
 Ask that team for: the exact browser hostname, a PEM-format server certificate and intermediate chain, the approved root CA certificate, and the renewal contact/process. **PEM** files are text beginning `-----BEGIN CERTIFICATE-----`; a `.pfx` or binary `.cer` file is not interchangeable with that text. If they supply another format, request PEM files for Apache so you do not have to guess a conversion.
@@ -1266,16 +1472,20 @@ Before generating a key, run `sudo ls -l /etc/ssl/docman/privkey.pem`. On a fres
 
 ```bash
 sudo install -d -m 0700 /etc/ssl/docman
-sudo openssl req -new -newkey rsa:3072 -nodes \
+if sudo test -e /etc/ssl/docman/privkey.pem || sudo test -e /etc/ssl/docman/docman.csr; then
+  echo 'Existing key or request found; preserve it and do not regenerate'
+else
+  sudo openssl req -new -newkey rsa:3072 -nodes \
   -keyout /etc/ssl/docman/privkey.pem \
   -out /etc/ssl/docman/docman.csr \
   -subj '/CN=docs.example.org' \
   -addext 'subjectAltName=DNS:docs.example.org'
+fi
 sudo chmod 0600 /etc/ssl/docman/privkey.pem
 sudo cat /etc/ssl/docman/docman.csr
 ```
 
-Replace the hostname in both places. Give the **CSR** to the PKI team; never give them the private key. The key-generation command may print a long series of dots/plus signs; that is normal. The final `cat` must display text between `-----BEGIN CERTIFICATE REQUEST-----` and `-----END CERTIFICATE REQUEST-----`. Send that complete **CSR** text through the organization's certificate request process. Do not send `/etc/ssl/docman/privkey.pem`.
+Replace the hostname in both places. The guard preserves any existing key/request: if only one exists, stop and locate its matching file before submission rather than overwriting it. A request awaiting NOC issuance must retain its original private key. Give the **CSR** to the PKI team; never give them the private key. The key-generation command may print a long series of dots/plus signs; that is normal. The final `cat` must display text between `-----BEGIN CERTIFICATE REQUEST-----` and `-----END CERTIFICATE REQUEST-----`. Send that complete **CSR** text through the organization's certificate request process. Do not send `/etc/ssl/docman/privkey.pem`.
 
 When the signed PEM certificate arrives, run `sudo nano /etc/ssl/docman/fullchain.pem`. Paste the server certificate block first, then each supplied intermediate certificate block in the order given by PKI. Save and exit. Verify the name and validity dates:
 
@@ -1301,6 +1511,74 @@ sudo install -d -o root -g root -m 0755 /var/www/letsencrypt
 ```
 
 Expect module-enabled/already-enabled messages and no directory-creation error. The directory is used by the shared HTTP configuration below; it does not require Certbot. **Do not enable the DocMan site yet:** create its file in section 14.4 first. Certbot is not needed for this route; arrange CA renewal and Apache reload with your PKI team.
+
+#### Approved self-signed certificate for the NMDOH POC
+
+ITSD NOC has approved self-signing for this internal development deployment. This replaces waiting for NOC issuance for this POC; the Security team owns firewall configuration. Reuse the key and CSR created above for `docman-dev.doh.nm.gov`. If those files are absent, complete their creation first. Do not regenerate an existing key.
+
+On the Ubuntu server, generate the certificate once (do not overwrite a certificate already in use):
+
+```bash
+sudo openssl x509 -req \
+  -in /etc/ssl/docman/docman.csr \
+  -signkey /etc/ssl/docman/privkey.pem \
+  -out /etc/ssl/docman/fullchain.pem \
+  -days 365 -sha256 -copy_extensions copy
+```
+
+Expect `Certificate request self-signature ok` and the subject, followed by the prompt. This creates a one-year self-signed certificate and copies the CSR's hostname extension. The file name matches the prepared Apache configuration; no intermediate certificate is needed for this self-signed certificate. See the [OpenSSL x509 command reference](https://docs.openssl.org/3.0/man1/openssl-x509/).
+
+Verify it before enabling the site:
+
+```bash
+sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -subject -issuer -dates -ext subjectAltName
+sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -checkhost docman-dev.doh.nm.gov
+```
+
+Expect identical subject/issuer names, current validity dates, `DNS:docman-dev.doh.nm.gov`, and a hostname-match message. A missing/wrong SAN or a command error is a reason to stop and correct the certificate before site activation. Leave the private key mode 0600 and never transfer it to the workstation.
+
+Self-signing does not automatically establish browser trust. Distribute only the public certificate through the approved organization process and verify its SHA-256 fingerprint against the server before trusting it on demonstration clients. Record the fingerprint with `sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -sha256 -fingerprint`. Browser trust setup must be completed on the workstation used for the demonstration; installing trust on Ubuntu alone does not configure Windows browsers. Do not use clicking through certificate warnings as the acceptance test.
+
+For server-side trust, install this specific approved certificate:
+
+```bash
+sudo install -m 0644 /etc/ssl/docman/fullchain.pem /usr/local/share/ca-certificates/docman-dev-selfsigned.crt
+sudo update-ca-certificates
+```
+
+Expect certificate-update messages ending in `done.`. After Apache activation in section 14.4, HTTPS curl checks must succeed without `-k`. Record the expiry and replace/retrust the self-signed certificate before it expires; Certbot does not renew this route.
+
+#### Trust the approved self-signed certificate on the Windows demonstration workstation
+
+Use the NMDOH Windows workstation reached through NinjaOne, under the same Windows user that will open the browser. This is not the Ubuntu SSH terminal or your personal computer outside the network.
+
+First, on the **Ubuntu server**, stage only the public certificate for download:
+
+```bash
+sudo install -m 0644 /etc/ssl/docman/fullchain.pem /home/rbakos/docman-dev.crt
+sha256sum /home/rbakos/docman-dev.crt
+```
+
+The copy normally prints nothing. Save the displayed SHA-256 file hash for comparison. This public certificate can be transferred; never transfer `privkey.pem`. For another installation, substitute the actual Ubuntu username/home path.
+
+Open **PowerShell on the NMDOH Windows workstation** (a separate window; keep the SSH session open). Download into your Windows user profile:
+
+```powershell
+scp rbakos@dohr2simdocmdev:/home/rbakos/docman-dev.crt "$env:USERPROFILE\docman-dev.crt"
+Get-FileHash -Algorithm SHA256 "$env:USERPROFILE\docman-dev.crt"
+```
+
+Use your existing SSH authentication; if prompted for a password, it is the Ubuntu login password, not a database or DocMan password. If `scp` is missing, install the Windows OpenSSH Client using section 4.1's instructions. Expect transfer completion and a SHA-256 hash matching the server's file hash (letter case does not matter). Do not compare this file hash with an OpenSSL DER certificate fingerprint; those hash different representations. Stop on a mismatch or failed transfer.
+
+After matching the hash, import this approved certificate for the current Windows user:
+
+```powershell
+certutil -user -addstore Root "$env:USERPROFILE\docman-dev.crt"
+```
+
+Expect `CertUtil: -addstore command completed successfully.` If a trust dialog appears, confirm the certificate identity matches the one just verified before accepting it. If organizational policy denies the import, have ITSD deploy the certificate through its managed trust process; do not work around that policy. This does not modify the computer-wide store or trust on other demonstration users' computers. See [Microsoft's certutil reference](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil).
+
+Close and reopen the demonstration browser, then visit `https://docman-dev.doh.nm.gov`. Expect the DocMan login page without a certificate warning. If trust errors remain, verify the browser uses the intended Windows profile/trust store and have ITSD apply its browser-specific policy. A timeout is a connectivity problem, not a certificate-import failure. Complete section 15's login/document tests before declaring the demonstration ready.
 
 ### 14.4 Final Apache configuration
 
@@ -1373,7 +1651,19 @@ Those two lines replace the `/etc/letsencrypt/live/...` directives in the comple
 
 The 60 MiB Apache request ceiling leaves room for multipart overhead around the application's 50 MiB file limit. This does not increase the application's upload limit. `/uploads/` is forwarded to application handling for supported profile images; it does **not** publicly expose stored documents.
 
-Enable and validate the site (on this dedicated server):
+**If waiting for an organization certificate:** you may save the complete site file now using the intended certificate paths, but leave the site disabled. The private route's HTTP document directory must exist (`sudo install -d -o root -g root -m 0755 /var/www/letsencrypt`, normally silent). After saving, check:
+
+```bash
+if [ -e /etc/apache2/sites-enabled/docman.conf ] || [ -L /etc/apache2/sites-enabled/docman.conf ]; then
+  echo 'STOP: DocMan site is already enabled; investigate before restarting Apache'
+else
+  echo 'DocMan site is disabled while awaiting its certificate'
+fi
+```
+
+Expect the disabled message. Do not enable/reload the site until the signed certificate and matching private key are installed and verified in section 14.3. An ordinary configtest does not validate a disabled site file. Keep the original CSR/key while waiting; do not generate replacement keys to work around the missing certificate.
+
+**After the certificate files are installed and verified**, enable and validate the site (on this dedicated server):
 
 ```bash
 sudo a2dissite 000-default
@@ -1567,6 +1857,18 @@ Monitor SES bounces/complaints using the organization's AWS monitoring process. 
 
 ## 17. Set up backups and scheduled checks
 
+Before starting this section, verify its tools:
+
+```bash
+restic version
+ssh -V
+mongodump --version
+mongorestore --version
+flock --version
+```
+
+Each command must print its version without a missing-command error. Install missing `restic`, `openssh-client`, or `util-linux` with apt as in section 4.3. If MongoDB backup tools are missing, install `mongodb-database-tools` from the MongoDB repository configured in section 7, then repeat the checks. The separate backup host still requires section 17.2's setup; installed tools alone do not establish a working backup.
+
 A database backup alone is insufficient: file bytes live on disk. A copied uploads directory alone is insufficient: permissions, versions, and users live in MongoDB. Back up a consistent pair, the deployed commit, configuration, and recovery credentials. The method below briefly stops DocMan while taking a local snapshot, starts it again, and then transfers an encrypted backup off the server.
 
 ### 17.1 Create a read-only database backup identity
@@ -1581,7 +1883,17 @@ Inside mongosh:
 
 ```javascript
 use admin
+```
+
+Wait for `admin>` before running this separate command:
+
+```javascript
 db.createUser({user: "docman_backup", pwd: passwordPrompt(), roles: [{role: "backup", db: "admin"}]})
+```
+
+Enter the new backup password and wait for `{ ok: 1 }`. Only then run:
+
+```javascript
 exit
 ```
 
@@ -1608,7 +1920,17 @@ After saving, run `sudo stat -c '%U %G %a %n' /etc/docman/mongodump.yml`. Expect
 
 ### 17.2 Prepare the separate backup server
 
-Provision another Ubuntu server using sections 3–4, with OpenSSH and enough disk. This is the **backup server**, not the DocMan server. It does not need Node, MongoDB, Redis, or Apache. On it, run:
+Provision another Ubuntu server using section 3 and establish administrator access as in sections 4.1–4.2. This is the **backup server**, not the DocMan server. Do not apply the DocMan package list in section 4.3 to this host; it does not need Node, MongoDB, Redis, or Apache. On the backup server, install and verify its own prerequisites, one command at a time:
+
+```bash
+sudo apt update
+sudo apt install -y openssh-server nano
+sudo systemctl enable --now ssh
+systemctl is-active ssh
+df -h /home
+```
+
+The package commands must finish without errors; the service check must print `active`. The disk report must show enough available space for the retained backups. If SSH fails, inspect `sudo journalctl -u ssh -n 50 --no-pager` and correct it before proceeding. Then create the backup account and directories:
 
 ```bash
 sudo adduser docmanbackup
@@ -2250,6 +2572,65 @@ Before sharing logs, remove credentials, tokens, email addresses, document names
 How to read these diagnostics: the four continuous services should each be `active (running)`; `systemctl --failed` should list no failed units; timers should have future run times; disk should have free space; and the clock should be synchronized. Logs show timestamps and messages, not a universal “pass” line. Look for the first error at the time your command failed. If a check remains unexplained, stop that stage and provide its exact command, non-secret output, OS version, and guide section to the responsible administrator/maintainer. Do not keep running later steps against an unknown state. Never share `.env.prod`, backup password files, or private keys.
 
 ## 22. Daily operation and handover checklist
+
+### Configure file-log retention
+
+DocMan writes date-named error logs under `/var/log/docman`; optional file debugging also writes `app.log`. Those files are not automatically bounded by the application's code. They are separate from the audit records in MongoDB. Establish retention before operational handover so logs do not fill the disk.
+
+The example below rotates nonempty logs daily, retains 14 rotations per filename, and allows cleanup of inactive files after 90 days. Confirm that these example periods match the organization's retention policy before enabling cleanup; longer retention requires storage capacity or an approved log archive.
+
+Install the tool if section 4.3 was not completed:
+
+```bash
+sudo apt install -y logrotate
+sudo nano /etc/logrotate.d/docman
+```
+
+Paste:
+
+```text
+/var/log/docman/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    nocreate
+    su docman docman
+}
+```
+
+Save with Ctrl+O, Enter, and exit with Ctrl+X. The current logger opens the file for each append, so it can create its next log without a service restart. `nocreate` avoids leaving an empty file for every date-named log. Check the rule without rotating files:
+
+```bash
+sudo logrotate --debug /etc/logrotate.d/docman
+```
+
+Expect diagnostic output without errors; missing logs are allowed before any errors have occurred. Do not use `--force` just to make this check look active. Then enable the schedule:
+
+```bash
+sudo systemctl enable --now logrotate.timer
+systemctl is-active logrotate.timer
+```
+
+Expect `active`. This timer also runs package-provided log rules, such as Apache's; do not replace those rules with the DocMan rule.
+
+Because each date-named error log is a separate filename, rotation counts alone do not retire all old dates. If the example 90-day inactive-file retention is approved, open `sudo nano /etc/tmpfiles.d/docman-logs.conf` and paste:
+
+```text
+e /var/log/docman - - - 90d -
+```
+
+Save and exit. This applies age-based cleanup only to this existing log directory, not uploads or MongoDB audit records. Recent file access/modification can postpone cleanup; it is not a guarantee of deletion exactly 90 days after creation. Preview configuration without deleting files:
+
+```bash
+systemd-tmpfiles --cat-config | grep -F 'e /var/log/docman'
+sudo systemctl enable --now systemd-tmpfiles-clean.timer
+systemctl is-active systemd-tmpfiles-clean.timer
+```
+
+Expect the saved rule and `active`. The scheduled cleanup will delete eligible old files; preserve required archives before enabling it. For timer errors inspect `sudo journalctl -u logrotate.service -u systemd-tmpfiles-clean.service -n 50 --no-pager`. Check disk use with `df -h /` and `sudo du -sh /var/log/docman /var/log/journal`; journald has separate system-managed limits. Assign someone to monitor disk capacity and service failures. See Ubuntu's [logrotate reference](https://manpages.ubuntu.com/manpages/resolute/man8/logrotate.8.html) and [tmpfiles retention reference](https://manpages.ubuntu.com/manpages/resolute/man5/tmpfiles.d.5.html).
 
 ### Operator command reference
 

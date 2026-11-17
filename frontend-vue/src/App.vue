@@ -67,6 +67,7 @@ const { isAuthenticated, hasRole, logout } = useAuth();
 const drawer = ref(true);
 
 const navItems = [
+  { title: 'Users', subtitle: 'Accounts and access', icon: 'mdi-account-cog-outline', to: '/admin/users', roles: ['superadmin'] },
   {
     title: 'Documents',
     subtitle: 'Files and reviews',

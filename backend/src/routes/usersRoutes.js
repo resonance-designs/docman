@@ -8,6 +8,7 @@
  * @license UNLICENSED
  */
 import express from "express";
+import { listAccounts, createAccount, editAccount } from "../controllers/userAdminController.js";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import uploadMid from "../middleware/uploadMid.js";
@@ -28,6 +29,11 @@ import { uploadProfilePicture, deleteProfilePicture, uploadBackgroundImage, dele
  * @type {express.Router}
  */
 const router = express.Router();
+
+// Account administration is separate from the user picker/profile API.
+router.get('/manage', verifyAccessToken, requireRole('superadmin'), listAccounts);
+router.post('/manage', verifyAccessToken, requireRole('superadmin'), createAccount);
+router.patch('/manage/:id', verifyAccessToken, requireRole('superadmin'), editAccount);
 
 // GET /api/users - Get all users (viewers and above can view users)
 router.get("/", verifyAccessToken, requireRole("viewer"), getAllUsers);

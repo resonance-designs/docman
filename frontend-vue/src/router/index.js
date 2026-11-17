@@ -13,10 +13,12 @@ import ProjectsView from '@/views/projects/ProjectsView.vue';
 import AuthentikLinkingView from '@/views/admin/AuthentikLinkingView.vue';
 import AuditLogView from '@/views/admin/AuditLogView.vue';
 import SystemSettingsView from '@/views/admin/SystemSettingsView.vue';
+import UsersView from '@/views/admin/UsersView.vue';
 import ApprovalsView from '@/views/approvals/ApprovalsView.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const routes = [
+  { path: '/admin/users', name: 'user-management', component: UsersView, meta: { requiresAuth: true, roles: ['superadmin'] } },
   {
     path: '/',
     name: 'home',

@@ -311,6 +311,7 @@ export function normalizeRequestUser(user) {
         return null;
     }
 
+    if (user.isActive === false) throw createAuthError("Account is disabled");
     const normalizedUser = { ...user };
     normalizedUser.id = normalizedUser._id.toString();
 
@@ -355,6 +356,10 @@ export async function resolveLocalTokenIdentity(token) {
     const user = await User.findById(decoded.id).select(USER_SELECT_FIELDS).lean();
     if (!user) {
         throw createAuthError("User not found");
+    }
+
+    if ((decoded.sessionVersion || 0) !== (user.sessionVersion || 0)) {
+        throw createAuthError("Session has been invalidated; sign in again");
     }
 
     return {

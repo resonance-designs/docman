@@ -50,6 +50,8 @@ export const AUDIT_ACTIONS = Object.freeze({
     VERSION_PUBLISH: "version.publish",
     REVIEW_ASSIGN: "review.assign",
     REVIEW_UPDATE: "review.update",
+    USER_CREATE: "user.create",
+    USER_PASSWORD_RESET: "user.password_reset",
     USER_UPDATE: "user.update",
     USER_ROLE_CHANGE: "user.role_change",
     USER_DELETE: "user.delete",

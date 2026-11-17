@@ -1,7 +1,7 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
 **Repo:** `C:\Dev\Projects\docman` (WSL: `/mnt/c/Dev/Projects/docman`)
-**Branch:** `feature/compliance-hardening` (based on `dev` @ `000274b`, "Merge pull request #46"). Not pushed.
+**Branch:** `feature/compliance-hardening` (based on `dev` @ `000274b`, "Merge pull request #46"). Published through `e9df951`; subsequent documentation corrections remain local.
 **Owner:** Richard Bakos (Resonance Designs). DocMan is being pitched as a proof of concept for a secure document
 management system at NMDOH (New Mexico Department of Health), to be self-hosted on agency Ubuntu LTS servers.
 An earlier version (2.2.7) already runs on a Linode Ubuntu server (Apache + Node + local MongoDB, systemd services,
@@ -10,6 +10,10 @@ deployed with `scripts/apache_production_*.sh`). No Docker is used anywhere, and
 ---
 
 ## Standing user requirement: deployment walkthrough
+
+Do not infer prerequisite installation from guide contents or related checks. Apache was included in earlier package lists but was not confirmed during guided NMDOH setup; the user reports it is missing. The `www-data` read test proved file permissions only. Apache installation and version verification must precede site configuration (now explicit at the start of section 14). Installation is now confirmed in the current-status table; site configuration and HTTPS remain pending.
+
+Configuration preparation must precede editing: explain URL encoding in place, generate encoded values from existing passwords, require saving each labeled value and the JWT key, and only then open nano. Include recovery after `clear` and after an interrupted edit. Never instruct a returning user to recreate an existing environment file with `install /dev/null`; reopen it without truncation. Section 10.1 now includes this sequence. Do not claim these local documentation updates are already present on the remote server until committed, pushed, and pulled.
 
 The deployment documentation must be a **complete end-to-end walkthrough that anyone can follow**, including a beginner with no server-administration experience. This is an explicit user requirement, not an optional documentation preference.
 
@@ -36,7 +40,7 @@ The full walkthrough has had a beginner-usability pass across setup, accounts/co
 email, backup scheduling, recovery, and updates. Added prompt/location explanations, exact file-edit commands,
 expected outputs and failure actions. Migration/build/update steps now stop at explicit checkpoints. Corrected
 private-certificate site activation order and explained successful inactive oneshot jobs versus failed services.
-The current remote installation checkpoint below remains unchanged; documentation edits do not complete server tasks.
+The current remote installation checkpoint below records confirmed results; documentation edits do not complete server tasks.
 
 The canonical fresh-server runbook is [docs/deployment/ubuntu-server-installation.md](docs/deployment/ubuntu-server-installation.md).
 It provides one Ubuntu 26.04 LTS walkthrough with Ubuntu Node 22 packages, MongoDB 9.0, native Apache,
@@ -52,22 +56,28 @@ with category bootstrap instructions and an operator-assisted backend reset proc
 
 ## NMDOH internal POC installation — current checkpoint
 
-The user accesses an NMDOH workstation through NinjaOne, then connects to the internal development server.
-They have sudo access. The server is internal-only, not in the DMZ; no application HTTPS setup has been completed.
-The user explicitly wants application installation/local startup first, before DNS/certificate work.
+This is the current status, not a list of commands to ask the user to run. The user has resumed guided server work that can proceed while the NOC certificate is pending.
 
-User-provided output confirms Ubuntu 26.04.1 LTS (`resolute`), x86-64 with AVX, 7.3 GiB RAM and 39 GB free on `/`.
-Basic build/download tools installed successfully. Installed versions: Node 22.22.1, npm 9.2.0, Redis 8.0.5 (`PONG`),
-MongoDB Community 9.0.8 (`active`, `{ ok: 1 }`, bound to `127.0.0.1:27017`).
+The user connects through NinjaOne to an NMDOH workstation, then to the internal server `dohr2simdocmdev`, with sudo access. Ubuntu 26.04.1 LTS, x86-64/AVX, 7.3 GiB RAM, and 39 GB initially free were confirmed. Website name: `docman-dev.doh.nm.gov`; the user confirms its internal A record. The server is not in the DMZ. ITSD NOC approved a self-signed certificate for this POC; it is installed and HTTPS works. Security team owns firewall configuration.
 
-**Current account checkpoint:** both MongoDB accounts were created with `ok: 1`; authentication is enabled, the application account successfully listed collections (`[]`), and unauthenticated collection listing was denied. Redis failed because line 112 contained `port protected-mode yes`; after correction the user reported startup success. Redis authentication is now verified: the user supplied authenticated `PONG` and unauthenticated `NOAUTH Authentication required` results. Section 9.1 is confirmed: docman uid=999/gid=983; uploads and logs are docman:docman 750, checkout directory rbakos:rbakos 755, and public directory root:root 755. Repository cloning is confirmed at /var/www/docman. The initial clone selected master at 000274b (2.2.7 merge). The user then switched the server to feature/compliance-hardening tracking origin/feature/compliance-hardening at 4178135; git status confirms a clean working tree. Final deployment commit selection remains pending publication of the local fixes. Local uncommitted application fixes must be included in the deployment source before installing. Application deployment, HTTPS, email, and backups remain unconfirmed. Section 8 now includes the exact diagnostic/fix sequence, expected output, nano save steps, and password-test explanations.
+| Stage | Evidence/status |
+| --- | --- |
+| Source | Server pulled `e9df951` on `feature/compliance-hardening`. Subsequent documentation edits are local, not yet published. |
+| Runtime/database | Node 22.22.1, npm 9.2.0, MongoDB 9.0.8, Redis 8.0.5. MongoDB/Redis authenticated and unauthenticated checks passed. MongoDB loopback listener confirmed earlier. |
+| Identity/storage | `docman` uid 999/gid 983. Uploads/logs owned docman:docman, mode 750; checkout rbakos:rbakos 755; public directory root:root 755. Log symlink and Git exclusion completed. |
+| Dependencies | Both npm installs completed; frontend exit 0 supplied. Backend reported 37 vulnerabilities (3 critical); frontend reported 10 high. Review remains outstanding. |
+| Settings | Backend file root:docman 640, readable by service; uploads writable; no placeholders. Frontend local login enabled. User reports all three application URLs changed to HTTPS website hostname and backend restarted. |
+| Initial data | `RBakos` superadmin and `General` category created. Additional role/approval test users remain pending. |
+| Migration | Completed with zero missing files; audit chain valid, checked 1. Dry-run connection setup created indexes: it is not strictly read-only. |
+| Website files | Vite build succeeded; published files readable by www-data. This does not prove Apache is installed. |
+| Backend | Enabled and running; local Redis selected; localhost API returned HTTP 401 and No token provided. |
+| Apache | Version 2.4.66 confirmed; proxy, proxy_http, headers, rewrite, ssl and dependencies enabled. Restart returned without error. DocMan site enabled; Apache configuration returned Syntax OK (global ServerName warning only), reload succeeded, service active. Self-signed certificate trusted on Ubuntu. HTTPS website returned 200 and proxied unauthenticated API returned 401 without -k. Public certificate file hashes matched after transfer to the Windows workstation; trust import was instructed. User confirms successful browser login as RBakos. Explicit confirmation of warning-free browser trust and document workflows remains pending. |
+| Other prerequisites | Clock confirmed synchronized with active NTP and Etc/UTC. Listener output confirms MongoDB on 127.0.0.1:27017, Redis on 127.0.0.1/[::1]:6379, backend on *:5001, Apache on *:80/*:443, and SSH on IPv4/IPv6 port 22. UFW reports inactive. Other host/NOC network filtering remains unverified; do not claim direct backend access is blocked or public exposure is proven. Confirm NOC firewall requirements and management access before enabling host filtering. Complete base-tool inventory remains unconfirmed. |
+| Acceptance/operations | Browser login succeeded (user: “I'm in”). Document upload/replacement/approval/download and access-denial tests, email, backup/restore, and dependency remediation remain pending. |
 
-**Explicit development-password requirement:** use passwords chosen by the user, at least 18 characters long. Do not prescribe generated hexadecimal passwords or manual transcription of long generated strings. Explain that `passwordPrompt()` inside `db.createUser` assigns a NEW password; it is not asking for a preexisting MongoDB credential. Preserve the user's working password. URI/configuration examples must correctly encode/quote punctuation and spaces. Machine signing keys (JWT) remain distinct from login passwords. Documentation changes do not change application password validators or live server credentials.
+**Password policy:** user-chosen passwords of at least 18 characters; no generated hexadecimal password requirement or manual long-password transcription. `passwordPrompt()` in `db.createUser` assigns a new password. Machine JWT keys are separate. The user explicitly authorized keeping the existing development database/Redis credentials temporarily, with replacement deferred until later/before production. Do not record their values or repeatedly block this POC on that exception.
 
-Earlier troubleshooting showed altered/control-character input through nested remote connections. That is historical context, not an instruction to repeat the failed password workflow. The user subsequently resumed guided deployment. Keep the guide and this checkpoint synchronized with confirmed results; do not treat proposed checks as completed.
-
-The canonical guide now includes this internal POC sequence, exact package commands used, database account/authentication
-steps, expected outputs, and the installation checkpoint. Keep it updated as guided deployment progresses.
+**Documentation requirement:** use the common base package list in section 4.3 and expected-result checkpoints at the relevant steps. Do not infer installation from a package list or successful permission check. Explain encoded passwords and save them before editing configuration. Preserve existing settings on retries. Keep this table updated instead of appending contradictory “next step” notes.
 
 ## Verification follow-up — November 17, 2026
 
@@ -276,3 +286,17 @@ Full feature documentation: **`docs/compliance-and-redis.md`** (read it first). 
 - Commit identity: `Richard Bakos <resonance.designs.com@gmail.com>`.
 - No Docker. No new runtime npm dependencies were needed for 2.3.0, so keep it that way where possible.
 - Credentials stay in `backend/.env.prod` and are never stored in MongoDB.
+
+Fresh-server dependency cross-check: no additional core runtime was identified from package manifests and backend subprocess/file-write usage. Added concrete Chrony install/internal-source setup, required outbound-service destinations, and DocMan file-log rotation/retention instructions. These are documentation changes, not verified remote configurations; retention examples require organization policy selection. No NMDOH commands were requested or run for this audit.
+
+Updated NMDOH direction: user confirms Security team owns firewall configuration; leave host firewall changes to that team. ITSD NOC explicitly permits a self-signed certificate for this internal POC. Use existing CSR/private key, issue the self-signed certificate for docman-dev.doh.nm.gov, verify SAN/dates and establish explicit client trust before browser acceptance. Certificate creation is not yet confirmed; do not continue treating NOC issuance as the required next step.
+
+Self-signed certificate creation confirmed: subject and issuer CN=docman-dev.doh.nm.gov, SAN DNS:docman-dev.doh.nm.gov, validity 2026-11-17 17:04:08 GMT through 2027-11-17 17:04:08 GMT. Next: enable prepared Apache site, validate configuration, reload, establish server/client trust, and test HTTPS. These steps are not yet confirmed.
+
+Latest confirmed checkpoint: HTTPS curl from Ubuntu passed after adding the self-signed certificate (1 added). The ca-certificates.crt rehash warning did not prevent these tests. Next: transfer only the public certificate to the NMDOH workstation, compare its SHA-256 file hash, import into the intended Windows user trust store, then test browser login. Security team owns firewall configuration.
+
+## Superadmin user-management implementation
+
+Added Vue Users page and superadmin-only GET/POST /api/users/manage and PATCH /api/users/manage/:id. Supports search/pagination, creation, profile/role edits, password resets for other local users, and disable/enable preserving records. Self-registration configuration is unchanged/off on NMDOH. Existing superadmins are protected against demotion/disablement, including legacy profile demotion/delete paths. Existing accounts default active with sessionVersion zero; disabling/re-enabling and administrator password resets invalidate local JWTs and refresh/reset credentials. Disabled identities are rejected for local and Authentik access. API DTOs/audit payloads omit credentials. No deployment to NMDOH has occurred for this feature; server remains at e9df951. Deploy backend and rebuilt Vue together, retaining server .env files. Bootstrap helper remains for first-superadmin setup only; guide now documents the Users workflow.
+
+User-management validation: 39 targeted Jest tests passed across userAdmin, identityService Authentik, and auditService suites; 25 checks against a disposable real MongoDB covered create/login/edit, lower-role denial, duplicate identities, disable/re-enable, password reset, access/refresh invalidation, protected superadmins, registration-off behavior, and valid credential-free audit chain. Vue production build passed. An isolated browser session verified superadmin navigation, successful user creation, and disabling with Enable action afterward. These tests did not use the NMDOH server.
