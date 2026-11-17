@@ -958,8 +958,7 @@ export async function getAvailableProjectDocuments(req, res) {
 
         // Get all documents not assigned to this project
         const availableDocuments = await Doc.find({
-            ...documentReadFilter(req.user),
-            _id: { $nin: project.documents || [] }
+            $and: [documentReadFilter(req.user), { _id: { $nin: project.documents || [] } }]
         })
         .populate('author', 'firstname lastname email')
         .populate('category', 'name')

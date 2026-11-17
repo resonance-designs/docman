@@ -22,6 +22,7 @@ import {
     canApproveDocument,
     canViewDocumentAudit,
     requireDocumentAccess,
+    documentReadFilter,
 } from "../../middleware/documentAccess.js";
 
 const ids = {
@@ -73,6 +74,21 @@ describe("access rules", () => {
     test("audit view: author, owners, approvers, admins", () => {
         expect(canViewDocumentAudit(doc, user("stakeholder"))).toBe(false);
         expect(canViewDocumentAudit(doc, user("approver"))).toBe(true);
+    });
+});
+
+describe("documentReadFilter", () => {
+    test("a user without a valid id matches nothing, even when combined with other conditions", () => {
+        const filter = documentReadFilter({ role: "viewer" });
+        expect(filter).toEqual({ deletedAt: null, $expr: false });
+        expect(filter).not.toHaveProperty("_id");
+    });
+
+    test("admins see every non-deleted document; others only documents they are on", () => {
+        expect(documentReadFilter({ id: ids.outsider, role: "admin" })).toEqual({ deletedAt: null });
+        const filter = documentReadFilter({ id: ids.author, role: "viewer" });
+        expect(filter.$or.map((clause) => Object.keys(clause)[0]))
+            .toEqual(["author", "owners", "stakeholders", "approvers", "reviewAssignees"]);
     });
 });
 

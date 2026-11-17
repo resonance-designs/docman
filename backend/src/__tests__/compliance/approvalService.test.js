@@ -58,10 +58,19 @@ jest.mock("../../models/File.js", () => {
 jest.mock("../../models/Doc.js", () => ({ __esModule: true, default: {
     find: jest.fn(), findOneAndUpdate: jest.fn(), findById: jest.fn(), updateOne: jest.fn(),
 } }));
+const mockAudit = [];
 jest.mock("../../services/auditService.js", () => ({
     __esModule: true,
-    record: jest.fn(async () => null),
+    record: jest.fn(async (_req, event) => { mockAudit.push({ outcome: "success", ...event }); return null; }),
     AUDIT_ACTIONS: new Proxy({}, { get: (_, key) => String(key).toLowerCase() }),
+}));
+jest.mock("../../models/AuditLog.js", () => ({
+    __esModule: true,
+    default: {
+        exists: jest.fn(async (filter) => mockAudit.some((entry) => entry.action === filter.action
+            && String(entry.resourceId) === String(filter.resourceId)
+            && (entry.outcome || "success") === filter.outcome) || null),
+    },
 }));
 jest.mock("../../services/revisionService.js", () => ({
     __esModule: true,
@@ -97,6 +106,7 @@ const upload = { filename: "f.pdf", originalname: "Policy.pdf", path: "/tmp/f.pd
 
 beforeEach(() => {
     mockFiles.length = 0;
+    mockAudit.length = 0;
     record.mockClear();
     delete process.env.APPROVAL_REQUIRED;
     delete process.env.APPROVAL_MIN_APPROVALS;
@@ -189,6 +199,22 @@ describe("approve / reject / withdraw", () => {
         await approveVersion(reqFor("approverA"), doc, 1);
         expect(doc.versionHistory).toHaveLength(1);
         expect(mockFiles[0].status).toBe("approved");
+    });
+
+    test("retrying an interrupted publication logs version_publish only once", async () => {
+        File.updateMany.mockRejectedValueOnce(new Error("interrupted"));
+        await expect(approveVersion(reqFor("approverA"), doc, 1)).rejects.toThrow("interrupted");
+        await approveVersion(reqFor("approverA"), doc, 1);
+        expect(mockAudit.filter((entry) => entry.action === "version_publish")).toHaveLength(1);
+        expect(mockAudit.filter((entry) => entry.action === "version_approve")).toHaveLength(1);
+    });
+
+    test("recovering a version stuck in pending does not log a second approval", async () => {
+        mockFiles[0].approvals.push({ user: ids.approverA, decision: "approved", comment: "", decidedAt: new Date() });
+        const result = await approveVersion(reqFor("approverA"), doc, 1);
+        expect(result.published).toBe(true);
+        expect(mockAudit.filter((entry) => entry.action === "version_approve")).toHaveLength(0);
+        expect(mockAudit.filter((entry) => entry.action === "version_publish")).toHaveLength(1);
     });
 
     test("APPROVAL_MIN_APPROVALS=2 needs two distinct approvers", async () => {

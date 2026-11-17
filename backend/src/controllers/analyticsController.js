@@ -137,8 +137,7 @@ export async function getAnalyticsData(req, res) {
         // Recent activity (last 30 days)
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const recentDocuments = await Doc.countDocuments({
-            ...documentReadFilter(req.user),
-            createdAt: { $gte: thirtyDaysAgo }
+            $and: [documentReadFilter(req.user), { createdAt: { $gte: thirtyDaysAgo } }]
         });
 
         res.json({

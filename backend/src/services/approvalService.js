@@ -22,6 +22,7 @@
 import fs from "fs";
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
+import AuditLog from "../models/AuditLog.js";
 import { record, AUDIT_ACTIONS } from "./auditService.js";
 import { recordRevision, snapshotDocument } from "./revisionService.js";
 import { sha256File } from "../lib/fileIntegrity.js";
@@ -90,7 +91,14 @@ async function publishVersion(req, doc, file) {
     Object.assign(doc, { currentVersion: publishedDoc.currentVersion, versionHistory: publishedDoc.versionHistory });
     await recordRevision({ doc: publishedDoc, before, action: "publish", user: req.user,
         reason: `Published version ${file.version}`, publicationFileId: file._id });
-    await record(req, {
+    // Retrying an interrupted publication must not log the publication twice.
+    const alreadyLogged = await AuditLog.exists({
+        action: AUDIT_ACTIONS.VERSION_PUBLISH,
+        resourceType: "file",
+        resourceId: String(file._id),
+        outcome: "success",
+    });
+    if (!alreadyLogged) await record(req, {
         action: AUDIT_ACTIONS.VERSION_PUBLISH,
         resourceType: "file",
         resourceId: file._id,
@@ -255,6 +263,9 @@ export async function approveVersion(req, doc, version, comment = "") {
         },
         { new: true }
     );
+    // Only log an approval this request actually added; recovering a stuck version must not
+    // write a second "approved" entry for someone who already approved it.
+    const approvalAdded = Boolean(updated);
     if (!updated) {
         updated = await File.findOne({ _id: file._id, status: "pending_approval" });
         if (!updated || updated.approvals.filter((entry) => entry.decision === "approved").length < policy.minApprovals) {
@@ -263,7 +274,7 @@ export async function approveVersion(req, doc, version, comment = "") {
     }
 
     const approvalCount = updated.approvals.filter((entry) => entry.decision === "approved").length;
-    await record(req, {
+    if (approvalAdded) await record(req, {
         action: AUDIT_ACTIONS.VERSION_APPROVE,
         resourceType: "file",
         resourceId: updated._id,

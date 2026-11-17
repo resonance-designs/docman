@@ -34,7 +34,8 @@ export function isAdmin(user) {
 export function documentReadFilter(user) {
     if (isAdmin(user)) return { deletedAt: null };
     const id = user?.id || user?._id;
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) return { _id: { $in: [] } };
+    // No valid user id: match nothing. Combine with other conditions via $and, never by spreading.
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) return { deletedAt: null, $expr: false };
     const userId = new mongoose.Types.ObjectId(String(id));
     return { deletedAt: null, $or: ['author', 'owners', 'stakeholders', 'approvers', 'reviewAssignees']
         .map((field) => ({ [field]: userId })) };
