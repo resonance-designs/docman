@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# DocMan — clean Linux verification (Ubuntu / WSL / CI). No Windows tooling involved.
+# DocMan — clean Linux verification (Ubuntu / WSL / CI). Uses natively installed services, same as production.
 #
-#   bash scripts/verify-linux.sh            # install, unit tests, build both frontends, end-to-end smoke test
-#   SKIP_E2E=1 bash scripts/verify-linux.sh # skip the MongoDB/Redis end-to-end part
+#   bash scripts/verify-linux.sh             # install, unit tests, build both frontends, end-to-end smoke test
+#   SKIP_E2E=1 bash scripts/verify-linux.sh  # skip the MongoDB/Redis end-to-end part
 #
-# End-to-end needs MongoDB + Redis. With Docker available it starts them from docker-compose.yml.
-# Without Docker, point it at your own services:
-#   MONGO_URI=mongodb://127.0.0.1:27017 REDIS_URL=redis://:pass@127.0.0.1:6379/0 bash scripts/verify-linux.sh
+# End-to-end uses the MongoDB already installed on this machine (default mongodb://127.0.0.1:27017) and a
+# throwaway database named docman_verify_<timestamp>, so existing data is never touched. Override with:
+#   MONGO_URI=mongodb://user:pass@127.0.0.1:27017/?authSource=admin
+# Redis is optional: set REDIS_URL=redis://:password@127.0.0.1:6379/0 to test the self-hosted Redis store;
+# without it the in-memory store is used.
 #
-# Run it from a Linux filesystem path (e.g. ~/docman in WSL), not /mnt/c/..., so node_modules get Linux binaries
-# and installs are fast. The script never touches an existing node_modules owned by another OS: it uses `npm ci`,
-# which replaces node_modules from the lockfile.
+# Run it from a Linux filesystem path (e.g. ~/docman in WSL), not /mnt/c/..., so node_modules get Linux binaries.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,14 +19,12 @@ PORT="${SMOKE_PORT:-5099}"
 LOG_DIR="$ROOT/.verify-logs"
 mkdir -p "$LOG_DIR"
 SERVER_PID=""
-STARTED_COMPOSE=0
 
 step() { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
 fail() { printf '\033[1;31m✗ %s\033[0m\n' "$*"; exit 1; }
 
 cleanup() {
   if [[ -n "$SERVER_PID" ]] && kill -0 "$SERVER_PID" 2>/dev/null; then kill "$SERVER_PID" 2>/dev/null || true; fi
-  if [[ "$STARTED_COMPOSE" == "1" ]]; then docker compose -p docman-verify down -v >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
 
@@ -63,13 +61,15 @@ if [[ "${SKIP_E2E:-0}" == "1" ]]; then
 fi
 
 step "MongoDB + Redis"
-if [[ -z "${MONGO_URI:-}" ]]; then
-  command -v docker >/dev/null || fail "No MONGO_URI given and Docker is not installed. Install Docker, or set MONGO_URI/REDIS_URL, or SKIP_E2E=1."
-  export DOCMAN_MONGO_PORT="${DOCMAN_MONGO_PORT:-27018}" DOCMAN_REDIS_PORT="${DOCMAN_REDIS_PORT:-6380}" DOCMAN_REDIS_PASSWORD="${DOCMAN_REDIS_PASSWORD:-docman-dev-redis}"
-  docker compose -p docman-verify up -d --wait > "$LOG_DIR/compose.log" 2>&1 || fail "docker compose failed (see $LOG_DIR/compose.log)"
-  STARTED_COMPOSE=1
-  MONGO_URI="mongodb://127.0.0.1:${DOCMAN_MONGO_PORT}"
-  REDIS_URL="redis://:${DOCMAN_REDIS_PASSWORD}@127.0.0.1:${DOCMAN_REDIS_PORT}/0"
+MONGO_URI="${MONGO_URI:-mongodb://127.0.0.1:27017}"
+MONGO_HOSTPORT="$(echo "$MONGO_URI" | sed -E 's#^mongodb://([^@/]*@)?([^/?,]+).*#\2#')"
+MONGO_HOST="${MONGO_HOSTPORT%%:*}"; MONGO_PORT="${MONGO_HOSTPORT##*:}"; [[ "$MONGO_PORT" == "$MONGO_HOST" ]] && MONGO_PORT=27017
+if ! (exec 3<>"/dev/tcp/$MONGO_HOST/$MONGO_PORT") 2>/dev/null; then
+  fail "MongoDB is not reachable at $MONGO_HOST:$MONGO_PORT. Start it (sudo systemctl start mongod), set MONGO_URI, or use SKIP_E2E=1."
+fi
+if [[ -n "${REDIS_URL:-}" ]]; then
+  REDIS_HOSTPORT="$(echo "$REDIS_URL" | sed -E 's#^rediss?://([^@/]*@)?([^/?]+).*#\2#')"
+  (exec 3<>"/dev/tcp/${REDIS_HOSTPORT%%:*}/${REDIS_HOSTPORT##*:}") 2>/dev/null || fail "Redis is not reachable at $REDIS_HOSTPORT (sudo systemctl start redis-server)."
 fi
 DB_NAME="docman_verify_$(date +%s)"
 case "$MONGO_URI" in

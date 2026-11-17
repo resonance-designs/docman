@@ -191,12 +191,14 @@ reports files that are missing on disk, creates a baseline revision for every do
 ## 9. Verifying on Linux (Ubuntu, WSL, CI)
 
 Everything builds and runs on Linux; nothing depends on Windows. One script does a clean install, the unit tests,
-both frontend builds, and an end-to-end smoke test against real MongoDB and Redis:
+both frontend builds, and an end-to-end smoke test against the MongoDB (and optionally Redis) installed on the machine.
+It writes to a throwaway `docman_verify_<timestamp>` database, never to existing data:
 
 ```bash
 git clone <repo> ~/docman && cd ~/docman && git checkout <branch>
-bash scripts/verify-linux.sh                     # uses Docker for MongoDB + Redis (docker-compose.yml)
-MONGO_URI=mongodb://127.0.0.1:27017 REDIS_URL=redis://:pass@127.0.0.1:6379/0 bash scripts/verify-linux.sh   # your own services
+bash scripts/verify-linux.sh                     # uses the local mongod (127.0.0.1:27017), memory rate-limit store
+REDIS_URL=redis://:pass@127.0.0.1:6379/0 bash scripts/verify-linux.sh               # also test self-hosted Redis
+MONGO_URI='mongodb://user:pass@127.0.0.1:27017/?authSource=admin' bash scripts/verify-linux.sh   # mongod with auth
 SKIP_E2E=1 bash scripts/verify-linux.sh          # no database available
 ```
 
