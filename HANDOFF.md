@@ -119,17 +119,16 @@ Full feature documentation: **`docs/compliance-and-redis.md`** (read it first). 
 
 1. **Run the full verification in WSL** (Ubuntu 24.04, local `mongod` 8.0.34 must be running):
    ```bash
-   git clone -b feature/compliance-hardening /mnt/c/Dev/Projects/docman ~/docman-verify
-   cd ~/docman-verify && bash scripts/verify-linux.sh
+   bash scripts/verify-linux.sh
    # if mongod requires auth:
    MONGO_URI='mongodb://user:pass@127.0.0.1:27017/?authSource=admin' bash scripts/verify-linux.sh
    # to also test self-hosted Redis (sudo apt install redis-server):
    REDIS_URL=redis://:pass@127.0.0.1:6379/0 bash scripts/verify-linux.sh
    ```
-   - Clone to the Linux filesystem. **Do not run `npm ci` in `/mnt/c/...`**, because that replaces the user's
-     Windows `node_modules`.
-   - Logs land in `.verify-logs/`. Fix every failure, commit on the branch, then push or pull the fixes back to the
-     Windows repo (`git pull ~/docman-verify feature/compliance-hardening` from the Windows checkout).
+   - The script runs `npm ci` and uses a throwaway database `docman_verify_<ts>`. Logs land in `.verify-logs/`.
+   - Constraint: the user also develops on the Windows side of `C:\Dev\Projects\docman`. Don't leave its
+     `node_modules` holding Linux-only binaries; work wherever you see fit, as long as that holds.
+   - Fix every failure and commit on `feature/compliance-hardening`.
 2. **Click through the Vue UI**: `npm run dev` in `backend` + `frontend-vue`. Test as three users: an uploader
    (editor or owner), an approver and an outsider.
    - Create → upload → approve → download → reject → withdraw → restore.
