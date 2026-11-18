@@ -3,10 +3,11 @@
  * @file /docman/backend/src/__tests__/services/identityService.authentik.test.js
  * @description Unit tests for Authentik identity auto-linking and JIT provisioning
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { jest } from "@jest/globals";
+jest.mock("../../lib/jwtSecret.js", () => ({ TOKEN_KEY: "test-only" }));
 
 process.env.AUTHENTIK_ISSUER = "https://accounts.resonancedesigns.dev/application/o/rdocman-web/";
 process.env.AUTHENTIK_AUDIENCE = "test-client-id";
@@ -27,19 +28,19 @@ const mockJwt = {
     decode: jest.fn(),
 };
 
-jest.unstable_mockModule("../../models/BlacklistedToken.js", () => ({
-    default: mockBlacklistedToken,
+jest.mock("../../models/BlacklistedToken.js", () => ({
+    __esModule: true, default: mockBlacklistedToken,
 }));
 
-jest.unstable_mockModule("../../models/User.js", () => ({
-    default: mockUser,
+jest.mock("../../models/User.js", () => ({
+    __esModule: true, default: mockUser,
 }));
 
-jest.unstable_mockModule("jsonwebtoken", () => ({
-    default: mockJwt,
+jest.mock("jsonwebtoken", () => ({
+    __esModule: true, default: mockJwt,
 }));
 
-const { resolveAuthentikTokenIdentity } = await import("../../services/identityService.js");
+const { resolveAuthentikTokenIdentity } = require("../../services/identityService.js");
 
 function createSelectLeanResult(value) {
     return {
@@ -52,6 +53,14 @@ function createSelectLeanResult(value) {
 describe("identityService Authentik resolution", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockBlacklistedToken.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue(null) });
+    });
+
+    test("rejects an Authentik token invalidated by logout before resolving a user", async () => {
+        mockBlacklistedToken.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue({ token: "revoked" }) });
+        await expect(resolveAuthentikTokenIdentity("revoked")).rejects.toMatchObject({ statusCode: 401 });
+        expect(mockJwt.verify).not.toHaveBeenCalled();
+        expect(mockUser.findOne).not.toHaveBeenCalled();
     });
 
     test("resolves an already-linked Authentik user by sub", async () => {

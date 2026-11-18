@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyUsers.js
  * @description Script to create dummy users in the database
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

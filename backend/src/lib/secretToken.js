@@ -4,7 +4,7 @@
  * @module secretToken
  * @description JWT token utilities for creating, verifying, and blacklisting authentication tokens
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";
@@ -18,9 +18,9 @@ import { extractBearerToken, resolveRequestIdentity } from "../services/identity
  * @param {string} role - User role to encode in token
  * @returns {string} JWT access token valid for 5 days
  */
-export function createAccessToken(id, role) {
+export function createAccessToken(id, role, sessionVersion = 0) {
     // Use 5 days for token expiration
-    const token = jwt.sign({ id, role }, TOKEN_KEY, { expiresIn: "5d" });
+    const token = jwt.sign({ id, role, sessionVersion }, TOKEN_KEY, { expiresIn: "5d" });
     console.log("🔑 Created token for user:", id, "with role:", role);
 
     // Decode to check expiration

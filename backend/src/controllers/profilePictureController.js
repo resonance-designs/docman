@@ -1,11 +1,12 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import User from "../models/User.js";
 import fs from "fs";
 import path from "path";
+import { getUploadDir } from "../lib/fileIntegrity.js";
 
 /**
  * Upload a profile picture for a user
@@ -57,7 +58,7 @@ export async function uploadProfilePicture(req, res) {
 
         // Delete old profile picture if it exists
         if (user.profilePicture) {
-            const oldPicturePath = path.join(process.cwd(), 'uploads', user.profilePicture);
+            const oldPicturePath = path.join(getUploadDir(), user.profilePicture);
             if (fs.existsSync(oldPicturePath)) {
                 fs.unlinkSync(oldPicturePath);
             }
@@ -114,7 +115,7 @@ export async function deleteProfilePicture(req, res) {
         }
 
         // Delete the file from filesystem
-        const picturePath = path.join(process.cwd(), 'uploads', user.profilePicture);
+        const picturePath = path.join(getUploadDir(), user.profilePicture);
         if (fs.existsSync(picturePath)) {
             fs.unlinkSync(picturePath);
         }
@@ -180,7 +181,7 @@ export async function uploadBackgroundImage(req, res) {
 
         // Delete old background image if it exists
         if (user.backgroundImage) {
-            const oldImagePath = path.join(process.cwd(), 'uploads', user.backgroundImage);
+            const oldImagePath = path.join(getUploadDir(), user.backgroundImage);
             if (fs.existsSync(oldImagePath)) {
                 fs.unlinkSync(oldImagePath);
             }
@@ -237,7 +238,7 @@ export async function deleteBackgroundImage(req, res) {
         }
 
         // Delete the file from filesystem
-        const imagePath = path.join(process.cwd(), 'uploads', user.backgroundImage);
+        const imagePath = path.join(getUploadDir(), user.backgroundImage);
         if (fs.existsSync(imagePath)) {
             fs.unlinkSync(imagePath);
         }

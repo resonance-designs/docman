@@ -4,7 +4,7 @@
  * @service userService
  * @description Business logic service for user operations including CRUD, validation, and access control
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import User from "../models/User.js";
@@ -312,7 +312,17 @@ export async function updateUser(userId, updateData, requestingUser) {
 
         // Only super admins can change roles, and admins can only create users with roles up to their own
         if (validation.sanitized.role) {
-            if (requestingUser.role === 'superadmin') {
+            const targetUser = await User.findById(userId).select("role").lean();
+            if (targetUser?.role === 'superadmin' && validation.sanitized.role !== 'superadmin') {
+                throw new Error('Validation failed: Superadmin accounts cannot be demoted.');
+            }
+            if (targetUser?.role === 'superadmin' && requestingUser.role !== 'superadmin') {
+                // Only superadmins can change a superadmin's role
+                delete validation.sanitized.role;
+            } else if (String(requestingUser.id) === String(userId) && requestingUser.role !== 'superadmin') {
+                // Nobody but a superadmin can change their own role
+                delete validation.sanitized.role;
+            } else if (requestingUser.role === 'superadmin') {
                 // Super admins can set any role
             } else if (requestingUser.role === 'admin') {
                 // Admins can only set roles up to admin (not superadmin)
@@ -326,8 +336,8 @@ export async function updateUser(userId, updateData, requestingUser) {
         }
 
         // Update user
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: userId, ...(validation.sanitized.role && validation.sanitized.role !== 'superadmin' ? { role: { $ne: 'superadmin' } } : {}) },
             { ...validation.sanitized, updatedAt: new Date() },
             { new: true, runValidators: true }
         ).select("_id firstname lastname email telephone title department bio role profilePicture backgroundImage theme createdAt updatedAt");
@@ -365,7 +375,9 @@ export async function deleteUser(userId, requestingUser) {
             throw new Error("User not found");
         }
 
-        await User.findByIdAndDelete(userId);
+        if (user.role === 'superadmin') throw new Error('Insufficient permissions: superadmin accounts cannot be deleted.');
+        const deleted = await User.findOneAndDelete({ _id: userId, role: { $ne: 'superadmin' } });
+        if (!deleted) throw new Error('Insufficient permissions: account changed; reload before retrying.');
     } catch (error) {
         logError('deleteUser', error, { userId, requestingUserId: requestingUser.id });
         throw new Error(sanitizeErrorMessage(error, "Failed to delete user"));

@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/components/system/ConfirmActionModal.jsx
  * @component ConfirmActionModal
  * @description Confirmation modal for dangerous system actions
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import PropTypes from "prop-types";

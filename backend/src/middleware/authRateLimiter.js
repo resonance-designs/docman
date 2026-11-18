@@ -1,37 +1,24 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-import dotenv from "dotenv";
+import { createRateLimiter } from "../config/redis.js";
+import { parseLimitSpec } from "../config/upstash.js";
 
-// Load environment variables based on NODE_ENV
 if (process.env.NODE_ENV === 'development') {
-    dotenv.config({ path: '.env.dev' });
     console.log("🚀 Development environment detected - Rate limiting will be disabled");
-} else if (process.env.NODE_ENV === 'production') {
-    dotenv.config({ path: '.env.prod' });
-} else {
-    dotenv.config(); // Loads .env by default
 }
 
-// Create separate rate limiters for different auth endpoints
-const loginRateLimiter = new Ratelimit({
-    redis: Redis.fromEnv(),
-    limiter: Ratelimit.slidingWindow(5, "15 m") // 5 attempts per 15 minutes
-});
+// Separate rate limiters for auth endpoints. Keys are per client IP, so if many staff share one public IP
+// (office NAT), raise these with RATE_LIMIT_LOGIN / RATE_LIMIT_REGISTER / RATE_LIMIT_PASSWORD_RESET.
+const loginSpec = parseLimitSpec(process.env.RATE_LIMIT_LOGIN, 5, "15m");
+const registerSpec = parseLimitSpec(process.env.RATE_LIMIT_REGISTER, 10, "1h");
+const resetSpec = parseLimitSpec(process.env.RATE_LIMIT_PASSWORD_RESET, 3, "1h");
 
-const registerRateLimiter = new Ratelimit({
-    redis: Redis.fromEnv(),
-    limiter: Ratelimit.slidingWindow(10, "1 h") // 10 attempts per hour
-});
-
-const passwordResetRateLimiter = new Ratelimit({
-    redis: Redis.fromEnv(),
-    limiter: Ratelimit.slidingWindow(3, "1 h") // 3 requests per hour
-});
+const loginRateLimiter = createRateLimiter(loginSpec.limit, loginSpec.window);
+const registerRateLimiter = createRateLimiter(registerSpec.limit, registerSpec.window);
+const passwordResetRateLimiter = createRateLimiter(resetSpec.limit, resetSpec.window);
 
 // Middleware functions for each auth endpoint
 export async function limitLogin(req, res, next) {

@@ -4,7 +4,7 @@
  * @page ViewDocPage
  * @description Document detail page displaying document information, version history, file downloads, and review management
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { Link, useNavigate, useParams } from "react-router";
@@ -12,6 +12,7 @@ import { ArrowLeftIcon, PenSquareIcon, DownloadIcon, FileIcon, CalendarIcon, Use
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { formatDate } from "../lib/utils";
+import { downloadDocumentFile } from "../lib/download";
 import { useDocument, useUserRole, useFormData, useReviewAssignments } from "../hooks";
 import ReviewCompletionToggle from "../components/ReviewCompletionToggle";
 import ReviewStatusSummary from "../components/ReviewStatusSummary";
@@ -374,6 +375,7 @@ const ViewDocPage = () => {
                             {/* Version History Section */}
                             <h2 className="text-2xl mb-4">Document File Version History</h2>
                             <PaginatedFileVersionTable
+                                documentId={id}
                                 versions={versionHistory}
                                 files={files}
                                 getFullName={getFullName}
@@ -404,15 +406,14 @@ const ViewDocPage = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <a
-                                            href={`/uploads/${file.filename}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                        <button
+                                            type="button"
                                             className="btn btn-sm bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
+                                            onClick={() => downloadDocumentFile(id, file).catch(() => toast.error("Download failed"))}
                                         >
                                             <DownloadIcon size={16} />
                                             Download
-                                        </a>
+                                        </button>
                                     </div>
                                 ))}
                                 </div>

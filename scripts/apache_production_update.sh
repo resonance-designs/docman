@@ -353,6 +353,11 @@ if [[ -f /etc/mongod.conf ]]; then
 fi
 
 echo ""
+echo "7️⃣b Running data migrations (idempotent)..."
+(cd "$BACKEND_DIR" && NODE_ENV=production node src/scripts/migrateComplianceFields.js)
+echo "✅ Migrations complete."
+
+echo ""
 echo "8️⃣ Restarting DocMan backend service..."
 install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 775 "$BACKEND_DIR/uploads"
 chown -R "$SERVICE_USER:$SERVICE_GROUP" "$BACKEND_DIR"

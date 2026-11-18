@@ -18,6 +18,7 @@ const state = reactive({
 });
 
 syncStateFromStorage();
+window.addEventListener('docman:session-expired', clearSession);
 
 function readStoredUser() {
   const stored = localStorage.getItem(getStorageKey('user'));

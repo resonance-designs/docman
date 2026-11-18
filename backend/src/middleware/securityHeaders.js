@@ -4,7 +4,7 @@
  * @middleware securityHeaders
  * @description Comprehensive security headers middleware for protecting against common web vulnerabilities
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 
@@ -155,7 +155,7 @@ export function apiSecurity(req, res, next) {
     res.setHeader('X-RateLimit-Policy', 'standard');
 
     // Prevent caching of sensitive API responses
-    if (req.path.includes('/auth') || req.path.includes('/users')) {
+    if (req.path.startsWith('/api/') || req.path.includes('/auth') || req.path.includes('/users')) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');

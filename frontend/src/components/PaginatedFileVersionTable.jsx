@@ -4,7 +4,7 @@
  * @component PaginatedFileVersionTable
  * @description Paginated and sortable table for document file version history (sortable by Version and Uploaded)
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 
@@ -13,6 +13,7 @@ import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon } from "lucide-react";
 import SortableHeader from "./filters/SortableHeader";
 import PropTypes from "prop-types";
 import { formatDate } from "../lib/utils";
+import { downloadDocumentFile } from "../lib/download";
 
 /**
  * Paginated file version table with sorting
@@ -23,7 +24,7 @@ import { formatDate } from "../lib/utils";
  * @param {Function} [props.getFullName] - Function to render user names
  * @param {number} [props.itemsPerPage=10] - Items per page
  */
-const PaginatedFileVersionTable = ({ versions, files, onCompare, getFullName, itemsPerPage = 10 }) => {
+const PaginatedFileVersionTable = ({ documentId, versions, files, onCompare, getFullName, itemsPerPage = 10 }) => {
     const [sortConfig, setSortConfig] = useState({ key: "uploadedAt", direction: "desc" });
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(itemsPerPage);
@@ -152,17 +153,15 @@ const PaginatedFileVersionTable = ({ versions, files, onCompare, getFullName, it
                                     <td className="p-4">{version.changelog || "No changes documented"}</td>
                                     <td className="p-4 float-right">
                                         <div className="flex gap-2">
-                                            <a
-                                                href={matchingFile ? `/uploads/${matchingFile.filename}` : undefined}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                            <button
+                                                type="button"
                                                 className="btn btn-xs bg-resdes-teal text-slate-950 hover:bg-resdes-teal hover:opacity-80"
-                                                aria-disabled={!matchingFile}
-                                                onClick={(e) => { if (!matchingFile) e.preventDefault(); }}
+                                                disabled={!matchingFile || !documentId}
+                                                onClick={() => matchingFile && documentId && downloadDocumentFile(documentId, matchingFile).catch(() => {})}
                                             >
                                                 <DownloadIcon size={12} />
                                                 Download
-                                            </a>
+                                            </button>
                                             {typeof version.version === "number" && version.version > 1 && onCompare && (
                                                 <button
                                                     className="btn btn-xs btn-outline"
@@ -254,6 +253,7 @@ const PaginatedFileVersionTable = ({ versions, files, onCompare, getFullName, it
 };
 
 PaginatedFileVersionTable.propTypes = {
+    documentId: PropTypes.string,
     versions: PropTypes.array.isRequired,
     files: PropTypes.array,
     onCompare: PropTypes.func,

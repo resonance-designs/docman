@@ -1,8 +1,9 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
+import { documentReadFilter } from "../middleware/documentAccess.js";
 import Project from "../models/Project.js";
 import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";
@@ -51,7 +52,7 @@ export async function getAllProjects(req, res) {
         const projects = await Project.find(filter)
             .populate('teams', 'name')
             .populate('collaborators', 'name email')
-            .populate('documents', 'title')
+            .populate({ path: 'documents', select: 'title', match: documentReadFilter(req.user) })
             .sort(sort);
 
         res.status(200).json({ 
@@ -117,7 +118,7 @@ export async function getTeamProjects(req, res) {
             .populate('owner', 'firstname lastname email')
             .populate('teams', 'name')
             .populate('collaborators.user', 'firstname lastname email')
-            .populate('documents', 'title reviewDate')
+            .populate({ path: 'documents', select: 'title reviewDate', match: documentReadFilter(req.user) })
             .sort(sortObj);
 
         res.status(200).json(projects);
@@ -177,7 +178,7 @@ export async function getUserProjects(req, res) {
             .populate('teams', 'name')
             .populate('owner', 'firstname lastname email')
             .populate('collaborators.user', 'firstname lastname email')
-            .populate('documents', 'title reviewDate')
+            .populate({ path: 'documents', select: 'title reviewDate', match: documentReadFilter(req.user) })
             .sort(sortObj);
 
         res.status(200).json(projects);
@@ -202,7 +203,7 @@ export async function getProjectById(req, res) {
             .populate('teams', 'name')
             .populate('owner', 'firstname lastname email')
             .populate('collaborators.user', 'firstname lastname email')
-            .populate('documents');
+            .populate({ path: 'documents', match: documentReadFilter(req.user) });
 
         if (!project) {
             return res.status(404).json({ message: "Project not found" });
@@ -903,6 +904,7 @@ export async function getProjectDocuments(req, res) {
         const project = await Project.findById(projectId)
             .populate({
                 path: 'documents',
+                match: documentReadFilter(req.user),
                 populate: [
                     { path: 'author', select: 'firstname lastname email' },
                     { path: 'category', select: 'name' }
@@ -956,7 +958,7 @@ export async function getAvailableProjectDocuments(req, res) {
 
         // Get all documents not assigned to this project
         const availableDocuments = await Doc.find({
-            _id: { $nin: project.documents || [] }
+            $and: [documentReadFilter(req.user), { _id: { $nin: project.documents || [] } }]
         })
         .populate('author', 'firstname lastname email')
         .populate('category', 'name')

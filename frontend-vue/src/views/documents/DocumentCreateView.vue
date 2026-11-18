@@ -28,13 +28,14 @@
       :submitting="submitting"
       :file-required="true"
       @submit="handleSubmit"
-    />
+    ><template #file-help><p v-if="storage?.maxUploadMB" class="text-caption mt-n2">Maximum file size: {{ storage.maxUploadMB }} MB.</p></template></DocumentEditorForm>
   </v-container>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useStorageSettings } from '@/composables/useStorageSettings';
 import DocumentEditorForm from '@/components/documents/DocumentEditorForm.vue';
 import { useDocumentFormData } from '@/composables/useDocumentFormData';
 import { api } from '@/services/api';
@@ -42,6 +43,7 @@ import { personName } from '@/lib/people';
 
 const router = useRouter();
 const { users, categories, externalContactTypes, loading, error: loadError, load } = useDocumentFormData();
+const { settings: storage, load: loadStorage, sizeError } = useStorageSettings();
 const submitting = ref(false);
 const submitError = ref('');
 const errors = reactive({});
@@ -55,11 +57,14 @@ const userOptions = computed(() =>
   })),
 );
 
-onMounted(load);
+onMounted(() => { load(); loadStorage(); });
 
 async function handleSubmit() {
   clearErrors();
   submitError.value = '';
+
+  const tooLarge = sizeError(Array.isArray(form.file) ? form.file[0] : form.file);
+  if (tooLarge) { errors.file = tooLarge; return; }
 
   if (!validateForm()) {
     return;
@@ -109,6 +114,7 @@ function createEmptyForm() {
     reviewDueDate: '',
     nextReviewDueOn: '',
     owners: [],
+    approvers: [],
     stakeholders: [],
     reviewAssignees: [],
     reviewNotes: '',
@@ -183,6 +189,7 @@ function buildCreatePayload(currentForm) {
   }
 
   payload.append('owners', JSON.stringify(currentForm.owners));
+  payload.append('approvers', JSON.stringify(currentForm.approvers || []));
   payload.append('stakeholders', JSON.stringify(currentForm.stakeholders));
   payload.append('reviewAssignees', JSON.stringify(currentForm.reviewAssignees));
 

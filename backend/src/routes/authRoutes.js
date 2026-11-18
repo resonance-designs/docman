@@ -4,7 +4,7 @@
  * @routes authRoutes
  * @description Authentication routes for user registration, login, logout, password reset, and token refresh
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import express from "express";

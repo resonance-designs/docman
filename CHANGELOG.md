@@ -2,6 +2,125 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-11-18
+
+Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these do not represent a new release.
+
+### Added
+
+- Encryption at rest for stored document files, transparent to users: uploads stream to disk encrypted (chunked AES-256-GCM, per-file keys wrapped by `DOCUMENT_ENCRYPTION_KEY`), downloads stream and decrypt with per-chunk authentication. Superadmin **System Settings → Document storage** controls encryption and the maximum upload size (default 50 MB, ceiling `MAX_UPLOAD_MB_CEILING`). Replaces the short-lived per-version document passwords and user-held encryption keys, which were removed before release.
+
+- Superadmins can demote or disable other superadmins (never themselves, never the last active superadmin), serialized by a cross-process lock; role changes revoke sessions.
+
+- Superadmin-only outgoing email settings and test-email action: authenticated or IP-authorized SMTP relay, STARTTLS/direct TLS, AWS SES server credentials or stored API keys, legacy SES environment mode, and disabled sending. Existing password-reset/review callers use saved settings.
+
+- Superadmin-only Users interface for account creation, profile/role editing, password resets, and disabling/re-enabling accounts, with pagination/search and audit records. Self-registration remains independently disabled.
+
+- Complete beginner-oriented Ubuntu 26.04 LTS server installation and operations guide, including prerequisites, secure native services, local account provisioning, HTTPS, SES, encrypted off-server backups, restore drills, and safe updates. Supersedes the old manual checkout-deletion procedure.
+
+### Security
+
+- Remove the smoke-test administrator password fallback; require explicit test credentials and generate fresh verification/Redis-fixture passwords. Document PR 47 historical secret findings without suppressing checks.
+
+- Plaintext of uploaded documents is never written to disk when encryption at rest is on; stored files are created with mode 0600. Existing passwords continue to unlock their versions.
+
+- Encrypt UI-managed email credentials with AES-256-GCM and a dedicated server key; never return credentials/ciphertext to clients. Enforce TLS for SMTP login, certificate validation, revision conflict detection, audited operations, and test-email rate limits.
+
+- Refreshed dependency lockfiles across backend, Vue, legacy React, documentation, and root tools; removed obsolete npm crypto and replaced unused vulnerable Nodemailer with patched 10.6.0 for the new SMTP transport. Backend production audit is clean and all trees have zero critical findings. Unpatched Picomatch findings remain open; see [dependency review](docs/dependency-security-review.md) for scope and counts.
+- Repaired the cross-platform dependency audit to cover all five lockfiles and fail on unavailable/invalid reports; added weekly/change-triggered CI auditing without suppressing known findings.
+
+- Enforced account-management authorization server-side; reject disabled accounts and invalidate local sessions after administrator password/status changes. Superadmins cannot be deleted, and only another superadmin can demote or disable one, provided at least one active superadmin remains.
+
+- Applied document visibility rules to book/project responses, analytics exports, and custom document charts to prevent metadata exposure through related endpoints.
+- Enforced token blacklisting for Authentik sessions and report logout failure when token invalidation cannot be persisted.
+- Removed document-list and analytics response caching so permission changes take effect on subsequent requests; added no-store headers for API responses.
+- Removed server file paths and internal publication snapshots from version and approval responses.
+
+### Fixed
+
+- Preserve real filesystem existence checks in the test setup so native bcrypt selects the correct Linux libc; include user-management tests in Linux verification.
+
+- Prevented concurrent uploads from creating duplicate version numbers or multiple active versions using database uniqueness constraints.
+- Made interrupted publication resumable through a durable `publishing` state and a Vue **Retry publication** action; retries preserve a single version-history entry and publication revision.
+- Made successful publication audit events idempotent across concurrent server processes using a sparse unique database key. Retries reuse the existing event without consuming audit sequence numbers or emitting duplicate stdout records; historical entries and hashes remain unchanged.
+- Updated the compliance migration to detect conflicting existing versions before changes and replace the old nonunique version index.
+- Clear the Vue reactive session on HTTP 401 and display approver names in document details.
+- Repaired the Authentik identity test suite for the existing Jest configuration and made Linux verification propagate test failures.
+
+### Changed
+
+- Documented the reported NMDOH REDCap SMTP endpoint (`webmail.state.nm.us:25`) as a candidate for DocMan, with unconfirmed TLS/authentication, sender restrictions, network access, relay authorization, and delivery checkpoints.
+
+- Aligned Jest/babel-jest, upgraded documentation tooling with explicit security overrides, and migrated legacy React validation to patched Zod/resolver versions with regression coverage.
+
+- Completed time-service installation/internal-source guidance, outbound dependency-access requirements, and application file-log rotation/retention instructions after a fresh-server dependency cross-check.
+
+- Reworked fresh-server preparation into ordered package/update/time checkpoints, documented stage completion criteria, separated backup-host prerequisites, protected existing settings and certificate requests on retries, and replaced conflicting handoff progress notes with a current-status table.
+
+- Consolidated fresh-server prerequisite installation, added explicit tool/time and backup-tool checks, corrected backup-user prompt sequencing, and reconciled current NMDOH deployment status with confirmed evidence.
+
+- Added an explicit Apache installation/version checkpoint before website configuration; clarified that the www-data permission check does not prove Apache is installed.
+- Added an explicit save-before-edit checkpoint for encoded database/Redis credentials and the JWT key, with recovery after clearing the terminal or interrupting configuration editing.
+- Expanded Redis deployment instructions with startup-error diagnosis, malformed-line correction, restart-limit recovery, and step-by-step authentication checks; updated confirmed NMDOH installation checkpoints.
+- Replaced generated hexadecimal password instructions with user-chosen passwords of at least 18 characters for the development walkthrough; clarified new-password prompts and safe configuration quoting/URL encoding, and synchronized Redis guidance and the handoff.
+- Revised the deployment walkthrough throughout for beginner usability: explicit prompts, file-edit commands, expected outputs, failure actions, and staged migration/backup/restore/update checks; corrected private-certificate Apache activation order.
+- Recorded the standing deployment-documentation requirement: one complete beginner-followable walkthrough for the latest stable Ubuntu Server LTS, covering all prerequisites and kept synchronized with guided installation steps.
+- Updated the Ubuntu deployment guide with a single Ubuntu 26.04 LTS installation path, the internal NMDOH POC installation sequence, MongoDB 9 repository commands, database authentication checks, and explicit completed/pending deployment checkpoints.
+- Updated the GitHub deployment workflow to accept and validate Authentik build variables, run security/identity tests, build and publish the Vue remote bundle, and run migration preflight and migration.
+- Raised the documented MongoDB minimum to 6.0 for the partial active-version index; verified with MongoDB 8.0.34.
+- Expanded workflow smoke tests and added `backend/src/scripts/verifyWorkflowRecovery.js` for disposable-database recovery and signed-token revocation checks.
+
+### Verification
+
+- Email settings: 130 targeted backend tests pass on Windows and Linux/Node 22, including 31 new email tests. Verified local relay/TLS/STARTTLS delivery, certificate rejection, encryption/redaction, role enforcement, rate limits, concurrent saves, and browser save/reload/test flows. NMDOH mail delivery and live AWS SES remain pending.
+
+- Dependency update: 99 targeted backend tests and five audit/schema checks pass on Windows and Linux/Node 22; Vue production/remote, legacy React, documentation builds, and Swagger generation pass. Disposable-MongoDB smoke tests pass all 24 checks plus concurrent publication recovery (memory rate-limit store). See the dependency review for fixture/verification limitations. Full-tree audits remain nonzero only for unpatched Picomatch.
+
+- User management: passed 39 targeted tests and 25 disposable-MongoDB integration checks; built Vue and verified browser account creation and disabling. NMDOH deployment of this update remains pending.
+
+- Passed 78 targeted security, compliance, and identity tests across seven suites.
+- Forced two independent Node processes to retry the same publication simultaneously against MongoDB; verified one publication audit entry, one history entry, one revision, database uniqueness, and a valid gap-free audit chain (`verifyAuditConcurrency.js`).
+- Passed 24 end-to-end checks against real MongoDB with both memory and local Redis 7 rate limiting, without Redis fallback.
+- Completed clean Linux installs and production builds for Vue (Vite 8), the Vue remote bundle, and legacy React.
+- Exercised browser sign-in, replacement upload, separate-user approval, authenticated download, revision history, and audit views.
+- Restored a disposable MongoDB backup and uploaded files; verified checksums and audit integrity, recovered an injected publication failure without duplicate history/revisions, and tested revocation of a real RSA-signed test Authentik token.
+
+### Upgrade Notes
+
+- Stop writes and run the compliance migration before release. Conflicting existing versions require resolution before the new indexes can be created.
+- The migration also creates the unique audit idempotency-key index. Install it before resuming writes and run the updated code on every application process; no historical audit backfill or deletion is needed.
+- An interrupted publication requires an authorized retry; this is recovery across multiple writes, not a cross-collection transaction.
+- Verification used isolated test services and synthetic data. Production deployment, live Authentik/Upstash configuration, and the unrelated failing legacy backend test suites were not verified as passing.
+
+## [2.3.0] - 2026-11-16
+
+### Added
+
+- Append-only, hash-chained audit log (`AuditLog`) with admin search, CSV/JSON export, integrity verification (`GET /api/audit/verify`, `npm run audit:verify`), and per-document audit trails.
+- Immutable document revision history (`DocumentRevision`) with full snapshots and field-level diffs for create, update, delete, restore, publish, and review changes.
+- Change-approval workflow for file versions: pending → approved/rejected/withdrawn, designated approvers, separation of duties (no self-approval), configurable approval threshold, and an approvals inbox.
+- SHA-256 checksums for stored files, verified on every download.
+- Authenticated, audited file downloads (`GET /api/docs/:id/files/:fileId/download`).
+- Soft delete with reasons and admin restore.
+- Switchable rate-limit store: Upstash, self-hosted Redis (built-in RESP client, no new dependency), or in-memory; runtime switch for superadmins in System Settings.
+- Vue screens: document versions/approvals/revisions/audit panels, Approvals inbox, Audit Log, System Settings.
+- `npm run migrate:compliance` data migration and `docs/compliance-and-redis.md`.
+
+### Security
+
+- `/uploads` no longer serves document files publicly.
+- Per-document access checks on all document routes; field allow-list on document updates.
+- Review assignments restricted to the assignee or admins.
+- Self-registration can no longer request elevated roles.
+- Password reset hardened (hashed tokens, input type checks, no account enumeration, configurable link base URL).
+- Admins can no longer change superadmin roles or their own role.
+- `trust proxy` configured so audit and rate limiting see real client IPs.
+- Swagger UI and destructive maintenance tools disabled in production by default.
+
+### Removed
+
+- Unused generic `POST /upload` endpoint.
+
 ## [2.2.7] - 2026-04-30
 
 ### Changed

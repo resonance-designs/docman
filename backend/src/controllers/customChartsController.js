@@ -1,8 +1,9 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
+import { documentReadFilter } from "../middleware/documentAccess.js";
 import CustomChart from "../models/CustomChart.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
@@ -208,7 +209,7 @@ export async function getChartData(req, res) {
         // Get data based on the dataSource
         switch (chart.dataSource) {
             case "documents":
-                data = await getDocumentData(chart);
+                data = await getDocumentData(chart, req.user);
                 break;
             case "users":
                 data = await getUserData(chart);
@@ -244,7 +245,7 @@ export async function getChartData(req, res) {
  * @param {Object} chart - Chart configuration object
  * @returns {Array} Array of document statistics
  */
-async function getDocumentData(chart) {
+async function getDocumentData(chart, user) {
     const matchConditions = {};
     
     // Apply filters if any
@@ -310,7 +311,7 @@ async function getDocumentData(chart) {
     }
     
     console.log('📊 Aggregation pipeline:', JSON.stringify(aggregationPipeline, null, 2));
-    const result = await Doc.aggregate(aggregationPipeline);
+    const result = await Doc.aggregate([{ $match: documentReadFilter(user) }, ...aggregationPipeline]);
     console.log('📊 Aggregation result:', result);
     
     return result;
