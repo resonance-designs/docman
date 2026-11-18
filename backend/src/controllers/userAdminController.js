@@ -2,6 +2,9 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import { record, diffFields, AUDIT_ACTIONS } from '../services/auditService.js';
+import { withSettingLock } from '../lib/settingLock.js';
+
+const SUPERADMIN_GUARD_LOCK = 'users.superadmin-guard';
 
 const fields = ['firstname', 'lastname', 'email', 'username', 'role', 'department', 'title', 'isActive', 'identityProvider', 'createdAt', 'updatedAt'];
 const roles = ['viewer', 'editor', 'admin', 'superadmin'];
@@ -40,6 +43,13 @@ export function validateAccount(body, creating = false) {
         data.password = password;
     }
     return data;
+}
+
+/**
+ * Count active superadmins other than the given account.
+ */
+export async function otherActiveSuperadmins(excludeId) {
+    return User.countDocuments({ _id: { $ne: excludeId }, role: 'superadmin', isActive: { $ne: false } });
 }
 
 function respondError(res, error) {
@@ -87,10 +97,14 @@ export async function editAccount(req, res) {
         const data = validateAccount(req.body);
         const before = await User.findById(req.params.id).lean();
         if (!before) throw fail('Account not found.', 404);
-        // Existing superadmins cannot be demoted/disabled here. This also prevents
-        // concurrent administrators from removing each other's final access.
-        if (before.role === 'superadmin' && ((data.role && data.role !== 'superadmin') || data.isActive === false)) {
-            throw fail('Superadmin accounts cannot be demoted or disabled through user management.');
+        // Offboarding: a superadmin can demote or disable ANOTHER superadmin, never themselves, and never the
+        // last active one. The check and the update run under a cross-process lock so two superadmins cannot
+        // remove each other at the same moment.
+        const demoting = before.role === 'superadmin' && data.role !== undefined && data.role !== 'superadmin';
+        const disabling = before.role === 'superadmin' && data.isActive === false && before.isActive !== false;
+        const removesSuperadmin = demoting || disabling;
+        if (removesSuperadmin && String(before._id) === String(req.user.id)) {
+            throw fail('You cannot demote or disable your own superadmin account. Ask another superadmin.', 403);
         }
         if (String(before._id) === String(req.user.id) && data.password !== undefined) throw fail('Use another superadmin to reset your password.');
         if ((before.identityProvider === 'authentik' || before.authentikSub) && data.password !== undefined) throw fail('Manage this account’s password in its identity provider.');
@@ -98,11 +112,20 @@ export async function editAccount(req, res) {
         await checkDuplicates(data, before._id);
         const passwordChanged = data.password !== undefined;
         if (passwordChanged) data.password = await bcrypt.hash(data.password, 12);
-        const revoke = passwordChanged || (data.isActive !== undefined && data.isActive !== (before.isActive !== false));
+        const roleChanged = data.role !== undefined && data.role !== before.role;
+        // Any change that reduces access (password, status, role) signs the user out everywhere.
+        const revoke = passwordChanged || roleChanged || (data.isActive !== undefined && data.isActive !== (before.isActive !== false));
         const update = { $set: { ...data, lastUpdatedBy: req.user.id }, $inc: { __v: 1, ...(revoke ? { sessionVersion: 1 } : {}) } };
         if (revoke) update.$unset = { refreshTokenHash: 1, resetPasswordToken: 1, resetPasswordExpires: 1 };
-        const user = await User.findOneAndUpdate({ _id: before._id, __v: before.__v ?? 0 }, update, { new: true, runValidators: true });
-        if (!user) throw fail('This account changed while saving. Reload and try again.', 409);
+        const apply = async () => {
+            if (removesSuperadmin && await otherActiveSuperadmins(before._id) < 1) {
+                throw fail('At least one other active superadmin must remain. Promote or enable another superadmin first.', 409);
+            }
+            const saved = await User.findOneAndUpdate({ _id: before._id, __v: before.__v ?? 0 }, update, { new: true, runValidators: true });
+            if (!saved) throw fail('This account changed while saving. Reload and try again.', 409);
+            return saved;
+        };
+        const user = removesSuperadmin ? await withSettingLock(SUPERADMIN_GUARD_LOCK, apply) : await apply();
         await record(req, { action: passwordChanged ? AUDIT_ACTIONS.USER_PASSWORD_RESET : (data.role && data.role !== before.role ? AUDIT_ACTIONS.USER_ROLE_CHANGE : AUDIT_ACTIONS.USER_UPDATE), resourceType: 'user', resourceId: user._id,
             summary: `Updated account ${user.username}`, changes: diffFields(publicUser(before), publicUser(user), fields.filter(key => !['createdAt', 'updatedAt'].includes(key))), metadata: { passwordChanged } });
         res.json({ user: publicUser(user) });

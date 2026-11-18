@@ -23,7 +23,7 @@
               <td>
                 <v-btn variant="text" size="small" :aria-label="`Edit ${account.username}`" @click="openEdit(account)">Edit</v-btn>
                 <v-btn v-if="!isSelf(account) && account.identityProvider !== 'authentik'" variant="text" size="small" @click="openPassword(account)">Reset password</v-btn>
-                <v-btn v-if="account.role !== 'superadmin'" variant="text" size="small" :color="account.isActive ? 'error' : 'success'" @click="formError = ''; statusTarget = account">{{ account.isActive ? 'Disable' : 'Enable' }}</v-btn>
+                <v-btn v-if="!isSelf(account)" variant="text" size="small" :color="account.isActive ? 'error' : 'success'" @click="formError = ''; statusTarget = account">{{ account.isActive ? 'Disable' : 'Enable' }}</v-btn>
               </td>
             </tr>
             <tr v-if="!loading && !users.length"><td colspan="5" class="text-center py-8">No users match your search.</td></tr>
@@ -42,7 +42,7 @@
             <v-row><v-col cols="12" sm="6"><v-text-field v-model="form.firstname" label="First name" required maxlength="254" /></v-col><v-col cols="12" sm="6"><v-text-field v-model="form.lastname" label="Last name" required maxlength="254" /></v-col></v-row>
             <v-text-field v-model="form.email" label="Email" type="email" required maxlength="254" />
             <v-text-field v-model="form.username" label="Username" required minlength="3" maxlength="50" hint="3–50 letters, numbers, dots, underscores, or hyphens. New usernames are saved in lowercase." persistent-hint />
-            <v-select v-model="form.role" :items="roles" label="Role" class="mt-3" :disabled="editing?.role === 'superadmin'" />
+            <v-select v-model="form.role" :items="roles" label="Role" class="mt-3" :disabled="editing && isSelf(editing)" />
             <p class="text-caption mb-4">Viewers read permitted documents. Editors work on permitted documents. Admins have broader administrative access. Superadmins can also manage accounts.</p>
             <v-row><v-col cols="12" sm="6"><v-text-field v-model="form.department" label="Department (optional)" maxlength="254" /></v-col><v-col cols="12" sm="6"><v-text-field v-model="form.title" label="Job title (optional)" maxlength="254" /></v-col></v-row>
             <template v-if="!editing">
@@ -50,7 +50,8 @@
               <v-text-field v-model="confirmation" label="Repeat password" type="password" autocomplete="new-password" required class="mt-3" />
               <p class="text-caption">Save the password before creating the account and share it through your approved secure channel. DocMan does not email it or display it afterward.</p>
             </template>
-            <v-alert v-if="editing?.role === 'superadmin'" type="info" variant="tonal" density="compact">Superadmin accounts cannot be demoted or disabled here, to preserve administrative access.</v-alert>
+            <v-alert v-if="editing && isSelf(editing)" type="info" variant="tonal" density="compact">You cannot change your own role. Another superadmin must do it.</v-alert>
+            <v-alert v-else-if="editing?.role === 'superadmin'" type="info" variant="tonal" density="compact">Demoting a superadmin signs them out everywhere. At least one other active superadmin must remain.</v-alert>
           </v-card-text>
           <v-card-actions><v-spacer /><v-btn :disabled="saving" @click="editorOpen = false">Cancel</v-btn><v-btn color="primary" type="submit" :loading="saving">{{ editing ? 'Save changes' : 'Create user' }}</v-btn></v-card-actions>
         </v-form>
@@ -75,6 +76,7 @@
       <v-card :title="statusTarget?.isActive ? 'Disable account?' : 'Enable account?'">
         <v-card-text><v-alert v-if="formError" type="error" class="mb-3">{{ formError }}</v-alert>
           {{ statusTarget?.username }} {{ statusTarget?.isActive ? 'will be unable to sign in or use existing sessions. Their document and audit history will remain.' : 'will be able to sign in again. Previous local sessions will remain invalid.' }}
+          <span v-if="statusTarget?.isActive && statusTarget?.role === 'superadmin'"> At least one other active superadmin must remain.</span>
         </v-card-text>
         <v-card-actions><v-spacer /><v-btn :disabled="saving" @click="statusTarget = null; formError = ''">Cancel</v-btn><v-btn :loading="saving" :color="statusTarget?.isActive ? 'error' : 'primary'" @click="changeStatus">Confirm</v-btn></v-card-actions>
       </v-card>

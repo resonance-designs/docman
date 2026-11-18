@@ -8,6 +8,7 @@ import { record } from '../services/auditService.js';
 import router from '../routes/usersRoutes.js';
 import { resolveLocalTokenIdentity, normalizeRequestUser } from '../services/identityService.js';
 import BlacklistedToken from '../models/BlacklistedToken.js';
+import { withSettingLock } from '../lib/settingLock.js';
 
 jest.mock('../models/User.js', () => ({ __esModule: true, default: {
     exists: jest.fn(), create: jest.fn(), find: jest.fn(), countDocuments: jest.fn(), findById: jest.fn(), findOneAndUpdate: jest.fn(),
@@ -24,6 +25,7 @@ jest.mock('../lib/secretToken.js', () => ({
         next();
     },
 }));
+jest.mock('../lib/settingLock.js', () => ({ __esModule: true, withSettingLock: jest.fn(async (key, fn) => fn()) }));
 jest.mock('../middleware/uploadMid.js', () => ({ __esModule: true, default: { single: () => (req, res, next) => next() } }));
 
 const app = express(); app.use(express.json()); app.use('/api/users', router);
@@ -102,10 +104,47 @@ test('password reset hashes once, invalidates sessions and never audits the pass
     expect(JSON.stringify(record.mock.calls.map(call => call[1]))).not.toContain(password);
     expect(JSON.stringify(res.body)).not.toContain(update.$set.password);
 });
-test.each([{ role: 'viewer' }, { isActive: false }])('protects existing superadmins from loss of access', async change => {
-    User.findById.mockReturnValue({ lean: async () => ({ ...account, role: 'superadmin' }) });
-    expect((await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send(change)).status).toBe(400);
-    expect(User.findOneAndUpdate).not.toHaveBeenCalled();
+describe('superadmin offboarding', () => {
+    const superadmin = { ...account, role: 'superadmin' };
+    beforeEach(() => { User.findById.mockReturnValue({ lean: async () => ({ ...superadmin }) }); withSettingLock.mockClear(); });
+
+    test.each([{ role: 'viewer' }, { isActive: false }])('another superadmin can demote/disable a superadmin (%o) under the lock, revoking sessions', async change => {
+        User.countDocuments.mockResolvedValue(1);
+        const res = await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send(change);
+        expect(res.status).toBe(200);
+        expect(withSettingLock).toHaveBeenCalledWith('users.superadmin-guard', expect.any(Function));
+        expect(User.countDocuments).toHaveBeenCalledWith({ _id: { $ne: id }, role: 'superadmin', isActive: { $ne: false } });
+        const update = User.findOneAndUpdate.mock.calls[0][1];
+        expect(update.$inc.sessionVersion).toBe(1);
+        expect(update.$unset).toHaveProperty('refreshTokenHash');
+    });
+
+    test.each([{ role: 'viewer' }, { isActive: false }])('the last active superadmin cannot be removed (%o)', async change => {
+        User.countDocuments.mockResolvedValue(0);
+        const res = await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send(change);
+        expect(res.status).toBe(409);
+        expect(res.body.message).toMatch(/one other active superadmin/);
+        expect(User.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    test.each([{ role: 'admin' }, { isActive: false }])('a superadmin cannot demote or disable themselves (%o)', async change => {
+        User.findById.mockReturnValue({ lean: async () => ({ ...superadmin, _id: '507f1f77bcf86cd799439011' }) });
+        const res = await asAdmin(request(app).patch('/api/users/manage/507f1f77bcf86cd799439011')).send(change);
+        expect(res.status).toBe(403);
+        expect(User.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    test('other edits to a superadmin do not take the lock', async () => {
+        const res = await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send({ firstname: 'Renamed' });
+        expect(res.status).toBe(200);
+        expect(withSettingLock).not.toHaveBeenCalled();
+    });
+
+    test('demoting a non-superadmin role change also revokes sessions', async () => {
+        User.findById.mockReturnValue({ lean: async () => ({ ...account, role: 'admin' }) });
+        await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send({ role: 'viewer' });
+        expect(User.findOneAndUpdate.mock.calls[0][1].$inc.sessionVersion).toBe(1);
+    });
 });
 test('does not set a local password on a linked SSO account', async () => {
     User.findById.mockReturnValue({ lean: async () => ({ ...account, authentikSub: 'linked' }) });
