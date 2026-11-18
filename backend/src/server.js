@@ -143,7 +143,7 @@ const startServer = async () => {
         await runSafeSeed({ manageConnection: false });
     }
 
-    app.listen(nodePort, () => {
+    app.listen(nodePort, process.env.NODE_HOST || undefined, () => {
         console.log("Node server is running on port:", nodePort);
         console.log("Server is ready to accept requests.");
     });

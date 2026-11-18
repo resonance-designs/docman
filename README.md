@@ -9,6 +9,14 @@ A modern, full-stack document management system built with Node.js, MongoDB, and
 
 DocMan is also the baseline UI guidepost for the larger Resonance Designs local app ecosystem. New suite-facing UI work should use Vue, Vite, Vuetify, and shared Material-style interaction patterns.
 
+## Install on a fresh Ubuntu server
+
+The interactive [`install.sh`](install.sh) installs prerequisites and configures native services, authenticated databases, the first superadmin, encrypted storage, HTTPS and optional scheduled backups. Start with the [guided installer walkthrough](docs/deployment/automated-installation.md), including prerequisites, prompts, expected results and recovery. Target: latest Ubuntu LTS (currently 26.04), x86_64 with AVX. Full fresh-VM acceptance remains pending; local safety/bootstrap checks are documented there.
+
+After cloning the reviewed release on a **fresh server**, run `bash install.sh --check`, then `sudo bash install.sh`. For an existing deployment, use [the update procedure](docs/deployment/ubuntu-server-installation.md#19-existing-installations-and-updates), not this installer.
+
+For an existing standard-layout server, [`update.sh`](update.sh) stages the selected release, requires an encrypted pre-update backup, preserves settings/keys, runs migrations and verifies the published application. Read the [guided update and recovery walkthrough](docs/deployment/automated-updates.md). Obtain it in a separate tools clone before changing an older live checkout, then run `sudo bash update.sh --check`. Full Ubuntu VM update acceptance remains pending.
+
 ## ✨ Features
 
 ### 📄 Document Management

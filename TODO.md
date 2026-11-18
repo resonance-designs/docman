@@ -4,6 +4,10 @@ DocMan hopes to be the most comprehensive piece of software to manage all of you
 
 ## Current priorities — reviewed November 18, 2026
 
+- [ ] **Updater acceptance:** validate [`update.sh`](docs/deployment/automated-updates.md) on a disposable Ubuntu 26.04 VM from both manual and installer-created deployments. Exercise real service/timer locking, failed backup/build/migration/health checks, power-loss recovery, off-server restore, reboot and browser workflows. Local safety tests do not establish NMDOH deployment success.
+
+- [ ] **Interactive installer acceptance:** `install.sh` and its [beginner walkthrough](docs/deployment/automated-installation.md) are implemented. Local configuration safety and disposable-MongoDB bootstrap tests pass; run the complete latest-LTS fresh-VM install/reboot/interruption/certificate/backup-restore checklist before claiming deployment validation. Keep installer and manual walkthrough synchronized when the latest Ubuntu LTS changes. Never run the fresh installer over NMDOH's existing app; that update is tracked [separately](docs/deployment/nmdoh-poc-validation.md).
+
 This backlog separates implementation from deployment verification. An unchecked item is outstanding; historical strikethroughs below record earlier work and are not evidence of current security, complete test coverage, or Vue feature parity. Record the tested commit, environment, result, and responsible owner before closing security or operational items.
 
 Immediate NMDOH scope: authenticated document sharing, downloading, and uploading replacement versions. Live co-editing, mandatory projects/invitations, and public self-registration are outside the current scope. The internal POC is not a production security or compliance approval.

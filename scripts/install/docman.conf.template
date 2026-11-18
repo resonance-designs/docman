@@ -1,0 +1,49 @@
+<VirtualHost *:80>
+    ServerName @@HOST@@
+    DocumentRoot /var/www/letsencrypt
+    <Directory /var/www/letsencrypt>
+        Options -Indexes
+        AllowOverride None
+        Require all granted
+    </Directory>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+    RewriteRule ^ https://@@HOST@@%{REQUEST_URI} [R=301,L]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName @@HOST@@
+    SSLEngine on
+    SSLCertificateFile @@CERT@@
+    SSLCertificateKeyFile @@KEY@@
+    SSLProtocol -all +TLSv1.2 +TLSv1.3
+    DocumentRoot /var/www/html/docman/public_html
+    ProxyRequests Off
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https"
+    ProxyPass /api/ http://127.0.0.1:5001/api/ timeout=120
+    ProxyPassReverse /api/ http://127.0.0.1:5001/api/
+    ProxyPass /uploads/ http://127.0.0.1:5001/uploads/ timeout=120
+    ProxyPassReverse /uploads/ http://127.0.0.1:5001/uploads/
+    LimitRequestBody @@BODY_LIMIT@@
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-Frame-Options "DENY"
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+    <Directory /var/www/html/docman/public_html>
+        Options -Indexes -MultiViews
+        AllowOverride None
+        Require all granted
+        RewriteEngine On
+        RewriteCond %{REQUEST_URI} !^/(api|uploads)(/|$)
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ index.html [END]
+    </Directory>
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+    ErrorLog ${APACHE_LOG_DIR}/docman-error.log
+    CustomLog ${APACHE_LOG_DIR}/docman-access.log combined
+</VirtualHost>

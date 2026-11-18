@@ -1,14 +1,16 @@
 # DocMan: complete Ubuntu server installation and operations guide
 
 **For:** a new, dedicated Ubuntu Server LTS machine. These instructions target **Ubuntu 26.04 LTS**, matching the NMDOH server.  
-**Application:** DocMan 2.3.0, Vue interface, native Linux services.  
+**Application:** DocMan 3.0.0, Vue interface, native Linux services.
 **Guide checked against the repository:** November 17, 2026.
 
 **Documentation standard:** This must remain a complete, beginner-followable, end-to-end walkthrough for the **latest stable Ubuntu Server LTS**, currently **26.04 LTS**. Every prerequisite must include installation and configuration instructions. Maintain one concrete sequence, with exact commands, file contents, expected results, and troubleshooting; do not add alternative walkthroughs for older LTS releases. When the latest LTS changes, verify official release information and dependency compatibility, then update and validate this guide. Document any compatibility blocker explicitly rather than claiming support without verification. Keep instructions given during guided installations reflected here, with completed and pending checks distinguished.
 
 This guide starts with obtaining a server and ends with a working HTTPS website, user accounts, document upload/download/replacement, automatic startup, email, backups, recovery, and updates. You do not need Docker, a project workspace, or an invitation system to share documents. Users need accounts and access to the documents they use.
 
-The main installation uses local DocMan accounts. An external identity provider is **not a prerequisite**. AWS SES is needed for outgoing email, including password-reset email; it is not needed to sign in or transfer files. A second server is used in the off-server backup instructions.
+**Interactive installation:** [`install.sh` and its walkthrough](automated-installation.md) automate fresh-server package/configuration setup with prompts, protected credentials, HTTPS and optional backups. Read its validation status and prerequisites first. Choose either that fresh-install sequence or this manual sequence; do not partially configure databases manually and then run the fresh installer. Existing servers use section 19. Installer backup artifact paths differ from the manual backup below; use the installer walkthrough's recovery instructions for those snapshots.
+
+The main installation uses local DocMan accounts. An external identity provider is **not a prerequisite**. Outgoing email can use an organization SMTP relay, authenticated SMTP, or AWS SES, configured by a superadmin (section 16). Email is needed for password-reset delivery, but not to sign in or transfer files. A second server is used in the off-server backup instructions.
 
 **Read this first:** These are fresh-install instructions, not commands to paste over an existing production server. If DocMan already contains documents, start with [existing installations and updates](#19-existing-installations-and-updates). Never delete its application directory before locating and backing up its uploaded files.
 
@@ -2492,6 +2494,10 @@ Expect `active`. Sign in, inspect permissions/history, and download representati
 For an actual disaster recovery, use this same procedure on the replacement production server, then restore approved email/SSO settings, obtain its production TLS certificate, adjust DNS/firewalls, verify external access, and enable backup/audit timers only after testing. Check the old server is fenced off so it cannot accept writes after the replacement becomes authoritative. Keep old backups until the replacement has made and successfully tested its own backups.
 
 ## 19. Existing installations and updates
+
+**Guided standard-layout updater:** [`update.sh` and its walkthrough](automated-updates.md) automate staged builds, an encrypted pre-update backup, migration/publication and service checks. Read its validation status, prerequisite checks and recovery procedure first. On an older server, obtain the updater in a separate tools clone; do not pull the live checkout before its old commit is recorded/backed up. Custom layouts and major platform upgrades continue to use the manual procedure below. Updater snapshots have their own documented artifact layout.
+
+For installations created by `install.sh`, the checkout owner is the non-login `docman-build` account. Prefix this section's Git and npm commands with `sudo -u docman-build -H`; keep backup, service, environment and publication commands under your normal administrator login with sudo where shown. For example: `sudo -u docman-build -H git -C /var/www/docman status --short --branch`. Do not grant the build account sudo privileges or change protected environment-file ownership. Existing manually installed NMDOH deployments retain their established deployment account.
 
 ### 19.1 Inventory before touching an existing server
 

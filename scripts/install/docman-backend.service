@@ -1,0 +1,27 @@
+[Unit]
+Description=DocMan backend
+Wants=network-online.target
+After=network-online.target mongod.service redis-server.service
+Requires=mongod.service redis-server.service
+
+[Service]
+Type=simple
+User=docman
+Group=docman
+WorkingDirectory=/var/www/docman/backend
+Environment=NODE_ENV=production
+EnvironmentFile=/var/www/docman/backend/.env.prod
+ExecStart=/usr/bin/node /var/www/docman/backend/src/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/docman/uploads
+ReadWritePaths=/var/log/docman
+
+[Install]
+WantedBy=multi-user.target
