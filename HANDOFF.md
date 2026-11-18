@@ -9,6 +9,48 @@ deployed with `scripts/apache_production_*.sh`). No Docker is used anywhere, and
 
 ---
 
+## Document storage: encryption at rest and upload size — November 18, 2026
+
+Replaced the earlier per-version document passwords and user-held encryption keys (reviewed and rejected: handing per-file keys to users weakened encryption at rest, since a leaked key plus a stolen backup decrypts that file without the master key, and the key added no access control beyond document permissions; shared document passwords could not be revoked per person or attributed).
+
+Current design (`backend/src/lib/storageEncryption.js`, `lib/encryptingStorage.js`, `middleware/documentUpload.js`, `services/storedFileService.js`):
+- A custom multer storage engine streams uploads straight to disk, encrypting on the way when encryption at rest is on. **Plaintext never touches the disk.** Files are written mode 0600.
+- Chunked AES-256-GCM (64 KiB chunks; nonce = 8-byte random prefix + chunk counter; AAD binds file id, chunk index and a final-chunk flag). Detects edits, truncation, extension, reordering and cross-file swaps.
+- Each file has its own data key, wrapped with `DOCUMENT_ENCRYPTION_KEY` and stored in `fileprotections` (same `_id` as the File record, created before it). No keys are ever sent to browsers.
+- Downloads stream and decrypt chunk by chunk (constant memory, no size cap from decryption). `File.sha256` = stored bytes (checked before every download); `File.contentSha256` = original file (sent as `X-Content-SHA256`).
+- Superadmin **System Settings → Document storage** (`GET/PUT /api/system/storage`, audited): encrypt at rest (default on when a key exists; fails closed with 503 if required but the key is missing) and maximum upload size in MB (default 50; ceiling `MAX_UPLOAD_MB_CEILING`, default 250). Apache `LimitRequestBody` must be raised to match larger limits (guide section 15.1).
+- Removed: document passwords and policy settings, key retrieval/unlock routes, key notifications, `document_key_available` notification type.
+
+Verified in the sandbox with plain Node (Jest 30 could not run there): encrypt/decrypt round trips for 0 B–5 MB including chunk boundaries; rejection of bit flips, truncation (boundary and mid-chunk), extension, chunk reordering, wrong file id and wrong master key; real Express + multer 2.5 uploads with no plaintext on disk, correct checksums, mode 0600, 413 over the limit with partial-file cleanup. **Still to run in WSL:** the Jest suites, both frontend builds, and an end-to-end encrypted upload/download against MongoDB.
+
+## Superadmin offboarding — November 18, 2026
+
+Superadmins can now demote or disable other superadmins (never themselves, never the last active one). The count check and the update run under a cross-process lock (`lib/settingLock.js`, a lease row in `systemsettings`, works on standalone MongoDB), so two superadmins cannot remove each other simultaneously. Role changes now also revoke sessions. Legacy `PUT /api/users/:id` still refuses superadmin demotion; use User Management.
+
+## Superadmin email configuration — November 18, 2026
+
+Implemented locally: System Settings → Outgoing email, with server-enforced superadmin-only GET/PUT `/api/system/email` and POST `/api/system/email/test`. Supports SMTP with login or an IP-authorized relay, STARTTLS/direct TLS, explicitly unencrypted non-authenticated relay, SES server credential chain or encrypted API keys, legacy SES environment settings, and disabled mail. Existing reset/review callers use the selected transport on every send. No provider fallback on database/transport failure.
+
+Saved credentials are cryptographically bound to their destination/account settings to reject database-side retargeting. Credentials live only in an AES-256-GCM ciphertext envelope in the dedicated `EmailSetting` collection. `EMAIL_SETTINGS_KEY` is a separate server secret; never reuse JWT keys, expose it through the UI, or rotate it without re-entering/recovering saved mail credentials. Blank credentials preserve the same destination/account only; changing SMTP host/port/security/username requires new credentials. Settings use revision compare-and-set; audits omit credentials; tests are limited to three per minute per administrator. Pre-operation audit failure blocks sending/writing; completion audit failure explicitly reports an already-completed action. Mail delivery and auditing are not one transaction.
+
+Patched Nodemailer 10.6.0 is now intentionally used for SMTP, replacing the previously removed unused vulnerable 7.x dependency. Backend production dependency audit remains clean. Update both backend dependencies and Vue assets before using this feature. Verification: 130 targeted tests pass on Windows and Linux/Node 22 (31 new email tests). Local SMTP fixtures passed relay, TLS and STARTTLS sending, encrypted credential storage, access denial, rate limiting, concurrent-save conflict, shared notification transport, and disabled mode; untrusted TLS certificates were rejected. Browser checks passed save/reload, blank saved password fields, test email, provider switching, and hiding controls from regular admins. Live AWS SES and NMDOH mail delivery remain untested. No NMDOH mail-server contact or real external email has been attempted. The agency must supply SMTP details/relay authorization; both authentication methods were explicitly requested. Ubuntu section 16 now covers all prerequisites, UI steps, expected outcomes, key/CA setup, and recovery. Existing environment SES deployments retain their settings until changed in the UI.
+
+### NMDOH mail-server information — November 18, 2026
+
+The user reports that REDCap uses **`webmail.state.nm.us`**, **SMTP port `25`**. Use this as the candidate DocMan endpoint, not evidence of a tested connection. Authentication and TLS mode are unknown; IP-authorized relay is only a candidate until IT confirms it. The user thinks arbitrary sender addresses may be accepted, but this is unverified and must not become a documented guarantee or a hard-coded sender.
+
+For `dohr2simdocmdev` (`docman-dev.doh.nm.gov`), NOC/security must confirm network reachability/access rules separately from mail-server relay authorization. Ask the mail administrators whether the source IP needs allowlisting or SMTP credentials are required, which sender addresses/recipient domains are allowed (including outside agencies), and whether STARTTLS/private CA trust is required. Port 25 proves neither authentication nor encryption requirements. Firewall management remains with security/NOC.
+
+No real SMTP contact or delivery test has been performed. After deploying the feature and obtaining confirmed values, use System Settings → Outgoing email → Send a test email and verify actual inbox receipt. Update this checkpoint with results without recording secrets. The beginner walkthrough includes these candidate values, open questions, and success/failure distinctions in [section 16.1](docs/deployment/ubuntu-server-installation.md#161-get-the-mail-server-information-first).
+
+## Dependency remediation — November 18, 2026
+
+Local dependency updates cover all five lockfiles; see [dependency security review](docs/dependency-security-review.md) for versions, overrides, verification, residual risk, and deployment steps. All audited trees have zero critical findings; backend runtime has zero findings. Full-tree counts remain backend 37, Vue 10, React 11, docs 34 (all high, all derived from unpatched Picomatch). Keep this risk open; no agency acceptance is implied. The audit tool/weekly CI now includes Vue and fails closed on errors. Maintainers should recheck the advisory by November 25 or when a patch appears.
+
+Validation: Windows and Linux/Node 22 pass 99 targeted backend tests and five audit/schema checks; all UI/docs builds pass. Isolated MongoDB smoke checks pass 24/24 plus concurrent publication recovery; rate limiting used memory. The review records the missing seeded fixture and wrapper log-print limitations.
+
+NMDOH has **not** deployed these dependency updates. Both backend and Vue require `npm ci`, followed by a Vue rebuild/publication and backend restart using the existing safe-update procedure. Do not mistake local package/test results for changes to the remote server.
+
 ## Standing user requirement: deployment walkthrough
 
 Do not infer prerequisite installation from guide contents or related checks. Apache was included in earlier package lists but was not confirmed during guided NMDOH setup; the user reports it is missing. The `www-data` read test proved file permissions only. Apache installation and version verification must precede site configuration (now explicit at the start of section 14). Installation is now confirmed in the current-status table; site configuration and HTTPS remain pending.
@@ -300,3 +342,9 @@ Latest confirmed checkpoint: HTTPS curl from Ubuntu passed after adding the self
 Added Vue Users page and superadmin-only GET/POST /api/users/manage and PATCH /api/users/manage/:id. Supports search/pagination, creation, profile/role edits, password resets for other local users, and disable/enable preserving records. Self-registration configuration is unchanged/off on NMDOH. Existing superadmins are protected against demotion/disablement, including legacy profile demotion/delete paths. Existing accounts default active with sessionVersion zero; disabling/re-enabling and administrator password resets invalidate local JWTs and refresh/reset credentials. Disabled identities are rejected for local and Authentik access. API DTOs/audit payloads omit credentials. No deployment to NMDOH has occurred for this feature; server remains at e9df951. Deploy backend and rebuilt Vue together, retaining server .env files. Bootstrap helper remains for first-superadmin setup only; guide now documents the Users workflow.
 
 User-management validation: 39 targeted Jest tests passed across userAdmin, identityService Authentik, and auditService suites; 25 checks against a disposable real MongoDB covered create/login/edit, lower-role denial, duplicate identities, disable/re-enable, password reset, access/refresh invalidation, protected superadmins, registration-off behavior, and valid credential-free audit chain. Vue production build passed. An isolated browser session verified superadmin navigation, successful user creation, and disabling with Enable action afterward. These tests did not use the NMDOH server.
+
+## NMDOH user-management update checkpoint
+
+User confirmed successful fast-forward pull from e9df951 to 67b1790 on feature/compliance-hardening. Backend stop was instructed before the pull, but its output was not supplied. Updated frontend build/publication and backend restart/API/browser checks remain pending. Dependency manifests/lockfiles did not change for this update. Do not mark deployment complete from the Git pull alone.
+
+Update 67b1790: NMDOH frontend build confirmed successful (656 modules, Vite 8.0.8); Website build exists check passed. Publication of the new dist files, backend restart, HTTPS checks, and Users-page verification remain pending.

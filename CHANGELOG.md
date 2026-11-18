@@ -4,9 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-Follow-up changes and verification recorded on 2026-11-17; these do not represent a new release.
+Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these do not represent a new release.
 
 ### Added
+
+- Encryption at rest for stored document files, transparent to users: uploads stream to disk encrypted (chunked AES-256-GCM, per-file keys wrapped by `DOCUMENT_ENCRYPTION_KEY`), downloads stream and decrypt with per-chunk authentication. Superadmin **System Settings → Document storage** controls encryption and the maximum upload size (default 50 MB, ceiling `MAX_UPLOAD_MB_CEILING`). Replaces the short-lived per-version document passwords and user-held encryption keys, which were removed before release.
+
+- Superadmins can demote or disable other superadmins (never themselves, never the last active superadmin), serialized by a cross-process lock; role changes revoke sessions.
+
+- Superadmin-only outgoing email settings and test-email action: authenticated or IP-authorized SMTP relay, STARTTLS/direct TLS, AWS SES server credentials or stored API keys, legacy SES environment mode, and disabled sending. Existing password-reset/review callers use saved settings.
 
 - Superadmin-only Users interface for account creation, profile/role editing, password resets, and disabling/re-enabling accounts, with pagination/search and audit records. Self-registration remains independently disabled.
 
@@ -14,7 +20,14 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 
 ### Security
 
-- Enforced account-management authorization server-side; reject disabled accounts and invalidate local sessions after administrator password/status changes. Protect existing superadmins against demotion/disablement/deletion, including legacy API paths.
+- Plaintext of uploaded documents is never written to disk when encryption at rest is on; stored files are created with mode 0600. Existing passwords continue to unlock their versions.
+
+- Encrypt UI-managed email credentials with AES-256-GCM and a dedicated server key; never return credentials/ciphertext to clients. Enforce TLS for SMTP login, certificate validation, revision conflict detection, audited operations, and test-email rate limits.
+
+- Refreshed dependency lockfiles across backend, Vue, legacy React, documentation, and root tools; removed obsolete npm crypto and replaced unused vulnerable Nodemailer with patched 10.6.0 for the new SMTP transport. Backend production audit is clean and all trees have zero critical findings. Unpatched Picomatch findings remain open; see [dependency review](docs/dependency-security-review.md) for scope and counts.
+- Repaired the cross-platform dependency audit to cover all five lockfiles and fail on unavailable/invalid reports; added weekly/change-triggered CI auditing without suppressing known findings.
+
+- Enforced account-management authorization server-side; reject disabled accounts and invalidate local sessions after administrator password/status changes. Superadmins cannot be deleted, and only another superadmin can demote or disable one, provided at least one active superadmin remains.
 
 - Applied document visibility rules to book/project responses, analytics exports, and custom document charts to prevent metadata exposure through related endpoints.
 - Enforced token blacklisting for Authentik sessions and report logout failure when token invalidation cannot be persisted.
@@ -22,6 +35,8 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 - Removed server file paths and internal publication snapshots from version and approval responses.
 
 ### Fixed
+
+- Preserve real filesystem existence checks in the test setup so native bcrypt selects the correct Linux libc; include user-management tests in Linux verification.
 
 - Prevented concurrent uploads from creating duplicate version numbers or multiple active versions using database uniqueness constraints.
 - Made interrupted publication resumable through a durable `publishing` state and a Vue **Retry publication** action; retries preserve a single version-history entry and publication revision.
@@ -31,6 +46,10 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 - Repaired the Authentik identity test suite for the existing Jest configuration and made Linux verification propagate test failures.
 
 ### Changed
+
+- Documented the reported NMDOH REDCap SMTP endpoint (`webmail.state.nm.us:25`) as a candidate for DocMan, with unconfirmed TLS/authentication, sender restrictions, network access, relay authorization, and delivery checkpoints.
+
+- Aligned Jest/babel-jest, upgraded documentation tooling with explicit security overrides, and migrated legacy React validation to patched Zod/resolver versions with regression coverage.
 
 - Completed time-service installation/internal-source guidance, outbound dependency-access requirements, and application file-log rotation/retention instructions after a fresh-server dependency cross-check.
 
@@ -50,6 +69,10 @@ Follow-up changes and verification recorded on 2026-11-17; these do not represen
 - Expanded workflow smoke tests and added `backend/src/scripts/verifyWorkflowRecovery.js` for disposable-database recovery and signed-token revocation checks.
 
 ### Verification
+
+- Email settings: 130 targeted backend tests pass on Windows and Linux/Node 22, including 31 new email tests. Verified local relay/TLS/STARTTLS delivery, certificate rejection, encryption/redaction, role enforcement, rate limits, concurrent saves, and browser save/reload/test flows. NMDOH mail delivery and live AWS SES remain pending.
+
+- Dependency update: 99 targeted backend tests and five audit/schema checks pass on Windows and Linux/Node 22; Vue production/remote, legacy React, documentation builds, and Swagger generation pass. Disposable-MongoDB smoke tests pass all 24 checks plus concurrent publication recovery (memory rate-limit store). See the dependency review for fixture/verification limitations. Full-tree audits remain nonzero only for unpatched Picomatch.
 
 - User management: passed 39 targeted tests and 25 disposable-MongoDB integration checks; built Vue and verified browser account creation and disabling. NMDOH deployment of this update remains pending.
 

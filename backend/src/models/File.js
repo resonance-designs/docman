@@ -6,6 +6,11 @@
 import mongoose from "mongoose";
 
 const fileSchema = new mongoose.Schema({
+    // Encrypted at rest (see lib/storageEncryption.js). Transparent to users.
+    encrypted: { type: Boolean, default: false },
+    // SHA-256 of the file as uploaded/downloaded. `sha256` below is the SHA-256 of the bytes stored on disk
+    // (identical for unencrypted files).
+    contentSha256: { type: String, default: null },
     filename: { type: String, required: true },
     originalname: { type: String, required: true },
     path: { type: String, required: true },

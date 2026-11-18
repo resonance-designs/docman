@@ -44,7 +44,7 @@ step "Install (npm ci)"
 echo "ok"
 
 step "Backend unit tests (compliance + security)"
-(cd backend && NODE_ENV=test npx jest src/__tests__/compliance src/__tests__/services/identityService.authentik.test.js --ci 2>&1 | tee "$LOG_DIR/unit.log") || fail "unit tests failed (see $LOG_DIR/unit.log)"
+(cd backend && NODE_ENV=test npx jest src/__tests__/compliance src/__tests__/services/identityService.authentik.test.js src/__tests__/userAdmin.test.js src/__tests__/emailSettings.test.js src/__tests__/emailTransport.test.js src/__tests__/fileProtection.test.js src/__tests__/documentPassword.test.js src/__tests__/fileProtectionSettings.test.js --ci 2>&1 | tee "$LOG_DIR/unit.log") || fail "unit tests failed (see $LOG_DIR/unit.log)"
 
 step "Build Vue frontend"
 (cd frontend-vue && npm run build) > "$LOG_DIR/build-vue.log" 2>&1 || fail "Vue build failed (see $LOG_DIR/build-vue.log)"
@@ -94,6 +94,7 @@ UPLOAD_TMP="$(mktemp -d)"
   REDIS_PROVIDER="${REDIS_URL:+local}" \
   REDIS_URL="${REDIS_URL:-}" \
   UPLOAD_DIR="$UPLOAD_TMP" \
+  DOCUMENT_ENCRYPTION_KEY="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" \
   AUDIT_LOG_READS=true \
   exec node src/server.js
 ) > "$LOG_DIR/server.log" 2>&1 &
@@ -111,6 +112,7 @@ step "Data migration (should be a no-op on a fresh database)"
 
 step "End-to-end smoke test"
 (cd backend && SMOKE_BASE_URL="http://127.0.0.1:$PORT" \
+  SMOKE_EXPECT_ENCRYPTED=true \
   SMOKE_ADMIN_EMAIL=admin@example.test SMOKE_ADMIN_PASSWORD='VerifyAdmin!2026' \
   SMOKE_EXPECT_REDIS_PROVIDER="${REDIS_URL:+local}" \
   node src/scripts/smokeTest.js) || { echo; echo "server log tail:"; tail -n 40 "$LOG_DIR/server.log"; fail "smoke test failed"; }

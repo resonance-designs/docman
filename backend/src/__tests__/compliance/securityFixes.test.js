@@ -9,6 +9,8 @@ import { jest } from "@jest/globals";
 
 jest.mock("../../models/User.js", () => ({ __esModule: true, default: { exists: jest.fn() } }));
 
+jest.mock("../../models/File.js", () => ({ __esModule: true, default: { exists: jest.fn(async () => null) } }));
+import File from "../../models/File.js";
 import express from "express";
 import request from "supertest";
 import User from "../../models/User.js";
@@ -75,4 +77,11 @@ describe("/uploads no longer serves document files", () => {
     test("path traversal is rejected", async () => {
         await request(app).get("/uploads/..%2F..%2F.env.prod").expect(404);
     });
+});
+
+test('document images cannot bypass protection by being referenced as profile media', async () => {
+    File.exists.mockResolvedValueOnce({ _id: 'document-file' }); User.exists.mockResolvedValue({ _id: 'user' });
+    const app = express(); app.use('/uploads', mediaRoutes);
+    await request(app).get('/uploads/private-document.png').expect(404);
+    expect(User.exists).not.toHaveBeenCalled();
 });

@@ -21,6 +21,7 @@
  */
 import fs from "fs";
 import Doc from "../models/Doc.js";
+import { saveProtection, removeProtection } from './storedFileService.js';
 import File from "../models/File.js";
 import { record, AUDIT_ACTIONS } from "./auditService.js";
 import { recordRevision, snapshotDocument } from "./revisionService.js";
@@ -133,9 +134,12 @@ export async function submitVersion(req, doc, uploaded, { versionLabel, changelo
         );
     }
 
-    const sha256 = await sha256File(uploaded.path);
     const now = new Date();
+    // The storage engine streams the upload to disk (encrypting it when encryption at rest is on) and reports
+    // both checksums. Fall back to hashing the stored file for uploads that did not come through it.
+    const sha256 = uploaded.sha256 || await sha256File(uploaded.path);
     const file = new File({
+        ...(uploaded.fileId ? { _id: uploaded.fileId } : {}),
         filename: uploaded.filename,
         originalname: uploaded.originalname,
         path: uploaded.path,
@@ -147,15 +151,21 @@ export async function submitVersion(req, doc, uploaded, { versionLabel, changelo
         uploadedBy: req.user?._id || req.user?.id || null,
         changelog: typeof changelog === "string" ? changelog.slice(0, 5000) : "",
         sha256,
+        contentSha256: uploaded.contentSha256 || (uploaded.encrypted ? null : sha256),
+        encrypted: Boolean(uploaded.encrypted),
         status: policy.required ? "pending_approval" : "publishing",
         approvalRequired: policy.required,
         ...(!policy.required ? { publicationBefore: snapshotDocument(doc) } : {}),
         submittedAt: now,
     });
+    let protection = null;
     try {
+        // Encryption metadata first: a File record must never point at ciphertext it cannot decrypt.
+        protection = await saveProtection(uploaded, doc._id);
         await file.save();
     } catch (error) {
         await removeOrphanUpload(uploaded);
+        if (protection) await removeProtection(protection._id);
         if (error?.code === 11000) throw new WorkflowError("Another upload won the version slot. Refresh and try again.", 409);
         throw error;
     }
@@ -175,6 +185,8 @@ export async function submitVersion(req, doc, uploaded, { versionLabel, changelo
             mimetype: file.mimetype,
             size: file.size,
             sha256,
+            contentSha256: file.contentSha256,
+            encrypted: file.encrypted,
         },
     });
 

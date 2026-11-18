@@ -13,6 +13,7 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import File from '../models/File.js';
 import User from "../models/User.js";
 import { resolveStoredFile } from "../lib/fileIntegrity.js";
 
@@ -26,6 +27,7 @@ router.get("/:filename", async (req, res) => {
         if (!SAFE_NAME.test(filename) || !IMAGE_EXTENSIONS.has(path.extname(filename).toLowerCase())) {
             return res.status(404).end();
         }
+        if (await File.exists({ filename })) return res.status(404).end();
         const isProfileMedia = await User.exists({
             $or: [{ profilePicture: filename }, { backgroundImage: filename }],
         });

@@ -81,11 +81,15 @@
         </v-card>
       </v-col>
     </v-row>
+    <StorageSettingsCard v-if="isSuperadmin" />
+    <EmailSettingsCard v-if="isSuperadmin" />
   </v-container>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import StorageSettingsCard from '@/components/admin/StorageSettingsCard.vue';
+import EmailSettingsCard from '@/components/admin/EmailSettingsCard.vue';
 import { api } from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import { personName } from '@/lib/people';

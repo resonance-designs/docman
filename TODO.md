@@ -2,11 +2,59 @@
 
 DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.
 
-## Feature Upgrades
+## Current priorities — reviewed November 18, 2026
 
-A list of features I plan on implementing into the application.
+This backlog separates implementation from deployment verification. An unchecked item is outstanding; historical strikethroughs below record earlier work and are not evidence of current security, complete test coverage, or Vue feature parity. Record the tested commit, environment, result, and responsible owner before closing security or operational items.
 
-1. ~~Check my authentication and User setup is sound and secure~~
+Immediate NMDOH scope: authenticated document sharing, downloading, and uploading replacement versions. Live co-editing, mandatory projects/invitations, and public self-registration are outside the current scope. The internal POC is not a production security or compliance approval.
+
+## Security, encryption, and production readiness
+
+Work through dependency triage and storage-encryption verification first, then identity, recovery, security testing, and operational acceptance. Application work belongs to maintainers; NOC/security owns infrastructure and agency acceptance. Documentation alone does not complete a deployment task.
+
+- [ ] **Dependency vulnerabilities:** capture fresh backend and Vue audit reports for the deployed lockfiles. The November 17 installation reported 37 backend findings (including 3 critical and 14 high) and 10 high frontend findings; these are historical counts, not proof of exploitability. Separate runtime, build, and test dependencies; assess affected paths, upgrade safely, run relevant regression tests/builds, and document any accepted residual risk with owner and review date. Add recurring dependency scanning and patch ownership.
+  - November 18 remediation: refreshed all five lockfiles; backend runtime now audits clean, and no critical findings remain. Unpatched Picomatch findings and deployment acceptance remain open. See [review, test evidence, and follow-up](docs/dependency-security-review.md); recheck by November 25 or upon upstream release. Recurring audit workflow added, with no advisory suppression.
+- [ ] **Encryption at rest:** obtain NOC confirmation/evidence for the database, uploaded documents, logs, snapshots, and backup storage. DocMan currently stores uploaded file bytes without application-level encryption; SHA-256 provides integrity checking, not confidentiality. Document storage coverage, key ownership, recovery, rotation, and reboot/unlock behavior. If agency requirements call for application-level encryption, design authenticated encryption with managed keys, migration, rotation, and recovery before implementation; do not store an encryption key beside the data it protects.
+- [ ] **HTTPS and certificate lifecycle:** verify supported TLS settings, HTTP-to-HTTPS redirection, certificate hostname/trust on demonstration clients, and proxy behavior. Record renewal ownership, expiry alerts, and replacement steps. The NOC-approved self-signed POC certificate encrypts traffic but requires explicit client trust; agree on the production certificate process.
+- [ ] **Development secrets:** before production, replace credentials exposed during setup, use separate MongoDB and Redis passwords, and review JWT/service secrets. Keep secrets out of source control and logs; document protected storage, rotation, recovery, and resulting session invalidation. Preserve the authorized temporary development exception. Human passwords are user-chosen with at least 18 characters; machine signing keys are separate.
+- [ ] **Agency authentication and MFA:** agree on agency-approved authentication and privileged-user MFA; validate the existing optional Authentik integration if selected. Verify account provisioning, disablement, logout, refresh-token invalidation, session lifetime, recovery, and emergency access. Keep self-registration off and account creation restricted to superadmins.
+- [ ] **Authorization and document workflows:** test the deployed role/resource permission matrix, direct API calls and guessed IDs, search/list/export visibility, unauthorized downloads, uploads, replacement versions, approvals, history, deletion/restoration, and disabled accounts. Include attempts to bypass the UI and access documents assigned to someone else. Preserve authentication for document access even when a document has a classification label such as “Public.”
+- [ ] **Upload safety:** review allowed file types, content validation, size limits, filenames/path traversal, download headers, and execution prevention. Agree on malware-scanning/quarantine requirements with security and implement/test the chosen handling before sensitive uploads.
+- [ ] **Audit integrity and monitoring:** verify fail-closed behavior, concurrent publication/recovery, and hash-chain verification on the deployed system. Hash chaining is not protection against a privileged database administrator rewriting the chain. Agree on restricted external log retention, tamper detection, alert delivery, and review ownership; ensure secrets and document contents are not unnecessarily logged.
+- [ ] **Encrypted backups and recovery:** configure and verify off-server encrypted backups covering a consistent database/uploads pair and required configuration. Keep recovery keys independently recoverable; document retention and recovery objectives. Perform a separate-machine restore drill, verify permissions, file hashes and audit chain, and record the outcome. Local development restore tests do not prove NMDOH recovery readiness.
+- [ ] **Independent security review:** assess the application against OWASP risks, including authentication/authorization bypass, injection, XSS, CSRF where applicable, session handling, and file handling. Retest remediations and record scope and residual findings; existing unit tests are not a penetration test.
+- [ ] **Infrastructure boundary:** confirm with NOC/security which clients may reach HTTPS and whether the backend port is reachable directly. Earlier output showed Node listening on all interfaces at port 5001; MongoDB and Redis were loopback-only. Validate the intended reverse-proxy boundary and least-privilege service/filesystem settings. Firewall administration remains with the security team; do not independently enable host filtering during this POC.
+- [ ] **Operations and incident response:** name owners for OS/runtime/application patching, access reviews, account offboarding, monitoring, security incidents, certificate renewal, backup failures, and restore exercises. Validate alerts and retention instead of assuming documented settings are active.
+- [ ] **Agency acceptance:** establish permitted document classifications and intended external-agency access. Obtain the agency's assessment of applicable requirements; if ePHI is in scope, include the required risk analysis and administrative, physical, and technical safeguards. Do not claim HIPAA compliance or production readiness solely from HTTPS or this checklist. Reference: [HHS Security Rule summary](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html).
+- [ ] **Complete deployment documentation:** incorporate every resulting installation/configuration/recovery step into the [Ubuntu walkthrough](docs/deployment/ubuntu-server-installation.md) and keep [HANDOFF](HANDOFF.md) current. Follow the standing requirement: one latest-stable-LTS path, all prerequisites, exact steps, expected results, and failure recovery understandable to a beginner without this chat.
+
+## Email configuration
+
+- [x] Implement superadmin-only outgoing email UI/API: SMTP password login or IP-authorized relay, TLS modes, AWS SES credentials/roles, sender/reply-to, disabled mode, encrypted saved credentials, audited changes, and a rate-limited test email.
+- [x] Document key setup, private CA trust, provider prerequisites, UI steps, expected results, backup/recovery, and failures in Ubuntu guide section 16.
+- [ ] Deploy the email feature to NMDOH. Candidate endpoint reported from REDCap on November 18: `webmail.state.nm.us:25`; DocMan connectivity/delivery is not yet tested.
+- [ ] Confirm with NOC/security that `dohr2simdocmdev` can reach that SMTP endpoint; separately confirm mail-server source-IP allowlisting versus SMTP login, TLS/STARTTLS and CA requirements, approved sender addresses, and permitted recipient domains (including outside agencies). Arbitrary sender acceptance is only an unverified assumption.
+- [ ] Enter confirmed settings in the superadmin UI, verify provider acceptance and actual inbox delivery, and test review notifications. Record results in HANDOFF and Ubuntu guide section 16.1. Local fixtures and REDCap's working configuration do not close these tasks.
+- [ ] Complete Vue self-service password recovery screens; configurable transport alone does not complete that workflow.
+
+## UI theming and customization — Vue application
+
+The current Vue shell has a fixed navigation drawer, wordmark, and configured Vuetify palette. Earlier theme-switcher completion notes do not establish that these customization features exist in Vue. Implement the following as a coherent appearance-settings feature.
+
+- [ ] **Settings and permissions:** provide a superadmin-only Appearance page and server-enforced settings API for organization-wide branding. Persist validated settings across sessions, restarts, and upgrades. Define which preferences users may override (for example light/dark mode), with organization defaults for new users and the sign-in page.
+- [ ] **Color scheme:** offer presets and custom color pickers/hex input for primary/secondary accents, page and surface backgrounds, headings, body/muted text, links (normal/hover/focus/visited), buttons, borders, navigation, and footer. Include readable error/warning/success states and light/dark variants. Apply shared design tokens throughout components instead of scattered hard-coded colors.
+- [ ] **Logo and branding:** allow selecting/uploading, replacing, and removing a logo; configure organization/application display name, logo size, accessible alternative text, and light/dark variants. Include favicon selection and a sensible default when no asset is set. Validate actual image content, dimensions and size; reject active content or safely sanitize it, and prevent arbitrary script/HTML injection through branding assets.
+- [ ] **Menu placement:** support left sidebar, right sidebar, and top navigation, with collapse/expand behavior and usable overflow. Preserve route access restrictions and visible active-page state. On small screens, provide an accessible drawer/menu regardless of desktop placement; verify keyboard focus and reading order in all layouts.
+- [ ] **Footer:** configure visibility, text/copyright, approved links (support/privacy/accessibility), alignment, and background/text/link colors. Validate link destinations and render safe content; no unrestricted HTML, JavaScript, or arbitrary CSS. Ensure the footer does not obscure page content.
+- [ ] **Preview and recovery:** preview unsaved changes across representative screens, save/cancel explicitly, and offer confirmed reset to defaults. Provide recovery from an unreadable/broken configuration and fallback for missing assets or invalid saved values. Audit organization-wide appearance changes.
+- [ ] **Accessibility and verification:** validate text/background contrast, distinguish links beyond color, preserve visible focus and semantic status cues, and test keyboard use, zoom, screen-reader labels, light/dark mode, and desktop/mobile layouts. Verify persistence, permissions, unsafe-input rejection, and coverage on sign-in, forms, tables, dialogs, and document pages.
+- [ ] **Documentation:** explain organization defaults versus personal preferences, supported color/logo/menu/footer options, preview/reset behavior, asset restrictions, and configuration backup/restore. Include beginner-friendly instructions and expected results.
+
+## Historical feature backlog
+
+Retain earlier completion notes as history; validate remaining work against the current Vue application before implementation. The current priorities above supersede conflicting historical behavior.
+
+1. Authentication implementation history — security verification remains open in the current checklist above.
    1. ~~JWT authentication system~~
       1. ~~Check that there is email format, username length, password complexity, regex validation, etc...~~
       2. ~~Check that there are no issues with the inactivity/auto-logout functionality~~
@@ -37,7 +85,7 @@ A list of features I plan on implementing into the application.
    1. ~~Ability to add as many external contacts as needed. Each external contact should have a name, email, phone number, and type (which should be a dropdown).~~
    2. ~~The types should be stored in a collection~~
    3. ~~There should be an admin page to manage the types of external contacts.~~
-7. ~~Create a theme switcher~~
+7. Historical theme switcher — see the current Vue customization backlog above.
    1. ~~One theme is the current theme~~
    2. ~~One is a clean business theme~~
    3. ~~And the third is a retro gaming theme~~
@@ -53,7 +101,7 @@ A list of features I plan on implementing into the application.
    ~~4.  Can turn on or off the debugging with a debug flag~~
    ~~5.  Should be able to log to the console, a file, or a database~~
    ~~6.  Should be able to log errors, warnings, info, debug, etc...~~
-10. ~~Add backend unit tests for all endpoints in __tests__ folder, update any existing unit tests~~
+10. Reconcile endpoint test coverage with current routes; earlier test additions do not demonstrate complete coverage.
 11. ~~Add informational and usage comments throughout the frontend code~~
 12. ~~Add informational and usage comments throughout the backend code~~
 13. ~~Make certain comments dynamic somehow~~
@@ -107,7 +155,7 @@ A list of features I plan on implementing into the application.
     20. ~~Have a button to restore all the collections from the archive collections back to the main collections.~~
     21. ~~Have a button to restore all the files from the archive directory back to the uploads directory.~~
     22. ~~Have buttons to generate dummy data~~
-22. ~~Make it so the token only expires after 5 days of inactivity.~~
+22. Review idle and absolute session lifetimes with agency requirements; the historical five-day inactivity request is not an approved production policy.
 23. ~~Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc~~
 24. ~~A script to rewrite test scripts when to make sure the tests still work correctly with any updates since the tests were written.~~
 25. ~~Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" in the Projects and Teams pages actually do something.~~
@@ -119,10 +167,10 @@ A list of features I plan on implementing into the application.
        3. The ability to delete other users.
        4. The ability to manage all teams and projects.
        5. The ability to mange specific teams and projects, unless they are an owner of the team or project.
-       6. Admins can only create new users with roles up to their own, they can not create a "Super Admin" account.
-    3. Any authenticated user with any role (even viewer) can edit anything (documents, books, teams, projects, etc...) as long as they are marked as an author, owner, and/or contributor/collaborator of that resource.
+       6. Superseded: only superadmins may create/manage accounts; regular admins must be denied by the API as well as the UI.
+    3. Verify the current role/resource permission matrix; do not assume association with a resource grants unrestricted editing or bypasses approval rules.
     4. Stakeholders and review assignees can only view/download the documents they are assigned to unless they are also marked as an author or owner of the document as well.
-    5. Super Admins can do everything we just stripped away from admins above. They have access to absolutely everything the API provides.
+    5. Verify superadmin administration permissions and account protections; privileged roles must still obey validation, audit, and applicable approval safeguards.
     6. ~~Make sure to update the role of the user with resonance.designs.com@gmail.com to superadmin.~~
 27. ~~Clean up the whole "review date" thing. Right now there are multiple review date fields and it's confusing.~~
     1. ~~Ditch the "Review Date" field.~~
@@ -139,83 +187,41 @@ A list of features I plan on implementing into the application.
     12. ~~When editing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.~~
     13. ~~When creating a new document, the default value for the "Next Review Due On" field should be null.~~
     14. ~~When a review is marked as completed, the next review date should be calculated by the "Review Interval" field against the date the review was completed.~~
-28. Make a user registration page that is open to the public but it has no option to select a role. The role anyone registers with on this public page will be a viewer.
+28. Public self-registration is deferred and must remain disabled. Superadmin account-management UI/API is implemented; verify the latest build is published and functional on the NMDOH server.
 29. Add a "Create Document" button on the home page visible to those with roles that allow them to create documents that takes them directly to the CreateDocPage.
-30. Come up with a deployment pipeline for continuous delivery/deployment to the server.
-    1. The server needs to pull the latest changes from GitHub.
-    2. It needs to keep the .env.prod file, and all the node_modules folders intact when it pulls the latest changes.
-    3. It needs to rebuild the frontend:
-
-       ```bash
-       sudo rsync -a /var/www/docman/frontend/dist/ /var/www/html/docman.resonancedesigns.dev/public_html/
-       ```
-    4. It needs to run the rsync command as follows:
-
-       ```bash
-       cd /var/www/docman
-       npm run build
-       sudo rsync -a /var/www/docman/frontend/dist/ /var/www/html/docman.resonancedesigns.dev/public_html/
-       sudo systemctl restart docman-backend    # if backend changed
-       ```
-    5. It needs to restart the server.
-    6. We need some kind of trigger. Either the server needs some way to monitor the repo for updates or a cronjob to check the repo every X minutes. Perhpaps there is a way to deploy from GitHub to the server. What do you recommend?
-
-
-
-31. Document security levels
-    1. Public
-    2. Private
-    3. Restricted
-    4. Confidential
-    5. Top Secret
+30. Review/adapt the existing `.github/workflows/deploy.yml` and `scripts/apache_production_deploy.sh` for the intended deployment target; do not assume the Linode workflow can reach the internal NMDOH server.
+    1. Use a controlled release trigger, preserve environment files and uploaded data, install locked dependencies when needed, and build `frontend-vue`.
+    2. Publish the verified `frontend-vue/dist/` output to the configured Apache document root, restart the backend when needed, and perform health/login checks. Follow the canonical Ubuntu guide rather than the removed legacy React paths.
+    3. Include backups, migration ordering, rollback, deployment permissions, and a recoverable failure path; a full server reboot is not a normal application update step.
+31. Define agency-approved document classifications and enforce their corresponding access, sharing, retention, and handling rules. Labels alone do not enforce security; do not introduce unsupported government classification claims or anonymous access.
 32. Check that the app works using MongoDB Atlas
 33. Develop a short-code system to embed custom charts built with CustomChartsPage.
 34. Add search/filters to ViewCatsPage.
     1. ViewCatsPage should be searchable by name and type.
     2. ViewCatsPage should be filterable by type.
     3. ViewCatsPage should have be able to sort by name, type, and created in the PaginatedCatTable component.
-35. Work on the switchable UI themes.
+35. Theme work is tracked in the current Vue theming/customization checklist above.
 36. Make sure header comments and JSDoc comments are added to all files.
 37. Cleanup and compartmentalize the code as much as possible.
-38. Code audit and security review. Check against OWASP Top 10 and other security best practices.
-39. Make it so that when a document is deleted from the collection, it's not actually deleted, but rather move it and all associated data to a temp_collection(s). And all files are moved to temp_uploads_archive.
+38. Security review is tracked in the current security/production-readiness checklist above.
+39. Soft deletion/restoration already exists. Verify deployed access restrictions, related file/history retention, restoration, and eventual purge policy rather than introducing a competing temporary-collection design.
 40. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
-41. Create another fork with docker and kubernetes for cloud use
+41. Deferred exploratory fork: Docker/Kubernetes hosting. The current deployment remains native Ubuntu; do not introduce containers into this POC.
 42. Create another fork with a mobile app for iOS and Android
 43. Create another fork for the purpose of refactoring into a Recipes MERN app
 
-## Authentication System Suggestions & Improvements
+## Remaining authentication UX follow-up
 
-### Backend Suggestions
+- [ ] Verify the configured password-reset email service and complete/reset-test the Vue recovery experience, including expired and single-use tokens. Keep operator recovery documented until this works end to end.
+- [ ] Verify clear sign-in/recovery error feedback without account enumeration, loading states, accessible labels, and keyboard focus.
+- [ ] Verify account/API responses and logs expose only necessary fields and never password hashes, reset tokens, or service secrets.
 
-1. **HTTPS**
-   - Always use HTTPS in production to protect tokens in transit.
-2. **Email Sending**
-   - Use a real email service (like SendGrid, Mailgun, or Nodemailer) for password resets.
-   - Make sure reset tokens expire and are single-use.
-3. **User Data Exposure**
-   - Never send the password field in API responses.
-   - Only expose necessary user info.
+Authentication security, session lifetime, MFA, and operational checks are consolidated in the current security checklist above. Previously listed demonstration credentials have been removed; do not use or document shared default accounts/passwords.
 
----
+## Document storage follow-up
 
-### Frontend Suggestions
-
-1. **Error Feedback**
-   - Show clear error messages for failed login/registration.
-   - Disable submit buttons while loading.
-2. **Password Reset**
-   - Make sure reset links expire and show appropriate messages if expired.
-
----
-
-### General Suggestions
-
-- **Testing:** Add unit and integration tests for your auth endpoints.
-- **Documentation:** Document your API endpoints and authentication flow for future reference.
-- **Accessibility:** Ensure your forms and navigation are accessible (labels, focus states,
-
-Email: admin@docman.local
-Username: admin (you can use either email or username)
-Password: admin123
-
+- [x] Transparent encryption at rest with streaming upload encryption (no plaintext on disk) and streaming, chunk-authenticated decryption; superadmin encryption and max-upload-size settings.
+- [ ] Run the Jest suites, both frontend builds, and an encrypted upload/download end-to-end check in WSL; then on the NMDOH dev server. Verify `fileprotections` + uploads + key in a restore drill.
+- [ ] Encrypt existing plaintext files (one-off migration script) if the agency requires all stored files encrypted, not only new uploads.
+- [ ] Design and test master-key rotation (key versioning, rewrap of per-file keys only; never replace the key in place).
+- [ ] Keep infrastructure disk/swap/backup encryption; application encryption does not replace it.

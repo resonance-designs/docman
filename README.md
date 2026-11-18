@@ -472,6 +472,8 @@ npm run build           # Verify the migration frontend builds
 
 ## 🔐 Security
 
+Run `npm run security:audit` from the repository root to audit all five lockfiles. Findings and audit failures exit nonzero. See the [dependency security review](docs/dependency-security-review.md) for the November 18 remediation, remaining unpatched Picomatch advisory, verification, and deployment requirements.
+
 ### Security Features
 
 - **Authentication**: JWT with refresh token rotation
@@ -512,3 +514,13 @@ For more information, visit our [documentation](./docs/) or check out the [devel
 ### Superadmin account management
 
 Superadmins can use **Users** (`/admin/users`) to create local accounts, edit profiles/roles, reset other local users' passwords, and disable/re-enable accounts while preserving document history. The API enforces superadmin access; self-registration can remain disabled. Bootstrap the first superadmin using the [Ubuntu walkthrough](docs/deployment/ubuntu-server-installation.md#11-create-accounts-and-initialize-the-database). Existing superadmins cannot be demoted/disabled through this interface. Deploy the updated backend and rebuilt Vue frontend together.
+
+### Superadmin email configuration
+
+Open **System Settings → Outgoing email** to select SMTP (username/password or IP-authorized relay), AWS SES (server credentials/IAM role or stored API keys), the existing SES environment settings, or disabled sending. Configure sender/reply-to, SMTP host/port/TLS/authentication, or SES region, then save and send a test email. Saved settings apply to password-reset/review messages without restarting; recipient delivery still needs confirmation.
+
+Stored credentials use AES-256-GCM with a dedicated server-side `EMAIL_SETTINGS_KEY` and are never returned to the browser. SMTP certificate verification stays enabled; password login requires encryption. SMTP without login and AWS server credentials work without the encryption key. See [Ubuntu guide section 16](docs/deployment/ubuntu-server-installation.md#16-configure-outgoing-email-in-system-settings) for complete setup, internal CA trust, backup/recovery, and troubleshooting. Self-service Vue password-reset screens remain a separate outstanding feature.
+
+### Encryption at rest and upload size
+
+Stored document files can be encrypted at rest, invisibly to users: files are encrypted while they stream to disk (no plaintext is ever written) and decrypted only for accounts allowed to download them. Each file has its own key, wrapped by the server's `DOCUMENT_ENCRYPTION_KEY`; nobody handles keys or document passwords. Superadmins turn encryption on and set the maximum upload size in **System Settings → Document storage**. See [Ubuntu guide section 15.1](docs/deployment/ubuntu-server-installation.md#151-encryption-at-rest-and-upload-size).

@@ -40,7 +40,7 @@ MongoDB supports Ubuntu 26.04 starting with 9.0.4. These instructions use its `r
 13. [Configure automatic application startup](#13-configure-automatic-application-startup)
 14. [Configure Apache and HTTPS](#14-configure-apache-and-https)
 15. [Check the complete document workflow](#15-check-the-complete-document-workflow)
-16. [Configure email with Amazon SES](#16-configure-email-with-amazon-ses)
+16. [Configure outgoing email in System settings](#16-configure-outgoing-email-in-system-settings)
 17. [Set up backups and scheduled checks](#17-set-up-backups-and-scheduled-checks)
 18. [Restore and test a backup](#18-restore-and-test-a-backup)
 19. [Existing installations and updates](#19-existing-installations-and-updates)
@@ -1223,7 +1223,7 @@ These instructions require the user-management update, not the older e9df951 ser
 4. Click **Create user**. Expect an account-created message and the new row. Share the saved credentials using the approved secure channel; the app does not email or redisplay the password. Duplicate emails/usernames produce an error and should be resolved without deleting an existing account.
 5. **Edit** changes profile details and role. **Reset password** sets a new local password for another user and invalidates their previous local access/refresh sessions. Passwords for linked SSO accounts belong in the identity provider. Use another superadmin or the existing recovery procedure if your own password needs resetting.
 6. **Disable** asks for confirmation, blocks login and existing requests, and preserves the account's document/audit history. **Enable** permits fresh login; previous local sessions remain invalid. The interface does not permanently delete accounts.
-7. Existing superadmin accounts cannot be demoted or disabled here, preserving administrative access even under concurrent requests. Role, status, creation, and password-reset actions are audited without passwords/hashes.
+7. A superadmin can demote or disable **another** superadmin (for example when someone leaves), never their own account, and never the last active superadmin: DocMan refuses with **At least one other active superadmin must remain** until another superadmin exists. Demoting or disabling signs that person out everywhere immediately. These checks hold even if two superadmins act at the same moment. Role, status, creation, and password-reset actions are audited without passwords/hashes.
 
 Keep `LOCAL_SELF_REGISTRATION_ENABLED=false`. Administrator provisioning does not require enabling registration, inviting users into projects, or configuring email. Verify the new user's permitted access with a separate browser profile; a role alone does not assign access to every document.
 
@@ -1649,7 +1649,7 @@ Those two lines replace the `/etc/letsencrypt/live/...` directives in the comple
 </VirtualHost>
 ```
 
-The 60 MiB Apache request ceiling leaves room for multipart overhead around the application's 50 MiB file limit. This does not increase the application's upload limit. `/uploads/` is forwarded to application handling for supported profile images; it does **not** publicly expose stored documents.
+The 60 MiB Apache request ceiling leaves room for multipart overhead around the default 50 MB application upload limit. If a superadmin raises the limit in **System Settings → Document storage**, raise `LimitRequestBody` to match (section 15.1). `/uploads/` is forwarded to application handling for supported profile images; it does **not** publicly expose stored documents.
 
 **If waiting for an organization certificate:** you may save the complete site file now using the intended certificate paths, but leave the site disabled. The private route's HTTP document directory must exist (`sudo install -d -o root -g root -m 0755 /var/www/letsencrypt`, normally silent). After saving, check:
 
@@ -1763,11 +1763,169 @@ systemctl is-active mongod redis-server docman-backend apache2
 
 Expect four `active` lines, in the order requested. A missing/failed service is a failed reboot check; inspect its journal before continuing. Then repeat sign-in/download. This proves the site does not depend on an open terminal session.
 
-## 16. Configure email with Amazon SES
+### 15.1 Encryption at rest and upload size
 
-DocMan's current email service uses the **AWS SES API**. Installing Postfix or setting arbitrary `SMTP_HOST` variables will not configure this implementation. The necessary AWS SDK is already installed by `npm ci`.
+DocMan can encrypt every stored document file on disk. It is **invisible to users**: there are no keys to hand out and no document passwords. People upload and download normally; the server encrypts files while they are written to disk and decrypts them only for accounts that are allowed to download them. Who can download is still decided by document assignments, roles, and the approval workflow, and every download is in the audit log.
 
-### 16.1 Prepare AWS and verify the sender
+How it works, briefly: each file gets its own random 256-bit key. That key is itself encrypted with the server's `DOCUMENT_ENCRYPTION_KEY` and stored in MongoDB (`fileprotections`). File contents are encrypted in 64 KiB chunks with AES-256-GCM as the upload streams in, so the unencrypted file is never written to disk, and downloads are decrypted chunk by chunk, so even large files use little memory. Any change to a stored file (edited, truncated, reordered, or swapped with another file) is detected and the download is blocked and audited.
+
+#### Prepare the server encryption key once
+
+First install the updated application and complete sections 10–14. On the Ubuntu server, run this entire block from Bash (the prompt ending in `$`, not the MongoDB shell):
+
+```bash
+sudo python3 - <<'PY'
+from pathlib import Path
+import re
+import secrets
+p = Path('/var/www/docman/backend/.env.prod')
+text = p.read_text()
+entries = re.findall(r'^DOCUMENT_ENCRYPTION_KEY=(.*)$', text, re.M)
+if entries:
+    if len(entries) != 1 or not re.fullmatch(r'[0-9a-fA-F]{64}', entries[0].strip()):
+        raise SystemExit('STOP: existing document key is invalid or duplicated. Do not overwrite it; contact the application maintainer.')
+    print('Existing document encryption key preserved.')
+else:
+    with p.open('a') as output:
+        output.write('\nDOCUMENT_ENCRYPTION_KEY=' + secrets.token_hex(32) + '\n')
+    print('Document encryption key added without displaying it.')
+PY
+sudo chown root:docman /var/www/docman/backend/.env.prod
+sudo chmod 0640 /var/www/docman/backend/.env.prod
+sudo systemctl restart docman-backend
+systemctl is-active docman-backend
+```
+
+Expected: **Document encryption key added without displaying it.** (or **Existing document encryption key preserved.**) followed by **active**. This is a machine key, not a password anyone types. Never reuse the JWT or email settings key. If the script says **STOP**, do not replace the key: existing files depend on it. If the service is not active, run `sudo journalctl -u docman-backend -n 50 --no-pager`, find the startup error, and fix it before continuing. Do not post the contents of `.env.prod`.
+
+Back up `.env.prod` securely using section 17 **before uploading documents**. Restoring encrypted files needs three things together: the upload files, MongoDB (including the `fileprotections` collection), and the **same** `DOCUMENT_ENCRYPTION_KEY`. Keep an independently recoverable copy of the key in the organization's approved secret store, separate from the data backups (a stolen backup should not contain the key that unlocks it). Do not email it or commit it to Git. If the key is lost or changed, encrypted files cannot be downloaded by anyone. There is no automatic key rotation yet; restore the original key from the secret store and restart. Never generate a replacement key as a troubleshooting step.
+
+#### Turn it on and set the upload size
+
+1. Sign in as a **superadmin** and open **System Settings → Document storage**. If the card says the server has no encryption key, the key step above did not take effect: check `.env.prod` and that the restart succeeded.
+2. Turn on **Encrypt uploaded files at rest** (it is on by default once a key exists).
+3. Set **Maximum upload size** in MB (1 to the server ceiling, 250 MB by default; the ceiling can be changed with `MAX_UPLOAD_MB_CEILING` in `.env.prod`). Click **Save storage settings**. Expected: **Storage settings saved.**, and the values remain after reloading the page.
+4. If you raise the upload size above 50 MB, also raise Apache's request limit in section 14 so the web server does not reject the upload first. Set `LimitRequestBody` to the new size plus about 10 MB of headroom, in bytes. For example, for 200 MB: `LimitRequestBody 220200960` (210 × 1024 × 1024). Then run `sudo apachectl configtest` (expected **Syntax OK**) and `sudo systemctl reload apache2`.
+5. Upload a harmless test file to a document. Expected: the version shows **Encrypted at rest**. On the server, confirm the stored file is unreadable: `sudo ls -t /var/www/docman/backend/uploads | head -1` shows the newest stored name; `sudo head -c 200 /var/www/docman/backend/uploads/<that name> | strings | head` should show no readable text from your file.
+6. Download the file as an assigned user. Expected: the original file, byte for byte.
+7. Sign in as an unrelated account. Expected: no access to the document or the file.
+8. In **Audit Log**, filter on `file.` and confirm the upload and downloads appear.
+
+Turning encryption off affects only new uploads; existing encrypted files stay encrypted and keep downloading normally. If an encrypted download reports an integrity failure, preserve the stored file and restore a verified backup; do not edit hashes or metadata.
+
+Encryption at rest protects stored files, database dumps, and backups taken without the key. It does not protect a compromised running server, which must be able to decrypt files to serve downloads. The server's disks, swap, and backup storage still need infrastructure encryption (for example LUKS) as agreed with NOC/security.
+
+## 16. Configure outgoing email in System settings
+
+After deploying this version, sign in as a **superadmin**, open **System Settings**, and find **Outgoing email**. Regular admins cannot view, edit, or test email configuration. The shared email service uses these settings for password-reset and review emails; saving changes takes effect on subsequent sends without a restart. A send already in progress may finish using the previous settings.
+
+Choose **SMTP** for an agency mail server or another SMTP provider, **AWS SES**, **Use existing server AWS SES settings** for the old environment configuration, or **Disabled**. Existing deployments continue using their SES environment values until a UI setting is saved. Database/configuration failures never silently fall back to another provider. SMTP requires no local Postfix installation: `npm ci` installs the mail client library. A webmail URL is not an SMTP server address.
+
+### 16.1 Get the mail-server information first
+
+Ask the agency mail administrator for:
+
+- The outgoing SMTP hostname, port, and connection security (STARTTLS or direct TLS).
+- Whether the application logs in with a username/password or the mail server authorizes the application's source IP. For IP authorization, IT must add the source address actually seen by the relay.
+- The approved sender address and any restrictions on recipient domains.
+- A public CA certificate bundle if the mail server uses an agency/private certificate authority. Do not request the mail server's private key.
+
+Do not guess these values from the webmail sign-in page. Port 587 commonly uses STARTTLS and 465 commonly uses direct TLS, but use IT's actual values. Internal relays may use port 25. Both authenticated and IP-authorized modes support encrypted connections. Password authentication with an unencrypted connection is rejected. The explicitly selected **No encryption** option is only for an internal relay that IT requires to operate that way; it sends email contents without transport encryption.
+
+#### NMDOH POC: known REDCap mail settings and pending confirmation
+
+As reported by the deployment owner on **November 18, 2026**, NMDOH's REDCap server uses SMTP host **`webmail.state.nm.us`** on **port `25`**. These are a starting point for DocMan, not a verified DocMan connection or permission to relay mail.
+
+| DocMan UI field | Candidate value / status |
+| --- | --- |
+| Email service | SMTP |
+| SMTP server hostname or IP | `webmail.state.nm.us` (reported REDCap setting) |
+| SMTP port | `25` (reported REDCap setting) |
+| SMTP authentication | Unconfirmed. Select IP-authorized relay only if the mail administrator confirms no username/password is required; otherwise obtain the application credentials securely. |
+| Connection security | Unconfirmed. Ask whether STARTTLS is supported/required. Port 25 alone does not establish encryption or authentication requirements. |
+| Sender email address | Unconfirmed. The owner believes arbitrary sender addresses may work, but this has not been verified or approved. Obtain an approved application sender address. |
+| Application server authorization | Unconfirmed for `dohr2simdocmdev`, whose website is `docman-dev.doh.nm.gov`. REDCap's authorization does not establish DocMan's authorization. |
+
+Ask NOC/security and the mail administrators to confirm **both** of these separate requirements:
+
+1. **Network access:** can `dohr2simdocmdev` reach `webmail.state.nm.us` on TCP port 25, and is a network access rule needed? NOC/security owns these rules; do not independently change host firewalls.
+2. **Mail relay permission:** does the mail server require the application's source IP to be allowlisted, or require SMTP login? Confirm the source IP the relay actually sees, permitted sender addresses, and allowed recipient domains. Explicitly ask whether delivery to outside agencies is permitted; successful internal delivery does not prove that.
+
+Also confirm the TLS mode and any required agency CA bundle. The working REDCap configuration can provide clues, but do not copy REDCap credentials or assume its permissions apply to this application server. No connection to this mail server or real message delivery has been verified for DocMan.
+
+After the email-settings update is deployed, enter the confirmed values using section 16.4. Send a test to an authorized mailbox you control. **Success requires both** the UI's provider-accepted message and receipt in the mailbox (check junk/quarantine). If connection fails, investigate network access/TLS settings; if relay or sender is rejected, have the mail administrator check authorization and address restrictions. If accepted but not received, investigate downstream delivery/filtering. Record the confirmed settings and test outcome here and in HANDOFF; do not record passwords or API keys.
+
+### 16.2 Prepare credential encryption once (only for saved passwords/API keys)
+
+SMTP without login and AWS server credentials/IAM roles do not need a UI credential-encryption key. To store SMTP passwords or AWS API keys through the UI, configure a dedicated `EMAIL_SETTINGS_KEY` on the application server. This machine key is separate from user passwords and JWT signing keys. The database stores credentials encrypted with AES-256-GCM and bound to their destination/account settings; the key stays in the protected server environment file. Edit mail settings through the UI, not directly in MongoDB. The UI cannot reveal saved credentials.
+
+At the server's **Bash prompt**, run this exactly once. It preserves existing environment settings, appends a new random machine key only when none exists, and never prints the key:
+
+```bash
+sudo python3 - <<'PY'
+from pathlib import Path
+import re, secrets
+p = Path('/var/www/docman/backend/.env.prod')
+if not p.is_file():
+    raise SystemExit('STOP: .env.prod is missing; complete section 10 first.')
+text = p.read_text()
+if re.search(r'^\s*(?:export\s+)?EMAIL_SETTINGS_KEY\s*=', text, re.M):
+    raise SystemExit('Key setting already exists; kept unchanged. Do not generate a replacement.')
+with p.open('a') as stream:
+    stream.write('\nEMAIL_SETTINGS_KEY=' + secrets.token_hex(32) + '\n')
+print('Email credential encryption key added; its value was not displayed.')
+PY
+sudo chown root:docman /var/www/docman/backend/.env.prod
+sudo chmod 0640 /var/www/docman/backend/.env.prod
+sudo systemctl restart docman-backend
+systemctl is-active docman-backend
+```
+
+**Expected:** the key-added message (or existing-key message on a retry), followed by `active`. `chown` and `chmod` normally print nothing. If the file is missing, stop and complete section 10. If the service is not active, inspect `sudo journalctl -u docman-backend -n 40 --no-pager` and correct the reported startup problem. Never paste environment-file contents into a support message.
+
+Reload System Settings. The encryption-not-configured warning should disappear when you select a credential-based mode. If it remains, use `sudo nano /var/www/docman/backend/.env.prod` to check that there is exactly one active `EMAIL_SETTINGS_KEY` line with 64 hexadecimal characters and no placeholder. Do not replace an existing valid key. Save with Ctrl+O, Enter, Ctrl+X; restart the backend and reload the page.
+
+Back up the protected environment file/key through the approved encrypted backup process and keep recovery access outside this server. Losing or replacing the key prevents decryption of saved mail credentials. Do not rotate it as part of routine password changes. To deliberately replace the key: retain the old key securely, schedule a mail interruption, install the new key, restart, then re-enter the full SMTP password or both AWS key fields and save/test. Blank password fields preserve existing ciphertext only when it can be decrypted with the current key. Restore the old key to recover old encrypted backups. There is no automatic multi-key rotation.
+
+### 16.3 Trust an internal mail certificate, if required
+
+Skip this subsection if the mail certificate chains to an already trusted CA. Otherwise obtain the approved public CA bundle from IT and verify it using their distribution process. Copy it to your Ubuntu home directory as `mail-ca.pem`, then run:
+
+```bash
+sudo install -d -m 0755 /etc/ssl/docman
+sudo install -m 0644 ~/mail-ca.pem /etc/ssl/docman/mail-ca.pem
+openssl x509 -in /etc/ssl/docman/mail-ca.pem -noout -subject -issuer -dates
+sudo nano /var/www/docman/backend/.env.prod
+```
+
+**Expected:** installation commands print nothing and OpenSSL prints certificate identity/dates that match IT's information. Stop if the file is missing, invalid, expired, or unexpected. Add or update this one setting in nano:
+
+```dotenv
+NODE_EXTRA_CA_CERTS=/etc/ssl/docman/mail-ca.pem
+```
+
+Save with Ctrl+O, Enter, Ctrl+X. Run `sudo systemctl restart docman-backend`, then `systemctl is-active docman-backend`; expect `active`. Node loads this CA file when it starts. All backend processes that send mail must load the same setting. Keep certificate validation enabled; the application deliberately offers no “ignore certificate errors” option. Prefer the SMTP hostname covered by the certificate over an IP address. See [Nodemailer TLS options](https://nodemailer.com/smtp).
+
+### 16.4 Configure SMTP and verify it
+
+1. In **System Settings → Outgoing email**, choose **SMTP**.
+2. Enter the approved sender email, optional display name, and optional reply-to address.
+3. Enter IT's SMTP hostname/IP, port, and connection-security mode. The host field takes only a host, not `https://`, a path, or `:port`.
+4. Choose **IP-authorized relay** or **Username and password**. For a relay, leave login credentials out; IT must authorize the source IP. For password authentication, enter the supplied SMTP username/password after completing section 16.2.
+5. Click **Save email settings**. Expect “Email settings saved.” No restart is needed for UI changes. Saved password fields become blank; this is intentional. Leaving them blank preserves the saved credentials for the same server/account. Changing SMTP host, port, security mode, or username requires entering the password again. Switching provider or selecting a credential-free method removes old saved credentials.
+6. Enter an email address you control in **Test recipient email address**, then click **Send test email**. Save/discard any unsaved changes first. Expect “Mail provider accepted the test email,” then confirm receipt in the inbox or junk folder. Only three tests per minute per administrator are allowed; after a rate-limit message, wait one minute.
+
+An accepted test is submission success, not proof that downstream delivery succeeded. If the message is missing, have the mail administrator check relay logs, recipient restrictions, filtering, and quarantine. For connection failures, check host/port, IT-managed network access, TLS mode, certificate hostname, and CA trust. For authentication errors, check the username/password and whether SMTP login is enabled for this application account. For sender/recipient rejections, check relay authorization and approved sender/domain rules. Error responses intentionally omit raw credentials and mail-server responses.
+
+A “settings changed” conflict means another administrator saved first: use **Discard changes / reload**, review the current settings, and reapply your edit. An audit failure stops an operation before it begins where possible. If the message says settings were already saved or a test was already accepted but completion auditing failed, reload/check the mailbox before retrying; these actions are not atomic with the audit database. Investigate the audit service before declaring configuration complete.
+
+### 16.5 AWS SES alternative
+
+For AWS SES, complete the AWS prerequisites below, then select **AWS SES** in Outgoing email. Enter sender/reply-to details and the region. Select **Server credentials / IAM role** to use AWS's credential chain, or **Store AWS access keys** after section 16.2. Enter both access-key fields when replacing keys; leave both blank to retain saved keys. Save and use the same test-email/inbox checks as section 16.4.
+
+To retain the original deployment method, choose **Use existing server AWS SES settings** and maintain `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SES_REGION`, and `AWS_SES_SENDER_EMAIL` in the protected `.env.prod` file. Restart after environment changes. An IAM role can supply credentials instead of the access-key environment variables. Do not put SES SMTP credentials into API-key fields; SMTP credentials belong to the SMTP mode.
+
+#### Prepare AWS and verify the sender
 
 1. Obtain an organization-owned AWS account with billing. Secure its root account with MFA and use an authorized administrator identity for setup. Do not generate root access keys for DocMan.
 2. Open Amazon SES in the AWS console. Choose and record one region, for example `us-east-1`; keep identity, permissions, and application settings in that region.
@@ -1778,7 +1936,7 @@ The website domain and mail-sender domain can differ. Domain ownership must actu
 
 New SES accounts can be in a sandbox. In that state, ordinary recipient addresses must also be verified. For a small test, verify your test recipient; for real use, request production access in the same region, describe this application's transactional notifications/password resets, and complete AWS's review. Do not assume a submitted request is approved. See [SES sandbox and production access](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html).
 
-### 16.2 Create application credentials
+#### Create application credentials
 
 In IAM, create a dedicated application user, such as `docman-ses`, without console sign-in. Create an IAM permissions policy using this JSON, replacing the region, AWS account ID, domain, and sender:
 
@@ -1796,36 +1954,14 @@ In IAM, create a dedicated application user, such as `docman-ses`, without conso
 }
 ```
 
-Attach this policy to that user. Under its security credentials, create an access key for an application running outside AWS, following the console's current prompts. Save the access key ID and secret in your password manager; the secret is only shown at creation. These are **API credentials, not SES SMTP credentials**. The current code supplies explicit AWS credentials, so instance-role setup alone is not an equivalent configuration. The permission corresponds to the application's [SES SendEmail API](https://docs.aws.amazon.com/ses/latest/APIReference/API_SendEmail.html).
+Attach this policy to that user. Under its security credentials, create an access key for an application running outside AWS, following the console's current prompts. Save the access key ID and secret in your password manager; the secret is only shown at creation. These are **API credentials, not SES SMTP credentials**. Choose **Store AWS access keys** in the UI for these credentials, or **Server credentials / IAM role** to use the SDK credential chain (including environment credentials and an attached IAM role). The permission corresponds to the application's [SES SendEmail API](https://docs.aws.amazon.com/ses/latest/APIReference/API_SendEmail.html).
 
-### 16.3 Add credentials and test delivery
 
-Append to `/var/www/docman/backend/.env.prod` using `sudo nano`:
+Monitor provider bounces/complaints using the organization's mail operations process. For stored AWS keys, rotate by entering both new fields in the UI, saving, testing, then disabling the old AWS key. For environment keys, update the protected environment file, restart, test, then disable the old key. **Disabled** stops outgoing mail but leaves document sharing available.
 
-```dotenv
-AWS_ACCESS_KEY_ID=CHANGE_ME_SES_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY=CHANGE_ME_SES_SECRET_ACCESS_KEY
-AWS_SES_REGION=us-east-1
-AWS_SES_SENDER_EMAIL=docman@example.org
-```
+### 16.6 Password-reset workflow limitations
 
-Replace all values with your actual settings. Keep file ownership `root:docman` and mode `0640`. Restart and send a test, replacing the recipient address in the code:
-
-```bash
-sudo systemctl restart docman-backend
-cd /var/www/docman/backend
-sudo -u docman /usr/bin/node --env-file=.env.prod --input-type=module <<'JS'
-import { sendEmail } from './src/lib/emailService.js';
-await sendEmail('CHANGE_ME_TEST_RECIPIENT_EMAIL', 'DocMan delivery test',
-  'DocMan email delivery works.', '<p>DocMan email delivery works.</p>');
-JS
-```
-
-Confirm both a successful SES message ID and receipt in the mailbox; check junk/quarantine too.
-
-The terminal should print `Email sent successfully:` followed by a message ID. If it shows an error instead, `AccessDenied` points to credentials/IAM policy, an unverified-address error points to SES identity/sandbox restrictions, and a connection error points to outbound network access. Do not keep retrying a bad credential unchanged. A message ID with no received message requires mailbox/quarantine/delivery investigation; it is not a completed delivery checkpoint. `APP_BASE_URL` controls emailed reset links. An API success response for password-reset requests deliberately does not disclose whether an account exists; it is not proof of email delivery.
-
-**Current Vue limitation:** the backend has password-reset endpoints, but this Vue frontend does not yet include forgot-password/reset-password pages. Configuring SES does not add those screens. Do not tell users the emailed reset link completes a self-service browser workflow on this Vue deployment. The legacy React interface has those pages, but installing a second interface is not part of this guide.
+**Current Vue limitation:** the backend has password-reset endpoints, but this Vue frontend does not yet include forgot-password/reset-password pages. Configuring email does not add those screens. Do not tell users the emailed reset link completes a self-service browser workflow on this Vue deployment. The legacy React interface has those pages, but installing a second interface is not part of this guide.
 
 To test the backend reset delivery and completion for an account you control, run this on the server, replacing the hostname. It asks for the emailed token privately and submits the reset over HTTPS. Copy only the `token` query value from the received link; do not share the full link or token. This changes that test account's password:
 
@@ -1852,8 +1988,6 @@ post("/api/auth/reset-password", {"token": token, "password": password})
 Sign in with the new password and verify the old one fails.
 
 The first request prints the generic “If an account exists...” message; pause at the hidden token prompt until the test mailbox receives the email. Successful completion prints `Password has been reset.` A Python `HTTPError` is a failed request, not a completed reset: 400 commonly indicates an invalid/expired token or a password rejected by validation; 429 means wait for the reset rate-limit window. If the token expired, request a new one rather than repeatedly submitting the old token. Do not paste tokens or new passwords into troubleshooting messages. Keep an operator-assisted account-recovery process until the Vue reset screens are implemented and tested. A password reset clears the refresh token in the current implementation; do not treat it as proof that every previously issued access token has been immediately revoked.
-
-Monitor SES bounces/complaints using the organization's AWS monitoring process. Rotate access keys by creating a replacement, updating the private environment file, restarting, testing, then disabling the old key. Without SES configured, document sharing can work, but password-reset email and outbound email notifications are not operational. Do not mark those features tested.
 
 ## 17. Set up backups and scheduled checks
 
@@ -2425,6 +2559,8 @@ npm ci
 npm run build
 ```
 
+Dependency-only updates still require both installs when both lockfiles change. Rebuilding the frontend alone leaves old backend packages installed. The [November 18 dependency review](../dependency-security-review.md) records the remaining unpatched Picomatch findings; installation success does not mean the audit is clean. Do not run `npm audit fix --force` on this server. From `/var/www/docman/backend`, `npm audit --omit=dev` should report `found 0 vulnerabilities` for that reviewed dependency set; if it reports new findings or cannot reach the registry, stop and review the result before continuing. The repository-wide audit deliberately exits nonzero for the documented remaining findings and is not a clean-audit claim.
+
 **Expected:** both npm installs finish successfully, then a successful Vite build as in section 12. If either fails, do not run migration or publish stale assets. Run migration preflight separately:
 
 ```bash
@@ -2542,7 +2678,7 @@ Validate signed-token issuer/audience, verified email behavior, account linking,
 | Login returns 401 | Check the DocMan account credentials and token secret configuration. The Ubuntu/DB administrator account cannot log into DocMan. |
 | Request returns 403 | Check the user's role and document owner/stakeholder/approver membership. A working login does not grant every document. |
 | Request returns 429 | Rate limit reached. Wait for the configured window; check real client IP forwarding and Redis. Do not disable all limits to test repeated bad passwords. |
-| Upload returns 413 | Check application file size and Apache LimitRequestBody; the app's current general limit is 50 MiB. |
+| Upload returns 413 | The file exceeds either the application limit (**System Settings → Document storage**, default 50 MB) or Apache's `LimitRequestBody`. The application's message names its limit; if Apache rejects first, raise `LimitRequestBody` as in section 15.1. |
 | Replacement awaits approval | Expected with APPROVAL_REQUIRED=true. Use a different authorized approver with the configured threshold. |
 | Publication returns 409 or remains publishing | Check active-version conflicts and logs. Use Retry publication for interrupted authorized publication; preserve existing records. |
 | Download says missing/corrupt file | Verify UPLOAD_DIR, stored path, permissions, and matching backup. Do not turn off checksum verification to hide corruption. |

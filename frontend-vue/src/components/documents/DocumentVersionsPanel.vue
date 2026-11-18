@@ -29,6 +29,7 @@
             <td>
               <div class="font-weight-medium">v{{ file.version }} · {{ file.versionLabel }}</div>
               <div class="text-caption text-medium-emphasis">{{ file.originalname }} · {{ formatBytes(file.size) }}</div>
+              <div v-if="file.encrypted" class="text-caption text-medium-emphasis"><v-icon size="x-small" icon="mdi-lock-outline" /> Encrypted at rest</div>
               <div v-if="file.changelog" class="text-caption">{{ file.changelog }}</div>
               <div v-if="file.sha256" class="text-caption text-medium-emphasis" :title="file.sha256">
                 SHA-256 {{ file.sha256.slice(0, 12) }}…
@@ -79,7 +80,7 @@
           <div class="text-subtitle-1 mb-2">Upload a new version</div>
           <v-row dense>
             <v-col cols="12" md="5">
-              <v-file-input v-model="newFile" label="File" show-size :disabled="hasPending" />
+              <v-file-input v-model="newFile" label="File" show-size :disabled="hasPending" :hint="storage?.maxUploadMB ? `Maximum ${storage.maxUploadMB} MB` : ''" persistent-hint />
             </v-col>
             <v-col cols="12" md="3">
               <v-text-field v-model="versionLabel" label="Version label (optional)" :disabled="hasPending" />
@@ -132,6 +133,8 @@
 </template>
 
 <script setup>
+import { useStorageSettings } from '@/composables/useStorageSettings';
+
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { api } from '@/services/api';
 import { downloadProtectedFile } from '@/services/download';
@@ -144,6 +147,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['changed']);
 
+const { settings: storage, load: loadStorage, sizeError } = useStorageSettings();
 const files = ref([]);
 const policy = ref(null);
 const loading = ref(false);
@@ -227,6 +231,8 @@ async function download(file) {
 }
 
 async function upload() {
+  const tooLarge = sizeError(selectedFile.value);
+  if (tooLarge) { notify(tooLarge, 'warning'); return; }
   if (!selectedFile.value || !changelog.value.trim()) {
     notify('Choose a file and describe what changed.', 'warning');
     return;
@@ -274,6 +280,6 @@ async function submitDecision() {
 }
 
 watch(() => props.document?._id, load);
-onMounted(load);
+onMounted(() => { load(); loadStorage(); });
 defineExpose({ load });
 </script>

@@ -55,6 +55,7 @@ export const AUDIT_ACTIONS = Object.freeze({
     USER_UPDATE: "user.update",
     USER_ROLE_CHANGE: "user.role_change",
     USER_DELETE: "user.delete",
+    EMAIL_TEST: "system.email_test",
     SYSTEM_SETTING_CHANGE: "system.setting_change",
     SYSTEM_MIGRATION: "system.migration",
     AUDIT_EXPORT: "audit.export",
@@ -95,7 +96,7 @@ export function toPlain(value, depth = 0) {
         if (value._bsontype === "ObjectId" || value._bsontype === "ObjectID") return value.toString();
         const result = {};
         for (const key of Object.keys(value)) {
-            if (key === "password" || key === "refreshTokenHash" || key.startsWith("$")) continue;
+            if (["password", "documentPassword", "passwordHash", "wrappedKey", "encryptionKey", "refreshTokenHash"].includes(key) || key.startsWith("$")) continue;
             const plain = toPlain(value[key], depth + 1);
             if (plain !== undefined) result[key] = plain;
         }

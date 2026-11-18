@@ -8,6 +8,7 @@
  * @version 2.3.0
  * @license UNLICENSED
  */
+import { openStoredFile } from '../services/storedFileService.js';
 import fs from "fs";
 import mongoose from "mongoose";
 import File from "../models/File.js";
@@ -125,19 +126,65 @@ export async function downloadFile(req, res) {
             }
         }
 
+        // Open (and, for encrypted files, start decrypting) before logging the download, so a missing key or
+        // metadata problem is reported as a failure rather than as a successful download.
+        let plaintext;
+        try {
+            plaintext = await openStoredFile(file, absolutePath);
+        } catch (error) {
+            await record(req, {
+                action: AUDIT_ACTIONS.FILE_INTEGRITY_FAILURE,
+                outcome: "failure",
+                resourceType: "file",
+                resourceId: file._id,
+                documentId: req.document._id,
+                summary: `Could not open stored version ${file.version}: ${error.message}`,
+            });
+            return res.status(error.statusCode || 500).json({ message: error.statusCode ? error.message : "Could not read the stored file." });
+        }
+
         await record(req, {
             action: AUDIT_ACTIONS.FILE_DOWNLOAD,
             resourceType: "file",
             resourceId: file._id,
             documentId: req.document._id,
             summary: `Downloaded version ${file.version} (${file.originalname})`,
-            metadata: { version: file.version, sha256: file.sha256 },
+            metadata: { version: file.version, sha256: file.contentSha256 || file.sha256, encrypted: Boolean(file.encrypted) },
         });
 
         res.setHeader("X-Content-Type-Options", "nosniff");
         res.setHeader("Cache-Control", "private, no-store");
-        if (file.sha256) res.setHeader("X-Content-SHA256", file.sha256);
-        return res.download(absolutePath, file.originalname, { headers: { "Content-Type": file.mimetype } });
+        const contentHash = file.contentSha256 || (file.encrypted ? null : file.sha256);
+        if (contentHash) res.setHeader("X-Content-SHA256", contentHash);
+        res.attachment(file.originalname);
+        res.type(file.mimetype);
+        if (!file.encrypted) res.setHeader("Content-Length", file.size);
+
+        // Streamed: memory use is constant regardless of file size. Each encrypted chunk is released only after
+        // its authentication tag verifies; tampering stops the transfer at that point and is audited.
+        await new Promise((resolve) => {
+            plaintext.once("error", async (error) => {
+                plaintext.unpipe(res);
+                await record(req, {
+                    action: AUDIT_ACTIONS.FILE_INTEGRITY_FAILURE,
+                    outcome: "failure",
+                    resourceType: "file",
+                    resourceId: file._id,
+                    documentId: req.document._id,
+                    summary: `Download of version ${file.version} blocked: ${error.message}`,
+                });
+                if (!res.headersSent) {
+                    for (const header of ["Content-Disposition", "Content-Length", "X-Content-SHA256"]) res.removeHeader(header);
+                    res.status(409).json({ message: "File integrity check failed. The download was blocked." });
+                } else {
+                    res.destroy(error);
+                }
+                resolve();
+            });
+            res.once("close", resolve);
+            plaintext.pipe(res);
+        });
+        return undefined;
     } catch (error) {
         return handleError(res, error, "Error downloading file:");
     }
@@ -197,7 +244,11 @@ export async function compareVersions(req, res) {
             differences: {
                 sizeDifference: file2.size - file1.size,
                 dateDifference: file2.uploadedAt - file1.uploadedAt,
-                contentChanged: Boolean(file1.sha256 && file2.sha256) ? file1.sha256 !== file2.sha256 : null,
+                contentChanged: (() => {
+                    const a = file1.contentSha256 || (file1.encrypted ? null : file1.sha256);
+                    const b = file2.contentSha256 || (file2.encrypted ? null : file2.sha256);
+                    return a && b ? a !== b : null;
+                })(),
                 mimetypeChanged: file1.mimetype !== file2.mimetype,
                 statuses: { [v1]: file1.status || "approved", [v2]: file2.status || "approved" },
             },

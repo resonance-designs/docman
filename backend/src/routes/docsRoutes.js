@@ -9,6 +9,7 @@
  * @version 2.3.0
  * @license UNLICENSED
  */
+import { documentUpload } from '../middleware/documentUpload.js';
 import express from "express";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { requireRole } from "../middleware/requireRole.js";
@@ -52,7 +53,7 @@ function withUpload(middleware) {
 
 // Collection-level routes (registered before /:id so they are not captured as ids)
 router.get("/", verifyAccessToken, ANY_ROLE, getAllDocs);
-router.post("/", verifyAccessToken, EDITOR, withUpload(uploadMid.single("file")), createDoc);
+router.post("/", verifyAccessToken, EDITOR, documentUpload("file"), createDoc);
 router.get("/approvals/pending", verifyAccessToken, ANY_ROLE, pendingApprovals);
 router.get("/deleted", verifyAccessToken, ADMIN, listDeletedDocs);
 
@@ -70,7 +71,7 @@ router.get("/:id/audit", verifyAccessToken, ANY_ROLE, requireDocumentAccess("aud
 
 // Edit access (editors who are the author or an owner, admins)
 router.put("/:id", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), withUpload(uploadMid.none()), updateDoc);
-router.post("/:id/upload", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), withUpload(uploadMid.single("file")), uploadVersion);
+router.post("/:id/upload", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), documentUpload("file"), uploadVersion);
 router.put("/:id/review", verifyAccessToken, EDITOR, requireDocumentAccess("edit"), markDocAsReviewed);
 
 // Change approval. Approver/uploader rules are enforced in approvalService and audited when denied.

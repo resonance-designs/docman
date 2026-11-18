@@ -18,6 +18,7 @@ import ApprovalsView from '@/views/approvals/ApprovalsView.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const routes = [
+  { path: '/notifications', component: () => import('@/views/NotificationsView.vue'), meta: { requiresAuth: true } },
   { path: '/admin/users', name: 'user-management', component: UsersView, meta: { requiresAuth: true, roles: ['superadmin'] } },
   {
     path: '/',

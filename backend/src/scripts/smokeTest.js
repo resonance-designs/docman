@@ -125,7 +125,11 @@ async function main() {
         assert(files.status === 200 && files.data.length === 1, `files -> ${files.status}`);
         ctx.file = files.data[0];
         assert(ctx.file.status === "pending_approval", `status is ${ctx.file.status}`);
-        assert(ctx.file.sha256 === fileHash, "stored checksum does not match uploaded content");
+        assert((ctx.file.contentSha256 || ctx.file.sha256) === fileHash, "recorded checksum does not match uploaded content");
+        if (process.env.SMOKE_EXPECT_ENCRYPTED === "true") {
+            assert(ctx.file.encrypted === true, "file was not encrypted at rest");
+            assert(ctx.file.sha256 !== fileHash, "stored bytes equal the plaintext; encryption did not happen");
+        }
         assert(!("path" in ctx.file), "server file path leaked in API response");
     });
     if (!ctx.docId) return finish();

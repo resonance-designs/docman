@@ -121,6 +121,7 @@
                   show-size
                   :required="fileRequired"
                 />
+                <slot name="file-help" />
               </v-col>
             </v-row>
           </v-card-text>

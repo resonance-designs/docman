@@ -7,7 +7,9 @@
  * @version 2.3.0
  * @license UNLICENSED
  */
+import { getStorageSettingsHandler, updateStorageSettingsHandler } from '../controllers/storageSettingsController.js';
 import express from "express";
+import { getEmailSettings, updateEmailSettings, testEmailSettings } from "../controllers/emailSettingsController.js";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { record, AUDIT_ACTIONS } from "../services/auditService.js";
 import { requireRole } from "../middleware/requireRole.js";
@@ -30,6 +32,12 @@ import {
  * @type {express.Router}
  */
 const router = express.Router();
+// Document storage: encryption at rest + maximum upload size. Everyone signed in can read (upload forms show the limit).
+router.get('/storage', verifyAccessToken, requireRole('viewer', 'editor', 'admin', 'superadmin'), getStorageSettingsHandler);
+router.put('/storage', verifyAccessToken, requireRole('superadmin'), updateStorageSettingsHandler);
+router.get('/email', verifyAccessToken, requireRole('superadmin'), getEmailSettings);
+router.put('/email', verifyAccessToken, requireRole('superadmin'), updateEmailSettings);
+router.post('/email/test', verifyAccessToken, requireRole('superadmin'), testEmailSettings);
 
 // GET /api/system/info - Get system information and health status (admins and super admins can view system info)
 /**

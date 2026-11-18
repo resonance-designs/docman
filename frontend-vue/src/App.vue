@@ -26,7 +26,7 @@
           RDocMan
         </v-app-bar-title>
         <v-spacer />
-        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline">
+        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline" to="/notifications">
           Activity
         </v-btn>
         <v-btn
@@ -115,7 +115,7 @@ const navItems = [
   },
   {
     title: 'System Settings',
-    subtitle: 'Redis store, deleted documents',
+    subtitle: 'Storage, email, Redis',
     icon: 'mdi-cog-outline',
     to: '/admin/system',
     roles: ['admin', 'superadmin'],
