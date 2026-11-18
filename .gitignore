@@ -35,3 +35,9 @@ certs/
 db/
 
 .secrets/
+
+# scripts/verify-linux.sh output
+.verify-logs/
+
+# Local tool binaries used only for verification (e.g. a mongod build)
+.verify-tools/

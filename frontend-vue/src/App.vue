@@ -26,7 +26,7 @@
           RDocMan
         </v-app-bar-title>
         <v-spacer />
-        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline">
+        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline" to="/notifications">
           Activity
         </v-btn>
         <v-btn
@@ -67,11 +67,18 @@ const { isAuthenticated, hasRole, logout } = useAuth();
 const drawer = ref(true);
 
 const navItems = [
+  { title: 'Users', subtitle: 'Accounts and access', icon: 'mdi-account-cog-outline', to: '/admin/users', roles: ['superadmin'] },
   {
     title: 'Documents',
     subtitle: 'Files and reviews',
     icon: 'mdi-file-document-outline',
     to: '/documents',
+  },
+  {
+    title: 'Approvals',
+    subtitle: 'Versions awaiting decision',
+    icon: 'mdi-check-decagram-outline',
+    to: '/approvals',
   },
   {
     title: 'Books',
@@ -98,6 +105,20 @@ const navItems = [
     icon: 'mdi-briefcase-outline',
     to: '/projects',
     roles: ['editor', 'admin', 'superadmin'],
+  },
+  {
+    title: 'Audit Log',
+    subtitle: 'Who did what, when',
+    icon: 'mdi-shield-search',
+    to: '/admin/audit',
+    roles: ['admin', 'superadmin'],
+  },
+  {
+    title: 'System Settings',
+    subtitle: 'Storage, email, Redis',
+    icon: 'mdi-cog-outline',
+    to: '/admin/system',
+    roles: ['admin', 'superadmin'],
   },
   {
     title: 'Authentik Linking',

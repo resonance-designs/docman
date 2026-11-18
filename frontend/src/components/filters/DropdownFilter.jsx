@@ -4,7 +4,7 @@
  * @component DropdownFilter
  * @description Dropdown filter component with search functionality for selecting filter options
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { ChevronDownIcon, XIcon } from "lucide-react";

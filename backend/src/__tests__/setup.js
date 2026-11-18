@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/setup.js
  * @description Global test setup and configuration
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { jest } from '@jest/globals';
@@ -62,20 +62,14 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Mock external dependencies that shouldn't be called during tests
-jest.mock('nodemailer', () => ({
-  createTransport: jest.fn(() => ({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' })
-  }))
-}));
-
 // Mock file system operations
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
   writeFileSync: jest.fn(),
   readFileSync: jest.fn(),
   unlinkSync: jest.fn(),
-  existsSync: jest.fn().mockReturnValue(true)
+  // Preserve host detection (node-gyp-build checks /etc/alpine-release for musl).
+  existsSync: jest.fn(jest.requireActual('fs').existsSync)
 }));
 
 // Mock multer for file uploads

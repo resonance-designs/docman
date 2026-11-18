@@ -115,6 +115,7 @@ function createEmptyForm() {
     reviewDueDate: '',
     nextReviewDueOn: '',
     owners: [],
+    approvers: [],
     stakeholders: [],
     reviewAssignees: [],
     reviewNotes: '',
@@ -135,6 +136,7 @@ function hydrateForm(document) {
   form.reviewDueDate = toInputDate(document.reviewDueDate);
   form.nextReviewDueOn = toInputDate(document.nextReviewDueOn);
   form.owners = (document.owners || []).map(extractId).filter(Boolean);
+  form.approvers = (document.approvers || []).map(extractId).filter(Boolean);
   form.stakeholders = (document.stakeholders || []).map(extractId).filter(Boolean);
   form.reviewAssignees = (document.reviewAssignees || []).map(extractId).filter(Boolean);
   form.reviewNotes = document.reviewNotes || '';
@@ -216,6 +218,7 @@ function buildUpdatePayload(currentForm) {
     reviewPeriod: currentForm.reviewPeriod,
     reviewNotes: currentForm.reviewNotes?.trim() || '',
     owners: JSON.stringify(currentForm.owners),
+    approvers: JSON.stringify(currentForm.approvers || []),
     stakeholders: JSON.stringify(currentForm.stakeholders),
     reviewAssignees: JSON.stringify(currentForm.reviewAssignees),
     externalContacts: JSON.stringify(

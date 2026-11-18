@@ -4,7 +4,7 @@
  * @routes reviewRoutes
  * @description Document review routes for managing review workflows and approvals
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import express from "express";
@@ -33,10 +33,10 @@ router.post("/", verifyAccessToken, requireRole("editor", "admin", "superadmin")
 // GET /api/reviews/document/:documentId - Get review assignments for a specific document (all authenticated users can view)
 router.get("/document/:documentId", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getDocumentReviewAssignments);
 
-// GET /api/reviews/user/:userId - Get review assignments for a specific user (all authenticated users can view)
+// GET /api/reviews/user/:userId - Get review assignments for a user (self or admins; enforced in controller)
 router.get("/user/:userId", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getUserReviewAssignments);
 
-// PUT /api/reviews/:id - Update review assignment status (assignee, admins, and superadmins can update)
+// PUT /api/reviews/:id - Update review assignment status (assignee or admins only; enforced in controller)
 router.put("/:id", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), updateReviewAssignment);
 
 // GET /api/reviews/overdue - Get overdue review assignments (only admins and superadmins can view overdue reviews)

@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import os from 'os';
@@ -21,6 +21,8 @@ import ReviewAssignment from '../models/ReviewAssignment.js';
 import Team from '../models/Team.js';
 import { getPerformanceStats } from '../middleware/performanceMonitor.js';
 import { getCacheStats } from '../middleware/cacheMiddleware.js';
+import { getRedisStatus, setRuntimeProvider, getActiveProvider, PROVIDERS } from '../config/redis.js';
+import { record, AUDIT_ACTIONS } from '../services/auditService.js';
 
 /**
  * Get system information and health metrics
@@ -123,7 +125,8 @@ export async function getSystemInfo(req, res) {
                 networkInterfaces: Object.keys(os.networkInterfaces()).length,
                 activeEnv: process.env.ACTIVE_ENV || 'N/A',
                 mongoUser: process.env.MONGO_USER || 'N/A',
-                redisConfigured: process.env.UPSTASH_REDIS_REST_URL ? 'Yes' : 'No'
+                redisConfigured: process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL || process.env.REDIS_HOST ? 'Yes' : 'No',
+                rateLimitStore: getActiveProvider()
             }
         };
 
@@ -593,5 +596,51 @@ export async function generateDummyData(req, res) {
             success: false, 
             message: `Failed to generate dummy data: ${error.message}` 
         });
+    }
+}
+
+
+/**
+ * GET /api/system/redis — which rate-limit store is active and whether it is reachable.
+ */
+export async function getRedisSettings(req, res) {
+    try {
+        const status = await getRedisStatus({ ping: req.query.ping !== 'false' });
+        res.status(200).json({ ...status, availableProviders: PROVIDERS });
+    } catch (error) {
+        console.error('Error fetching Redis status:', error);
+        res.status(500).json({ message: 'Failed to fetch Redis status' });
+    }
+}
+
+/**
+ * PUT /api/system/redis — switch the rate-limit store at runtime (superadmin).
+ * Body: { provider: "upstash" | "local" | "memory" | null }  (null = follow REDIS_PROVIDER / auto)
+ */
+export async function updateRedisSettings(req, res) {
+    const requested = req.body?.provider === null || req.body?.provider === 'auto' ? null : req.body?.provider;
+    if (requested !== null && (typeof requested !== 'string' || !PROVIDERS.includes(requested))) {
+        return res.status(400).json({ message: `provider must be one of: ${PROVIDERS.join(', ')}, or null for automatic` });
+    }
+    try {
+        const result = await setRuntimeProvider(requested, req.user?._id || req.user?.id || null);
+        await record(req, {
+            action: AUDIT_ACTIONS.SYSTEM_SETTING_CHANGE,
+            resourceType: 'systemSetting',
+            resourceId: 'redis.provider',
+            summary: `Rate-limit store changed from ${result.previous} to ${result.active}`,
+            changes: [{ field: 'redis.provider', from: result.previous, to: requested ?? 'auto' }],
+        });
+        const status = await getRedisStatus({ ping: true });
+        res.status(200).json({ message: `Rate-limit store is now "${result.active}".`, ...status, availableProviders: PROVIDERS });
+    } catch (error) {
+        await record(req, {
+            action: AUDIT_ACTIONS.SYSTEM_SETTING_CHANGE,
+            outcome: 'failure',
+            resourceType: 'systemSetting',
+            resourceId: 'redis.provider',
+            summary: `Failed to switch rate-limit store to ${requested ?? 'auto'}: ${error.message}`,
+        });
+        res.status(error.statusCode || 500).json({ message: error.message || 'Failed to update Redis provider' });
     }
 }

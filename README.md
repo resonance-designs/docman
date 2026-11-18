@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-2.2.7-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v2.2.7-green)
+![Static Badge](https://img.shields.io/badge/Version-3.0.0-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.0-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -13,7 +13,7 @@ DocMan is also the baseline UI guidepost for the larger Resonance Designs local 
 
 ### 📄 Document Management
 
-- **Upload & Storage**: Secure file upload with version control
+- **Upload & Storage**: Authenticated, checksum-verified file storage with version control
 - **Metadata Management**: Rich document metadata and categorization
 - **Search & Filter**: Full-text search with advanced filtering
 - **Access Control**: Role-based permissions and stakeholder management
@@ -29,7 +29,11 @@ DocMan is also the baseline UI guidepost for the larger Resonance Designs local 
 
 - **Authentication**: JWT-based secure authentication
 - **Authorization**: Role-based access control (Viewer, Editor, Admin)
-- **Audit Trail**: Complete activity logging
+- **Audit Trail**: Append-only, hash-chained audit log with export and integrity verification
+- **Change Approval**: New versions are published only after approval by designated approvers
+- **Revision History**: Every metadata change stored with before/after values
+
+See [docs/compliance-and-redis.md](docs/compliance-and-redis.md) for the audit log, approval workflow, Redis options (Upstash or self-hosted), and upgrade steps.
 - **Data Protection**: Input validation and sanitization
 
 ### 📊 Analytics & Reporting
@@ -41,11 +45,13 @@ DocMan is also the baseline UI guidepost for the larger Resonance Designs local 
 
 ## 🚀 Quick Start
 
+**Installing on an Ubuntu server? Start with the [complete Ubuntu installation guide](docs/deployment/ubuntu-server-installation.md).** It provides one Ubuntu 26.04 LTS installation walkthrough and an internal POC sequence that installs the application before DNS/HTTPS setup. It covers every required service, local accounts, HTTPS, email, backups, restore drills, updates, and troubleshooting. The local development commands below are not the production installation procedure.
+
 ### Prerequisites
 
 - Node.js 20.19+ or 22.12+
 - npm
-- MongoDB 4.4+
+- MongoDB 6.0+ (verified with 8.0.34)
 
 ### Manual Local Installation
 
@@ -466,6 +472,8 @@ npm run build           # Verify the migration frontend builds
 
 ## 🔐 Security
 
+Run `npm run security:audit` from the repository root to audit all five lockfiles. Findings and audit failures exit nonzero. See the [dependency security review](docs/dependency-security-review.md) for the November 18 remediation, remaining unpatched Picomatch advisory, verification, and deployment requirements.
+
 ### Security Features
 
 - **Authentication**: JWT with refresh token rotation
@@ -502,3 +510,17 @@ This project is licensed under the UNLICENSED License - see the [LICENSE](LICENS
 
 For more information, visit our [documentation](./docs/) or check out the [developer onboarding guide](./docs/DEVELOPER_ONBOARDING.md).
 
+
+### Superadmin account management
+
+Superadmins can use **Users** (`/admin/users`) to create local accounts, edit profiles/roles, reset other local users' passwords, and disable/re-enable accounts while preserving document history. The API enforces superadmin access; self-registration can remain disabled. Bootstrap the first superadmin using the [Ubuntu walkthrough](docs/deployment/ubuntu-server-installation.md#11-create-accounts-and-initialize-the-database). Existing superadmins cannot be demoted/disabled through this interface. Deploy the updated backend and rebuilt Vue frontend together.
+
+### Superadmin email configuration
+
+Open **System Settings → Outgoing email** to select SMTP (username/password or IP-authorized relay), AWS SES (server credentials/IAM role or stored API keys), the existing SES environment settings, or disabled sending. Configure sender/reply-to, SMTP host/port/TLS/authentication, or SES region, then save and send a test email. Saved settings apply to password-reset/review messages without restarting; recipient delivery still needs confirmation.
+
+Stored credentials use AES-256-GCM with a dedicated server-side `EMAIL_SETTINGS_KEY` and are never returned to the browser. SMTP certificate verification stays enabled; password login requires encryption. SMTP without login and AWS server credentials work without the encryption key. See [Ubuntu guide section 16](docs/deployment/ubuntu-server-installation.md#16-configure-outgoing-email-in-system-settings) for complete setup, internal CA trust, backup/recovery, and troubleshooting. Self-service Vue password-reset screens remain a separate outstanding feature.
+
+### Encryption at rest and upload size
+
+Stored document files can be encrypted at rest, invisibly to users: files are encrypted while they stream to disk (no plaintext is ever written) and decrypted only for accounts allowed to download them. Each file has its own key, wrapped by the server's `DOCUMENT_ENCRYPTION_KEY`; nobody handles keys or document passwords. Superadmins turn encryption on and set the maximum upload size in **System Settings → Document storage**. See [Ubuntu guide section 15.1](docs/deployment/ubuntu-server-installation.md#151-encryption-at-rest-and-upload-size).

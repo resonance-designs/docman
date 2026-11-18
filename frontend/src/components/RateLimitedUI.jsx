@@ -4,7 +4,7 @@
  * @component RateLimitedUI
  * @description Rate limit notification component displayed when API request limits are exceeded
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { ZapIcon } from "lucide-react";

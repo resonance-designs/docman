@@ -4,12 +4,12 @@
  * @controller docsController
  * @description Document management controller for CRUD operations, file uploads, version control, and review workflows
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import Doc from "../models/Doc.js";
-import File from "../models/File.js";
-import User from "../models/User.js";
+import { record, AUDIT_ACTIONS } from "../services/auditService.js";
+import { recordRevision, snapshotDocument } from "../services/revisionService.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
 import { sendDocumentAssignedNotification } from "./notificationsController.js";
 import * as documentService from "../services/documentService.js";
@@ -63,42 +63,6 @@ export async function getAllDocs(req, res) {
 }
 
 /**
- * Check if user has permission to access a document
- * @param {Object} doc - Document object
- * @param {string} userId - User ID
- * @param {string} userRole - User role
- * @returns {boolean} True if user has access
- */
-function hasDocumentAccess(doc, userId, userRole) {
-    // Admins and superadmins have access to all documents
-    if (userRole === 'admin' || userRole === 'superadmin') return true;
-
-    // Check if user is the author
-    if (doc.author && doc.author._id && doc.author._id.toString() === userId) return true;
-    if (doc.author && doc.author.toString() === userId) return true;
-
-    // Check if user is a stakeholder
-    if (doc.stakeholders && doc.stakeholders.some(stakeholder => {
-        const stakeholderId = stakeholder._id ? stakeholder._id.toString() : stakeholder.toString();
-        return stakeholderId === userId;
-    })) return true;
-
-    // Check if user is an owner
-    if (doc.owners && doc.owners.some(owner => {
-        const ownerId = owner._id ? owner._id.toString() : owner.toString();
-        return ownerId === userId;
-    })) return true;
-
-    // Check if user is a review assignee
-    if (doc.reviewAssignees && doc.reviewAssignees.some(assignee => {
-        const assigneeId = assignee._id ? assignee._id.toString() : assignee.toString();
-        return assigneeId === userId;
-    })) return true;
-
-    return false;
-}
-
-/**
  * Get a specific document by ID (with access control)
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
@@ -107,6 +71,15 @@ function hasDocumentAccess(doc, userId, userRole) {
 export async function getDocById(req, res) {
     try {
         const doc = await documentService.getDocumentById(req.params.id, req.user);
+        if (process.env.AUDIT_LOG_READS !== 'false') {
+            await record(req, {
+                action: AUDIT_ACTIONS.DOCUMENT_VIEW,
+                resourceType: "document",
+                resourceId: doc._id,
+                documentId: doc._id,
+                summary: `Viewed document "${doc.title}"`,
+            });
+        }
         res.status(200).json(doc);
     } catch (error) {
         console.error("Error fetching document by ID:", error);
@@ -137,7 +110,7 @@ export async function createDoc(req, res) {
         }
 
         // Create document using service
-        const doc = await documentService.createDocument(req.body, req.file, req.user);
+        const doc = await documentService.createDocument(req.body, req.file, req.user, req);
 
         // Send notifications to stakeholders, owners, and review assignees
         const parsedFields = documentService.parseDocumentFields(req.body);
@@ -157,7 +130,7 @@ export async function createDoc(req, res) {
         });
     } catch (error) {
         console.error("Error creating document:", error);
-        const statusCode = error.message.includes("Invalid") ? 400 : 500;
+        const statusCode = error.statusCode || (error.message.includes("Invalid") ? 400 : 500);
         res.status(statusCode).json({
             message: error.message || "Failed to create document"
         });
@@ -181,8 +154,9 @@ export async function updateDoc(req, res) {
         const updatedDoc = await documentService.updateDocument(
             req.params.id,
             req.body,
-            req.file,
-            req.user
+            null,
+            req.user,
+            req
         );
 
         // Send notifications if stakeholders, owners, or review assignees were updated
@@ -214,47 +188,45 @@ export async function updateDoc(req, res) {
 }
 
 /**
- * Delete a document
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with success message or error message
+ * Soft-delete a document (admins only). A reason is recorded in the revision history and audit log.
  */
 export async function deleteDoc(req, res) {
     try {
-        const deletedDoc = await Doc.findByIdAndDelete(req.params.id);
-        if (!deletedDoc) {
-            return res.status(404).json({ message: "Document not found." });
-        }
-        res.status(200).json({ message: "Document deleted successfully" });
+        await documentService.deleteDocument(req.params.id, req.user, { reason: req.body?.reason, req });
+        res.status(200).json({ message: "Document deleted successfully. It can be restored by an administrator." });
     } catch (error) {
         console.error("Error deleting document:", error);
-        res.status(500).send("Internal Server Error");
+        const statusCode = error.message.includes("not found") ? 404 :
+                          error.message.includes("Access denied") ? 403 : 500;
+        res.status(statusCode).json({ message: error.message || "Failed to delete document" });
     }
 }
 
 /**
- * Get all files associated with a document
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with array of files or error message
+ * Restore a soft-deleted document (admins only).
  */
-export async function getDocFiles(req, res) {
+export async function restoreDoc(req, res) {
     try {
-        const docId = req.params.id;
-
-        // Verify the document exists
-        const doc = await Doc.findById(docId);
-        if (!doc) {
-            return res.status(404).json({ message: "Document not found." });
-        }
-
-        // Get all files for this document
-        const files = await File.find({ documentId: docId }).sort({ uploadedAt: -1 });
-
-        res.status(200).json(files);
+        const doc = await documentService.restoreDocument(req.params.id, req.user, { reason: req.body?.reason, req });
+        res.status(200).json({ message: "Document restored successfully", doc });
     } catch (error) {
-        console.error("Error fetching document files:", error);
-        res.status(500).send("Internal Server Error");
+        console.error("Error restoring document:", error);
+        const statusCode = error.message.includes("not found") ? 404 :
+                          error.message.includes("Invalid") ? 400 : 500;
+        res.status(statusCode).json({ message: error.message || "Failed to restore document" });
+    }
+}
+
+/**
+ * List soft-deleted documents (admins only).
+ */
+export async function listDeletedDocs(req, res) {
+    try {
+        const docs = await documentService.listDeletedDocuments();
+        res.status(200).json(docs);
+    } catch (error) {
+        console.error("Error listing deleted documents:", error);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }
 
@@ -273,6 +245,8 @@ export async function markDocAsReviewed(req, res) {
         if (typeof reviewCompleted !== 'boolean') {
             return res.status(400).json({ message: "reviewCompleted must be a boolean value" });
         }
+
+        const before = snapshotDocument(req.document);
 
         // If manually marking as completed, also mark all review assignments as completed
         if (reviewCompleted) {
@@ -303,122 +277,22 @@ export async function markDocAsReviewed(req, res) {
             return res.status(404).json({ message: "Document not found." });
         }
 
+        const { changes } = await recordRevision({ doc: updatedDoc, before, action: "review", user: req.user });
+        await record(req, {
+            action: AUDIT_ACTIONS.DOCUMENT_MARK_REVIEWED,
+            resourceType: "document",
+            resourceId: id,
+            documentId: id,
+            summary: `Marked document as ${reviewCompleted ? 'reviewed' : 'not reviewed'}`,
+            changes,
+        });
+
         res.status(200).json({
             message: `Document marked as ${reviewCompleted ? 'reviewed' : 'not reviewed'}`,
             doc: updatedDoc
         });
     } catch (error) {
         console.error("Error marking document as reviewed:", error);
-        res.status(500).send("Internal Server Error");
-    }
-}
-
-/**
- * Get a specific version of a document
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with file data or error message
- */
-export async function getDocVersion(req, res) {
-    try {
-        const { id, version } = req.params;
-        
-        // Find the specific version of the file
-        const file = await File.findOne({ 
-            documentId: id, 
-            version: parseInt(version) 
-        });
-        
-        if (!file) {
-            return res.status(404).json({ message: "Document version not found." });
-        }
-        
-        res.status(200).json(file);
-    } catch (error) {
-        console.error("Error fetching document version:", error);
-        res.status(500).send("Internal Server Error");
-    }
-}
-
-/**
- * Get version history for a document
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with version history or error message
- */
-export async function getVersionHistory(req, res) {
-    try {
-        const { id } = req.params;
-        
-        // Get the document to retrieve its version history
-        const doc = await Doc.findById(id);
-        if (!doc) {
-            return res.status(404).json({ message: "Document not found." });
-        }
-        
-        // Sort version history by version number
-        const sortedHistory = (doc.versionHistory || []).sort((a, b) => b.version - a.version);
-        
-        res.status(200).json(sortedHistory);
-    } catch (error) {
-        console.error("Error fetching version history:", error);
-        res.status(500).send("Internal Server Error");
-    }
-}
-
-/**
- * Compare two versions of a document
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} JSON response with comparison data or error message
- */
-export async function compareDocVersions(req, res) {
-    try {
-        const { id } = req.params;
-        const { version1, version2 } = req.query;
-        
-        if (!version1 || !version2) {
-            return res.status(400).json({ message: "Both version1 and version2 query parameters are required." });
-        }
-        
-        // Find both versions of the file
-        const file1 = await File.findOne({ 
-            documentId: id, 
-            version: parseInt(version1) 
-        });
-        
-        const file2 = await File.findOne({ 
-            documentId: id, 
-            version: parseInt(version2) 
-        });
-        
-        if (!file1 || !file2) {
-            return res.status(404).json({ message: "One or both document versions not found." });
-        }
-        
-        // Get version history entries for context
-        const doc = await Doc.findById(id);
-        const history1 = doc.versionHistory.find(v => v.version === parseInt(version1));
-        const history2 = doc.versionHistory.find(v => v.version === parseInt(version2));
-        
-        res.status(200).json({
-            version1: {
-                file: file1,
-                history: history1
-            },
-            version2: {
-                file: file2,
-                history: history2
-            },
-            differences: {
-                // For now, we'll just provide file metadata differences
-                // In a more advanced implementation, we might do actual content diffing
-                sizeDifference: file2.size - file1.size,
-                dateDifference: file2.uploadedAt - file1.uploadedAt
-            }
-        });
-    } catch (error) {
-        console.error("Error comparing document versions:", error);
         res.status(500).send("Internal Server Error");
     }
 }

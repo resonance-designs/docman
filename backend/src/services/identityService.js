@@ -4,7 +4,7 @@
  * @service identityService
  * @description Transitional identity resolution service for local JWT auth today and shared suite identity providers later
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import jwt from "jsonwebtoken";
@@ -311,6 +311,7 @@ export function normalizeRequestUser(user) {
         return null;
     }
 
+    if (user.isActive === false) throw createAuthError("Account is disabled");
     const normalizedUser = { ...user };
     normalizedUser.id = normalizedUser._id.toString();
 
@@ -357,6 +358,10 @@ export async function resolveLocalTokenIdentity(token) {
         throw createAuthError("User not found");
     }
 
+    if ((decoded.sessionVersion || 0) !== (user.sessionVersion || 0)) {
+        throw createAuthError("Session has been invalidated; sign in again");
+    }
+
     return {
         authType: "local-jwt",
         provider: user.identityProvider || "local",
@@ -371,6 +376,9 @@ export async function resolveLocalTokenIdentity(token) {
  * @returns {Promise<Object>} Normalized identity context
  */
 export async function resolveAuthentikTokenIdentity(token) {
+    const blacklistedToken = await BlacklistedToken.findOne({ token }).lean();
+    if (blacklistedToken) throw createAuthError("Token has been invalidated");
+
     if (!isAuthentikConfigured()) {
         throw createAuthError("Authentik identity is not configured", 500);
     }
@@ -458,7 +466,22 @@ export async function resolveRequestIdentity(req) {
 
     const decoded = jwt.decode(token);
     if (isAuthentikToken(decoded)) {
-        return resolveAuthentikTokenIdentity(token);
+        const identity = await resolveAuthentikTokenIdentity(token);
+        if (identity?.resolution === "jit-provisioned" || identity?.resolution === "auto-linked-by-verified-email") {
+            const { record, AUDIT_ACTIONS } = await import("./auditService.js");
+            await record(req, {
+                actorUser: identity.user,
+                authType: identity.authType,
+                action: AUDIT_ACTIONS.AUTH_JIT_PROVISION,
+                resourceType: "user",
+                resourceId: identity.user?._id || identity.user?.id,
+                summary: identity.resolution === "jit-provisioned"
+                    ? `Provisioned new account from Authentik (${identity.user?.email})`
+                    : `Linked existing account to Authentik by verified email (${identity.user?.email})`,
+                metadata: { resolution: identity.resolution },
+            });
+        }
+        return identity;
     }
 
     return resolveLocalTokenIdentity(token);

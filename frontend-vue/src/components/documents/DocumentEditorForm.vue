@@ -121,6 +121,7 @@
                   show-size
                   :required="fileRequired"
                 />
+                <slot name="file-help" />
               </v-col>
             </v-row>
           </v-card-text>
@@ -135,6 +136,19 @@
               v-model="form.owners"
               class="mb-4"
               label="Owners"
+              :items="users"
+              item-title="displayName"
+              item-value="_id"
+              chips
+              multiple
+            />
+
+            <v-select
+              v-model="form.approvers"
+              class="mb-4"
+              label="Approvers"
+              hint="Approve new versions before they are published. Leave empty to use the owners."
+              persistent-hint
               :items="users"
               item-title="displayName"
               item-value="_id"

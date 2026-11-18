@@ -4,7 +4,7 @@
  * @module errorHandler
  * @description Standardized error handling and logging utilities for consistent error management
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import fs from 'fs';

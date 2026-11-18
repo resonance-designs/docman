@@ -4,7 +4,7 @@
  * @middleware uploadMid
  * @description File upload middleware for handling multipart form data and file validation
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import multer from "multer";
@@ -13,7 +13,7 @@ import path from "path";
 import crypto from "crypto";
 
 // Ensure uploads folder exists
-const uploadDir = path.join(process.cwd(), "uploads");
+const uploadDir = path.resolve(process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads"));
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -59,7 +59,7 @@ const getFileCategory = (mimetype) => {
 };
 
 // File filter function for security
-const fileFilter = (req, file, cb) => {
+export const fileFilter = (req, file, cb) => {
     try {
         // Check if MIME type is allowed
         if (!ALLOWED_FILE_TYPES[file.mimetype]) {
@@ -113,7 +113,7 @@ const uploadMid = multer({
     limits: {
         fileSize: Math.max(...Object.values(MAX_FILE_SIZES)), // Use the largest limit, we'll check specific limits in fileFilter
         files: 1, // Only allow one file at a time
-        fields: 20, // Limit number of form fields
+        fields: 32, // Limit number of form fields
         fieldNameSize: 100, // Limit field name size
         fieldSize: 1024 * 1024 // 1MB limit for field values
     }
@@ -124,8 +124,8 @@ export const handleUploadError = (error, req, res, next) => {
     if (error instanceof multer.MulterError) {
         switch (error.code) {
             case 'LIMIT_FILE_SIZE':
-                return res.status(400).json({
-                    message: 'File too large. Maximum size is 50MB.'
+                return res.status(413).json({
+                    message: `File too large. Maximum size is ${req.uploadLimitMB || 50} MB.`
                 });
             case 'LIMIT_FILE_COUNT':
                 return res.status(400).json({

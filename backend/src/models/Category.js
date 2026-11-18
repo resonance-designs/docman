@@ -1,6 +1,6 @@
 /*
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 // backend/src/models/Category.js

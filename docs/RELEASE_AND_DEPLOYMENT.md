@@ -2,6 +2,18 @@
 
 This document is for project maintainers responsible for cutting releases and operating the Render and Linode deployments.
 
+For a new independently hosted Ubuntu server, use the [complete Ubuntu installation guide](deployment/ubuntu-server-installation.md). Its local MongoDB/Redis architecture is separate from the shared Atlas deployment targets described below.
+
+## Deployment documentation maintenance requirement
+
+The Ubuntu guide must always target the **latest stable Ubuntu Server LTS** through one complete, beginner-followable installation sequence. Verify the current release using official Ubuntu sources when updating it. Cover installation and configuration of every prerequisite, exact commands and file contents, expected results, and recovery/troubleshooting. Keep the explicit version/codename and package repositories consistent; do not maintain older-LTS alternatives inside the walkthrough.
+
+Update the guide whenever guided deployment introduces or corrects a step. For a new LTS, check dependency compatibility and validate the revised instructions before claiming support. Record blockers and unverified steps honestly. Update README, HANDOFF, and the documentation overview together so they point to the same deployment target. This is a standing user requirement recorded in [HANDOFF](../HANDOFF.md).
+
+Before accepting an edit, read it as a first-time terminal user: can the reader identify the right computer/prompt, enter each value, recognize successful or deliberately denied output, and know exactly where to stop on failure? Include silent-success behavior and interactive answers where relevant. Put checkpoints before dependent mutations rather than explaining a failed preflight after a block that already applies the change. Review this across the entire walkthrough, including optional services and recovery, not only the example reported by a user.
+
+Documentation corrections are maintainer work. When the user requests a complete fresh-server guide, audit the repository and the guide locally; do not substitute a new server diagnostic exercise for repairing the instructions. Keep one base package list, install each prerequisite before first use, and distinguish required runtime components from optional integrations and separate backup-host requirements. A permission check does not prove a package is installed. Keep a single current installation-status table in HANDOFF rather than contradictory appended checkpoints. State whether edits are local or published, and distinguish syntax validation from a target-server deployment test.
+
 ## Deployment Targets
 
 DocMan is intended to run in two production-like places:

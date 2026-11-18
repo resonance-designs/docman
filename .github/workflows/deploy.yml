@@ -15,6 +15,13 @@ jobs:
       LINODE_APP_DIR: ${{ vars.LINODE_APP_DIR || '/var/www/docman' }}
       LINODE_DOC_ROOT: ${{ vars.LINODE_DOC_ROOT || '/var/www/docman/html' }}
       LINODE_SERVICE_NAME: ${{ vars.LINODE_SERVICE_NAME || 'docman-backend.service' }}
+      VITE_AUTHENTIK_ENABLED: ${{ vars.VITE_AUTHENTIK_ENABLED || 'false' }}
+      VITE_AUTHENTIK_CLIENT_ID: ${{ vars.VITE_AUTHENTIK_CLIENT_ID }}
+      VITE_AUTHENTIK_AUTHORIZATION_URL: ${{ vars.VITE_AUTHENTIK_AUTHORIZATION_URL }}
+      VITE_AUTHENTIK_REGISTRATION_URL: ${{ vars.VITE_AUTHENTIK_REGISTRATION_URL }}
+      VITE_AUTHENTIK_TOKEN_URL: ${{ vars.VITE_AUTHENTIK_TOKEN_URL }}
+      VITE_AUTHENTIK_REDIRECT_URI: ${{ vars.VITE_AUTHENTIK_REDIRECT_URI }}
+      VITE_AUTHENTIK_SCOPE: ${{ vars.VITE_AUTHENTIK_SCOPE || 'openid profile email' }}
 
     steps:
       - name: Checkout code
@@ -32,7 +39,21 @@ jobs:
             frontend-vue/package-lock.json
 
       - name: Build selected UI
-        run: npm run build
+        run: |
+          if [[ "$VITE_AUTHENTIK_ENABLED" == "true" ]]; then
+            for name in VITE_AUTHENTIK_CLIENT_ID VITE_AUTHENTIK_AUTHORIZATION_URL VITE_AUTHENTIK_TOKEN_URL VITE_AUTHENTIK_REDIRECT_URI; do
+              test -n "${!name}" || { echo "Missing repository variable $name"; exit 1; }
+            done
+          fi
+          npm run build
+
+      - name: Verify security and identity tests
+        working-directory: backend
+        run: NODE_ENV=test npx jest src/__tests__/compliance src/__tests__/services/identityService.authentik.test.js --ci --runInBand
+
+      - name: Build remote Vue bundle
+        if: env.DOCMAN_UI == 'vue' || env.DOCMAN_UI == 'vuetify'
+        run: npm run build:remote --prefix frontend-vue
 
       - name: Select frontend dist
         id: frontend
@@ -79,10 +100,18 @@ jobs:
             "${FRONTEND_DIST}/" \
             "${USER}@${HOST}:/tmp/docman-frontend-dist/"
 
+          if [[ "$DOCMAN_UI" == "vue" || "$DOCMAN_UI" == "vuetify" ]]; then
+            rsync -az --delete -e "ssh $SSH_OPTS" \
+              frontend-vue/dist-remote/remote/ \
+              "${USER}@${HOST}:/tmp/docman-frontend-dist/remote/"
+          fi
+
           ssh $SSH_OPTS "${USER}@${HOST}" \
             "set -euo pipefail
              cd '${LINODE_APP_DIR}/backend'
              npm ci --omit=dev
+             NODE_ENV=production node src/scripts/migrateComplianceFields.js --dry-run
+             NODE_ENV=production node src/scripts/migrateComplianceFields.js
              sudo install -d -o www-data -g www-data -m 775 '${LINODE_DOC_ROOT}'
              sudo rsync -a --delete /tmp/docman-frontend-dist/ '${LINODE_DOC_ROOT}/'
              sudo chown -R www-data:www-data '${LINODE_DOC_ROOT}'

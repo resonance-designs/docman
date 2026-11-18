@@ -11,9 +11,15 @@ import CategoriesView from '@/views/categories/CategoriesView.vue';
 import TeamsView from '@/views/teams/TeamsView.vue';
 import ProjectsView from '@/views/projects/ProjectsView.vue';
 import AuthentikLinkingView from '@/views/admin/AuthentikLinkingView.vue';
+import AuditLogView from '@/views/admin/AuditLogView.vue';
+import SystemSettingsView from '@/views/admin/SystemSettingsView.vue';
+import UsersView from '@/views/admin/UsersView.vue';
+import ApprovalsView from '@/views/approvals/ApprovalsView.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const routes = [
+  { path: '/notifications', component: () => import('@/views/NotificationsView.vue'), meta: { requiresAuth: true } },
+  { path: '/admin/users', name: 'user-management', component: UsersView, meta: { requiresAuth: true, roles: ['superadmin'] } },
   {
     path: '/',
     name: 'home',
@@ -78,6 +84,24 @@ const routes = [
     name: 'projects',
     component: ProjectsView,
     meta: { requiresAuth: true, roles: ['editor', 'admin', 'superadmin'] },
+  },
+  {
+    path: '/approvals',
+    name: 'approvals',
+    component: ApprovalsView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin/audit',
+    name: 'audit-log',
+    component: AuditLogView,
+    meta: { requiresAuth: true, roles: ['admin', 'superadmin'] },
+  },
+  {
+    path: '/admin/system',
+    name: 'system-settings',
+    component: SystemSettingsView,
+    meta: { requiresAuth: true, roles: ['admin', 'superadmin'] },
   },
   {
     path: '/admin/authentik-linking',

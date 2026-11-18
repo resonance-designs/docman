@@ -4,11 +4,15 @@
  * @controller usersController
  * @description User management controller for CRUD operations, profile updates, and user administration
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import bcrypt from "bcrypt";
 import * as userService from "../services/userService.js";
+import User from "../models/User.js";
+import { record, AUDIT_ACTIONS, diffFields } from "../services/auditService.js";
+
+const AUDITED_USER_FIELDS = ["firstname", "lastname", "email", "username", "telephone", "title", "department", "role", "identityProvider", "authentikSub"];
 import {
     validateName,
     validateEmail,
@@ -67,7 +71,21 @@ export async function getUserById(req, res) {
  */
 export async function updateUser(req, res) {
     try {
+        const before = await User.findById(req.params.id).select(AUDITED_USER_FIELDS.join(" ")).lean();
         const updatedUser = await userService.updateUser(req.params.id, req.body, req.user);
+        const changes = diffFields(before || {}, updatedUser?.toObject ? updatedUser.toObject() : updatedUser || {}, AUDITED_USER_FIELDS);
+        if (changes.length > 0) {
+            const roleChange = changes.find((change) => change.field === "role");
+            await record(req, {
+                action: roleChange ? AUDIT_ACTIONS.USER_ROLE_CHANGE : AUDIT_ACTIONS.USER_UPDATE,
+                resourceType: "user",
+                resourceId: req.params.id,
+                summary: roleChange
+                    ? `Changed role of ${before?.email || req.params.id} from ${roleChange.from} to ${roleChange.to}`
+                    : `Updated user ${before?.email || req.params.id}`,
+                changes,
+            });
+        }
         res.status(200).json({
             message: "User updated successfully",
             user: updatedUser
@@ -92,7 +110,15 @@ export async function updateUser(req, res) {
  */
 export async function deleteUser(req, res) {
     try {
+        const before = await User.findById(req.params.id).select(AUDITED_USER_FIELDS.join(" ")).lean();
         await userService.deleteUser(req.params.id, req.user);
+        await record(req, {
+            action: AUDIT_ACTIONS.USER_DELETE,
+            resourceType: "user",
+            resourceId: req.params.id,
+            summary: `Deleted user ${before?.email || req.params.id}`,
+            metadata: { user: before },
+        });
         res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
         console.error("Error deleting user:", error);
@@ -144,6 +170,13 @@ export async function linkUserToAuthentikIdentity(req, res) {
             force: Boolean(force),
         });
 
+        await record(req, {
+            action: AUDIT_ACTIONS.USER_UPDATE,
+            resourceType: "user",
+            resourceId: result?._id || result?.id || userId || null,
+            summary: `Linked user to Authentik subject`,
+            metadata: { userId, email, username, authentikSub, force: Boolean(force) },
+        });
         res.status(200).json({
             message: "User linked to Authentik successfully",
             user: result,

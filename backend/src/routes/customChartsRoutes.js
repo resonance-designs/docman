@@ -4,7 +4,7 @@
  * @routes customChartsRoutes
  * @description Custom chart routes for creating and managing personalized analytics
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import express from "express";

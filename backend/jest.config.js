@@ -27,8 +27,8 @@ export default {
     '**/?(*.)+(spec|test).js'
   ],
   
-  // Coverage configuration
-  collectCoverage: true,
+  // Coverage configuration (use `npm run test:coverage` to collect)
+  collectCoverage: false,
   coverageDirectory: 'coverage',
   coverageReporters: [
     'text',
@@ -95,24 +95,9 @@ export default {
     '/build/'
   ],
   
-  // Watch plugins
-  watchPlugins: [
-    'jest-watch-typeahead/filename',
-    'jest-watch-typeahead/testname'
-  ],
-  
-  // Reporter configuration
-  reporters: [
-    'default',
-    ['jest-junit', {
-      outputDirectory: 'test-results',
-      outputName: 'junit.xml',
-      classNameTemplate: '{classname}',
-      titleTemplate: '{title}',
-      ancestorSeparator: ' › ',
-      usePathForSuiteName: true
-    }]
-  ],
+  // Reporter configuration (jest-junit / jest-watch-typeahead were referenced but never installed,
+  // which made `npm test` fail on every machine)
+  reporters: ['default'],
   
   // Maximum worker processes
   maxWorkers: '50%',
@@ -120,6 +105,6 @@ export default {
   // Force exit after tests complete
   forceExit: true,
   
-  // Detect open handles
-  detectOpenHandles: true
+  // Detect open handles (enable ad hoc with --detectOpenHandles; it slows every run)
+  detectOpenHandles: false
 };

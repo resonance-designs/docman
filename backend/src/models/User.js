@@ -4,7 +4,7 @@
  * @model User
  * @description User model schema for authentication, profile management, and role-based access control
  * @author Richard Bakos
- * @version 2.2.7
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";
@@ -94,6 +94,8 @@ const userSchema = new mongoose.Schema(
             required: false,
             maxlength: 500,
         },
+        isActive: { type: Boolean, default: true },
+        sessionVersion: { type: Number, default: 0 },
         resetPasswordToken: String,
         resetPasswordExpires: Date,
         refreshTokenHash: { type: String },

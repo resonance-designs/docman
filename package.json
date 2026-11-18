@@ -1,7 +1,7 @@
 {
   "name": "rdocman",
   "private": true,
-  "version": "2.2.7",
+  "version": "3.0.0",
   "type": "module",
   "description": "RDocMan is a document management application for all sorts of documents. Track updates, schedule reviews, categorize, and upload versions of your docs. DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.",
   "keywords": [
@@ -38,7 +38,7 @@
     "version:sync": "node scripts/version-sync.js",
     "comments": "node scripts/update-config.js && node scripts/update-descriptions.js && node scripts/update-selective-comments.js",
     "security:audit": "node scripts/security-audit.js",
-    "security:fix": "npm audit fix --prefix backend && npm audit fix --prefix frontend",
+    "security:fix": "npm audit fix --prefix backend && npm audit fix --prefix frontend-vue && npm audit fix --prefix frontend && npm audit fix --prefix docs-site && npm audit fix",
     "security:check": "npm run security:audit && echo 'Security audit completed successfully'",
     "test:update": "node scripts/update-tests.js",
     "test:update:dry": "node scripts/update-tests.js --dry-run",
@@ -72,12 +72,13 @@
     "dummy:review-assignments": "npm run dummy:review-assignments --prefix backend",
     "dummy:blacklisted-tokens": "npm run dummy:blacklisted-tokens --prefix backend",
     "dummy:all": "npm run dummy:all --prefix backend",
-    "seed:safe": "npm run seed:safe --prefix backend"
+    "seed:safe": "npm run seed:safe --prefix backend",
+    "security:audit:prod": "node scripts/security-audit.js --omit=dev"
   },
   "bugs": {
     "url": "https://github.com/resonance-designs/docman/issues"
   },
   "devDependencies": {
-    "@playwright/test": "^1.42.0"
+    "@playwright/test": "^1.65.1"
   }
 }
