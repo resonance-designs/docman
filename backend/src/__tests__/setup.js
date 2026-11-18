@@ -62,20 +62,14 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Mock external dependencies that shouldn't be called during tests
-jest.mock('nodemailer', () => ({
-  createTransport: jest.fn(() => ({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' })
-  }))
-}));
-
 // Mock file system operations
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
   writeFileSync: jest.fn(),
   readFileSync: jest.fn(),
   unlinkSync: jest.fn(),
-  existsSync: jest.fn().mockReturnValue(true)
+  // Preserve host detection (node-gyp-build checks /etc/alpine-release for musl).
+  existsSync: jest.fn(jest.requireActual('fs').existsSync)
 }));
 
 // Mock multer for file uploads

@@ -53,13 +53,13 @@ const baseDocumentSchema = {
     author: z.string().min(1, { message: "Author is required" }),
     description: z.string().min(1, { message: "Description is required" }),
     category: z.string().min(1, { message: "Category is required" }),
-    opensForReview: z.date({ required_error: "Opens for review date is required" }),
+    opensForReview: z.date({ error: "Opens for review date is required" }),
     reviewInterval: z.enum(['monthly', 'quarterly', 'semiannually', 'annually', 'custom'], {
-        required_error: "Review interval is required"
+        error: "Review interval is required"
     }),
     reviewIntervalDays: z.number().min(1, "Custom interval must be at least 1 day").nullable().optional(),
     reviewPeriod: z.enum(['1week', '2weeks', '3weeks', '1month'], {
-        required_error: "Review period is required"
+        error: "Review period is required"
     }),
     lastReviewedOn: z.date().nullable().optional(),
     nextReviewDueOn: z.date().nullable().optional(),
