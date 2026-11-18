@@ -6,7 +6,7 @@
  *              /uploads lock-down, revision history, soft delete/restore, audit chain, and Redis status.
  *
  * Usage: SMOKE_BASE_URL=http://127.0.0.1:5001 node src/scripts/smokeTest.js
- *        Admin credentials default to the safe-seed account (DOCMAN_DEFAULT_EMAIL / DOCMAN_DEFAULT_PASSWORD).
+ *        Supply SMOKE_ADMIN_PASSWORD or DOCMAN_DEFAULT_PASSWORD for the disposable test account.
  *        Requires LOCAL_SELF_REGISTRATION_ENABLED not "false" (test users are registered as viewers).
  * @author Richard Bakos
  * @version 3.0.0
@@ -16,7 +16,7 @@ import crypto from "crypto";
 
 const BASE = (process.env.SMOKE_BASE_URL || "http://127.0.0.1:5001").replace(/\/+$/, "");
 const ADMIN_EMAIL = process.env.SMOKE_ADMIN_EMAIL || process.env.DOCMAN_DEFAULT_EMAIL || "admin@example.com";
-const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD || process.env.DOCMAN_DEFAULT_PASSWORD || "DocMan123!";
+const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD || process.env.DOCMAN_DEFAULT_PASSWORD;
 const EXPECT_REDIS = process.env.SMOKE_EXPECT_REDIS_PROVIDER || null;
 const RUN = crypto.randomBytes(3).toString("hex");
 
@@ -62,7 +62,7 @@ async function call(method, path, { token, json, form, raw } = {}) {
 
 async function register(label) {
     const email = `smoke-${label}-${RUN}@example.test`;
-    const password = `Smoke!${RUN}Aa1x`;
+    const password = crypto.randomBytes(24).toString("base64url");
     const res = await call("POST", "/api/auth/register", {
         json: { email, password, firstname: "Smoke", lastname: label, username: `smoke${label}${RUN}`, role: "viewer" },
     });
@@ -71,6 +71,7 @@ async function register(label) {
 }
 
 async function main() {
+    if (!ADMIN_PASSWORD) throw new Error("Set SMOKE_ADMIN_PASSWORD or DOCMAN_DEFAULT_PASSWORD before running the smoke test.");
     console.log(`DocMan smoke test against ${BASE} (run ${RUN})`);
     const ctx = {};
     const fileContent = `Smoke test policy document ${RUN}\nLine two.\n`;
@@ -91,7 +92,7 @@ async function main() {
 
     await check("self-registration cannot request superadmin", async () => {
         const res = await call("POST", "/api/auth/register", {
-            json: { email: `smoke-evil-${RUN}@example.test`, password: `Smoke!${RUN}Aa1x`, firstname: "E", lastname: "Vil", username: `smokeevil${RUN}`, role: "superadmin" },
+            json: { email: `smoke-evil-${RUN}@example.test`, password: crypto.randomBytes(24).toString("base64url"), firstname: "E", lastname: "Vil", username: `smokeevil${RUN}`, role: "superadmin" },
         });
         assert(res.status === 400, `expected 400, got ${res.status}`);
     });

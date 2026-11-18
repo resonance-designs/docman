@@ -348,3 +348,7 @@ User-management validation: 39 targeted Jest tests passed across userAdmin, iden
 User confirmed successful fast-forward pull from e9df951 to 67b1790 on feature/compliance-hardening. Backend stop was instructed before the pull, but its output was not supplied. Updated frontend build/publication and backend restart/API/browser checks remain pending. Dependency manifests/lockfiles did not change for this update. Do not mark deployment complete from the Git pull alone.
 
 Update 67b1790: NMDOH frontend build confirmed successful (656 modules, Vite 8.0.8); Website build exists check passed. Publication of the new dist files, backend restart, HTTPS checks, and Users-page verification remain pending.
+
+## PR 47 security-check triage
+
+See [PR check triage](docs/pr-47-checks.md) for six exact GitGuardian incidents and classification evidence. Current smoke-test fallback removed; verification and relevant fixtures generate random credentials. Historical incidents still require maintainer classification and confirmation that the old admin default was not deployed/reused. No dismissal, history rewrite, push or merge was performed. Picomatch still has no patched version listed; audit remains failing. CodeRabbit review remains skipped due to file-count limit.

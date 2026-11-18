@@ -20,6 +20,8 @@ Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these 
 
 ### Security
 
+- Remove the smoke-test administrator password fallback; require explicit test credentials and generate fresh verification/Redis-fixture passwords. Document PR 47 historical secret findings without suppressing checks.
+
 - Plaintext of uploaded documents is never written to disk when encryption at rest is on; stored files are created with mode 0600. Existing passwords continue to unlock their versions.
 
 - Encrypt UI-managed email credentials with AES-256-GCM and a dedicated server key; never return credentials/ciphertext to clients. Enforce TLS for SMTP login, certificate validation, revision conflict detection, audited operations, and test-email rate limits.

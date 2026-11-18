@@ -80,6 +80,7 @@ esac
 echo "database: $DB_NAME"
 echo "redis:    ${REDIS_URL:+${REDIS_URL//:*@/:***@}}${REDIS_URL:-not set (memory store)}"
 
+VERIFY_ADMIN_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
 step "Start backend"
 UPLOAD_TMP="$(mktemp -d)"
 (
@@ -90,7 +91,7 @@ UPLOAD_TMP="$(mktemp -d)"
   JWT_SECRET="verify-$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')" \
   SEED_ON_DEPLOY=true \
   DOCMAN_DEFAULT_EMAIL=admin@example.test \
-  DOCMAN_DEFAULT_PASSWORD='VerifyAdmin!2026' \
+  DOCMAN_DEFAULT_PASSWORD="$VERIFY_ADMIN_PASSWORD" \
   REDIS_PROVIDER="${REDIS_URL:+local}" \
   REDIS_URL="${REDIS_URL:-}" \
   UPLOAD_DIR="$UPLOAD_TMP" \
@@ -113,7 +114,7 @@ step "Data migration (should be a no-op on a fresh database)"
 step "End-to-end smoke test"
 (cd backend && SMOKE_BASE_URL="http://127.0.0.1:$PORT" \
   SMOKE_EXPECT_ENCRYPTED=true \
-  SMOKE_ADMIN_EMAIL=admin@example.test SMOKE_ADMIN_PASSWORD='VerifyAdmin!2026' \
+  SMOKE_ADMIN_EMAIL=admin@example.test SMOKE_ADMIN_PASSWORD="$VERIFY_ADMIN_PASSWORD" \
   SMOKE_EXPECT_REDIS_PROVIDER="${REDIS_URL:+local}" \
   node src/scripts/smokeTest.js) || { echo; echo "server log tail:"; tail -n 40 "$LOG_DIR/server.log"; fail "smoke test failed"; }
 

@@ -7,6 +7,7 @@
  * @license UNLICENSED
  */
 import net from "net";
+import crypto from "node:crypto";
 import {
     parseWindow,
     getEnvProvider,
@@ -116,7 +117,7 @@ describe("configuration", () => {
 
     test("REDIS_HOST/REDIS_PASSWORD build a local URL", () => {
         process.env.REDIS_HOST = "10.0.0.5";
-        process.env.REDIS_PASSWORD = "p@ss";
+        process.env.REDIS_PASSWORD = crypto.randomBytes(18).toString("base64url");
         expect(isProviderConfigured("local")).toBe(true);
     });
 
@@ -175,11 +176,12 @@ describe("self-hosted Redis client against a fake server", () => {
     });
 
     test("authenticates, selects the db, pings and pipelines", async () => {
-        fake = await startFakeRedis({ password: "s3cret" });
-        const client = new RespClient({ url: `redis://:s3cret@127.0.0.1:${fake.port}/3` });
+        const password = crypto.randomBytes(18).toString("base64url");
+        fake = await startFakeRedis({ password });
+        const client = new RespClient({ url: `redis://:${encodeURIComponent(password)}@127.0.0.1:${fake.port}/3` });
         const replies = await Promise.all([client.command("PING"), client.command("PING"), client.command("PING")]);
         expect(replies).toEqual(["PONG", "PONG", "PONG"]);
-        expect(fake.seen[0]).toEqual(["AUTH", "s3cret"]);
+        expect(fake.seen[0]).toEqual(["AUTH", password]);
         expect(fake.seen[1]).toEqual(["SELECT", "3"]);
         await client.quit();
     });
