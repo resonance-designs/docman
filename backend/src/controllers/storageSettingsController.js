@@ -2,7 +2,7 @@
  * @name storageSettingsController
  * @file /docman/backend/src/controllers/storageSettingsController.js
  * @description GET/PUT /api/system/storage — encryption at rest and maximum upload size (superadmin to change).
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { getStorageSettings, saveStorageSettings, validateStorageInput } from "../services/storageSettingsService.js";

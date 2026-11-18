@@ -5,7 +5,7 @@
  *              way when encryption at rest is on, so plaintext never touches the disk. Records the plaintext size
  *              and SHA-256 (what users downloaded/uploaded) and the SHA-256 of the stored bytes (for integrity checks).
  *              Each stored file gets its File record id up front because the ciphertext is bound to it.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from "node:crypto";

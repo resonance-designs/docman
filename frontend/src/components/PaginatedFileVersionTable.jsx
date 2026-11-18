@@ -4,7 +4,7 @@
  * @component PaginatedFileVersionTable
  * @description Paginated and sortable table for document file version history (sortable by Version and Uploaded)
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 

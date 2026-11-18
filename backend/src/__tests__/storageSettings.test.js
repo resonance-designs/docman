@@ -2,7 +2,7 @@
  * @name storageSettings Tests
  * @file /docman/backend/src/__tests__/storageSettings.test.js
  * @description Validation and defaults for encryption at rest and maximum upload size.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from 'node:crypto';

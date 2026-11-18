@@ -4,7 +4,7 @@
  * @description Links stored (possibly encrypted) upload bytes to File records and opens them for download.
  *              Encryption is transparent: there are no user-held keys or document passwords. Who may download a
  *              file is decided by document permissions and the approval workflow; every download is audited.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import fs from "node:fs";

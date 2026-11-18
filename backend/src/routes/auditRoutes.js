@@ -4,7 +4,7 @@
  * @routes auditRoutes
  * @description Audit log endpoints. Search/export for admins; chain verification for superadmins.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import express from "express";

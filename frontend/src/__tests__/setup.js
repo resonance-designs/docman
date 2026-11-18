@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/__tests__/setup.js
  * @description Global test setup and configuration for React components
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { expect, afterEach, vi } from 'vitest';

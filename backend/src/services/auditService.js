@@ -15,7 +15,7 @@
  *  - Successful file-publication events use a unique database key for cross-process deduplication.
  *    Replays return the original entry; historical records without keys are left unchanged.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from "crypto";

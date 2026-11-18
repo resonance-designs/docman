@@ -2,7 +2,7 @@
  * @name verifyWorkflowRecovery
  * @description Verify restored files/audit records, interrupted publication recovery, and signed-token revocation.
  * Requires smoke-test data in a disposable docman_verify_* database and a matching UPLOAD_DIR.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import assert from 'node:assert/strict';

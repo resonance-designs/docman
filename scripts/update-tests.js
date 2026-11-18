@@ -4,7 +4,7 @@
  * @file /docman/scripts/update-tests.js
  * @description Script to analyze and update test files to ensure compatibility with current codebase
  * @author DocMan Team
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 

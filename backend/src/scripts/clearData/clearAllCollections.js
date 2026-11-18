@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/clearData/clearAllCollections.js
  * @description Script to clear all collections from the database
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

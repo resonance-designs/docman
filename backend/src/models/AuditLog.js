@@ -6,7 +6,7 @@
  *              through the application. Each entry stores the SHA-256 hash of the previous entry so tampering
  *              (edits, deletions, re-ordering) is detectable with auditService.verifyChain().
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

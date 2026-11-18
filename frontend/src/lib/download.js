@@ -3,7 +3,7 @@
  * @file /docman/frontend/src/lib/download.js
  * @description Authenticated file download. Document files are no longer public under /uploads (2.3.0);
  *              they are fetched with the user's token from /api/docs/:id/files/:fileId/download.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import api from "./axios";

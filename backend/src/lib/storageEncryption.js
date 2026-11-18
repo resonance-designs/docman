@@ -15,7 +15,7 @@
  *
  * Ciphertext layout: chunk_0 || tag_0 || chunk_1 || tag_1 || ... || chunk_last || tag_last
  * (every chunk except the last holds exactly CHUNK_SIZE plaintext bytes; the last holds 0..CHUNK_SIZE bytes).
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from "node:crypto";

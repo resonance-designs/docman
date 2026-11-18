@@ -6,7 +6,7 @@
  *              Every /:id route passes through requireDocumentAccess() so access is checked per document,
  *              not only per role.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { documentUpload } from '../middleware/documentUpload.js';

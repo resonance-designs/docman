@@ -15,7 +15,7 @@
  *                     Defaults to 15 minutes.
  *
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 // hooks/useAutoLogout.js

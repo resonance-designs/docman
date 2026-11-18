@@ -2,7 +2,7 @@
  * @name Security fixes Tests
  * @file /docman/backend/src/__tests__/compliance/securityFixes.test.js
  * @description Field allow-listing, audit filter injection safety, and the public media route lock-down.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { jest } from "@jest/globals";

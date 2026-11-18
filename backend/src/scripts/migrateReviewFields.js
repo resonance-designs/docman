@@ -4,7 +4,7 @@
  * @script migrateReviewFields
  * @description Migration script to update documents from old reviewDate field to new review system
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

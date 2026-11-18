@@ -6,7 +6,7 @@
  *              pipelined commands, lazy reconnect, and connect/command timeouts. It implements only what
  *              DocMan needs (EVAL, PING, INFO, etc.) — any Redis command can be sent with command().
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import net from "net";

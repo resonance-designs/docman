@@ -4,7 +4,7 @@
  * @routes usersRoutes
  * @description User management routes for CRUD operations, profile updates, and administrative functions
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import express from "express";

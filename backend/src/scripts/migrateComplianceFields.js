@@ -11,7 +11,7 @@
  *
  * Usage (from backend/):  NODE_ENV=production node src/scripts/migrateComplianceFields.js [--dry-run]
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import dotenv from "dotenv";

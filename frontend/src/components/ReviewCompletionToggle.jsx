@@ -4,7 +4,7 @@
  * @component ReviewCompletionToggle
  * @description Toggle component for review assignees to mark their review as complete
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { useState } from "react";

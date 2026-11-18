@@ -3,7 +3,7 @@
  * @file /docman/backend/src/lib/fileIntegrity.js
  * @description SHA-256 helpers for recording and verifying stored document files.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from "crypto";

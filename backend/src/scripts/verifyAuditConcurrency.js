@@ -3,7 +3,7 @@
  * @description Force two independent publication retries to race against real MongoDB.
  * Usage: MONGO_URI=mongodb://127.0.0.1:27199/docman_verify_audit node src/scripts/verifyAuditConcurrency.js
  * Uses a new disposable database per run; never drops or edits historical audit entries.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import assert from 'node:assert/strict';

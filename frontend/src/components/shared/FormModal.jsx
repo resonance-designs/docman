@@ -4,7 +4,7 @@
  * @component FormModal
  * @description Reusable form modal component with validation, loading states, and error handling
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import PropTypes from "prop-types";

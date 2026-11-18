@@ -2,7 +2,7 @@
  * @name auditService Tests
  * @file /docman/backend/src/__tests__/compliance/auditService.test.js
  * @description Hash-chain audit log: canonical hashing, chaining, tamper detection, immutability hooks.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { jest } from "@jest/globals";

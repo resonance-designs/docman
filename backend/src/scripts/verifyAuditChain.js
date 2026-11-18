@@ -4,7 +4,7 @@
  * @description CLI check of the audit log hash chain. Exit code 0 = intact, 2 = tampering/corruption detected.
  *              Suitable for a nightly cron/systemd timer. Usage: NODE_ENV=production node src/scripts/verifyAuditChain.js
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import dotenv from "dotenv";

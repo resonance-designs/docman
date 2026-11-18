@@ -5,7 +5,7 @@
  *              chosen by config/redis.js (Upstash, self-hosted Redis, or in-memory).
  *              Default: 100 requests per 60 seconds per client key. Override with RATE_LIMIT_GENERAL="100/60s".
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { createRateLimiter } from "./redis.js";

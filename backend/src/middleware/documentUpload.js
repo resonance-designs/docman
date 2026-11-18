@@ -4,7 +4,7 @@
  * @description Upload middleware for document files. Applies the superadmin-configured maximum upload size and
  *              encryption-at-rest setting on every request, and streams through the encrypting storage engine.
  *              Profile images keep using uploadMid (they are not documents and are never encrypted).
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import multer from "multer";

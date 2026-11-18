@@ -2,7 +2,7 @@
  * @name documentUpload Tests
  * @file /docman/backend/src/__tests__/documentUpload.test.js
  * @description Streaming upload engine: no plaintext on disk, checksums, size limit from settings, fail-closed.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from 'node:crypto';

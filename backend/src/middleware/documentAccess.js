@@ -5,7 +5,7 @@
  * @description Per-document authorization. Loads the document named by a route param and checks that the
  *              current user may read or edit it. Denials are written to the audit log.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

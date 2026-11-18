@@ -4,7 +4,7 @@
  * @middleware inputValidation
  * @description Centralized input validation middleware for sanitizing and validating all user inputs
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import validator from 'validator';

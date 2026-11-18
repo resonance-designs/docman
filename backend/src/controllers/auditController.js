@@ -4,7 +4,7 @@
  * @controller auditController
  * @description Admin access to the audit log: search, export (CSV/JSON), and chain verification.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

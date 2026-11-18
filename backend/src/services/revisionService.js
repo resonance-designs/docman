@@ -4,7 +4,7 @@
  * @service revisionService
  * @description Records document metadata revisions (snapshot + diff) and reads revision history.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import DocumentRevision from "../models/DocumentRevision.js";

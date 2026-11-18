@@ -4,7 +4,7 @@
  * @model FileProtection
  * @description Encryption-at-rest metadata for one stored file version (same _id as the File record).
  *              Kept out of the File collection so wrapped keys never appear in file listings.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

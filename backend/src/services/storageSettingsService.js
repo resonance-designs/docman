@@ -3,7 +3,7 @@
  * @file /docman/backend/src/services/storageSettingsService.js
  * @description Superadmin-managed document storage settings: encryption at rest and maximum upload size.
  *              Stored in SystemSetting "documents.storage". Secrets (the master key) stay in the environment.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import SystemSetting from "../models/SystemSetting.js";

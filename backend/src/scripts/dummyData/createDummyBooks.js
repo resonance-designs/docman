@@ -3,7 +3,7 @@
  * @file /docman/backend/src/scripts/dummyData/createDummyBooks.js
  * @description Script to create dummy books in the database
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from 'mongoose';

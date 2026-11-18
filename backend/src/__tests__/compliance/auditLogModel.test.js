@@ -2,7 +2,7 @@
  * @name AuditLog model immutability Tests
  * @file /docman/backend/src/__tests__/compliance/auditLogModel.test.js
  * @description Query middleware must reject updates/deletes before anything reaches MongoDB.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

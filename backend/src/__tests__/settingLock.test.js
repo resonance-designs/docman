@@ -2,7 +2,7 @@
  * @name settingLock Tests
  * @file /docman/backend/src/__tests__/settingLock.test.js
  * @description Cross-process lock used for the last-superadmin guard.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 const mockRows = new Map();

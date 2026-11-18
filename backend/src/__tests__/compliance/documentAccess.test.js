@@ -2,7 +2,7 @@
  * @name documentAccess Tests
  * @file /docman/backend/src/__tests__/compliance/documentAccess.test.js
  * @description Per-document read/edit/approve rules and the middleware's 400/404/403 handling.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { jest } from "@jest/globals";

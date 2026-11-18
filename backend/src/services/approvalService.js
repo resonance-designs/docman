@@ -16,7 +16,7 @@
  *  - APPROVAL_REQUIRED=false publishes uploads immediately (still audited).
  *  - APPROVAL_MIN_APPROVALS sets how many distinct approvals publish a version (default 1).
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import fs from "fs";

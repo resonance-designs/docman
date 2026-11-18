@@ -3,7 +3,7 @@
  * @file /docman/backend/src/__tests__/compliance/redisProvider.test.js
  * @description Provider selection, in-memory limiter, RESP protocol, and the self-hosted Redis client against a
  *              fake RESP server (AUTH/SELECT/PING/EVAL). The EVAL handler mirrors the sliding-window Lua script.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import net from "net";

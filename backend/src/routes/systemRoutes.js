@@ -4,7 +4,7 @@
  * @routes systemRoutes
  * @description System information routes for health checks, status monitoring, and diagnostics
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { getStorageSettingsHandler, updateStorageSettingsHandler } from '../controllers/storageSettingsController.js';

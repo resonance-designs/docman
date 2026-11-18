@@ -6,7 +6,7 @@
  *              document stores a full metadata snapshot plus the field-level diff from the previous revision.
  *              File content versions are tracked separately in the File model.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";

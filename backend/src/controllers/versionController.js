@@ -5,7 +5,7 @@
  * @description File versions, secure downloads, change approval, revision history, and per-document audit trail.
  *              All handlers expect requireDocumentAccess() to have loaded req.document.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { openStoredFile } from '../services/storedFileService.js';

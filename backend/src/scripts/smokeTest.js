@@ -9,7 +9,7 @@
  *        Admin credentials default to the safe-seed account (DOCMAN_DEFAULT_EMAIL / DOCMAN_DEFAULT_PASSWORD).
  *        Requires LOCAL_SELF_REGISTRATION_ENABLED not "false" (test users are registered as viewers).
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from "crypto";

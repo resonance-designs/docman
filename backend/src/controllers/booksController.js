@@ -4,7 +4,7 @@
  * @controller booksController
  * @description Book management controller for organizing documents into collections
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { documentReadFilter } from "../middleware/documentAccess.js";

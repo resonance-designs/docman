@@ -7,7 +7,7 @@
  *              Document files are NEVER served from this route; they are downloaded through
  *              GET /api/docs/:id/files/:fileId/download, which checks access, verifies the checksum, and audits.
  * @author Richard Bakos
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import express from "express";

@@ -2,7 +2,7 @@
  * @name storageEncryption Tests
  * @file /docman/backend/src/__tests__/storageEncryption.test.js
  * @description Chunked AES-256-GCM encryption at rest: round trips and tamper detection.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from 'node:crypto';

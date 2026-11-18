@@ -2,7 +2,7 @@
  * @name approvalService Tests
  * @file /docman/backend/src/__tests__/compliance/approvalService.test.js
  * @description Change-approval workflow: separation of duties, approver checks, thresholds, publishing.
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import { jest } from "@jest/globals";

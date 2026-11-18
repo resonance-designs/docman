@@ -4,7 +4,7 @@
  * @description Short-lived cross-process lock stored in the SystemSetting collection (unique `key`).
  *              Works on a standalone MongoDB (no transactions or replica set required). Used to serialize
  *              operations whose safety depends on a count, such as "at least one active superadmin remains".
- * @version 2.3.0
+ * @version 3.0.0
  * @license UNLICENSED
  */
 import crypto from "crypto";
