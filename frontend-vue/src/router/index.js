@@ -1,3 +1,5 @@
+import AcceptInvitationView from '@/views/auth/AcceptInvitationView.vue';
+import RegisterView from '@/views/auth/RegisterView.vue';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 import SuiteHome from '@/views/SuiteHome.vue';
 import LoginView from '@/views/auth/LoginView.vue';
@@ -18,6 +20,8 @@ import ApprovalsView from '@/views/approvals/ApprovalsView.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const routes = [
+  { path: '/accept-invitation', component: AcceptInvitationView },
+  { path: '/register', component: RegisterView },
   { path: '/notifications', component: () => import('@/views/NotificationsView.vue'), meta: { requiresAuth: true } },
   { path: '/admin/users', name: 'user-management', component: UsersView, meta: { requiresAuth: true, roles: ['superadmin'] } },
   {

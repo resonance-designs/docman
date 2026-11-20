@@ -203,7 +203,7 @@ Suite registration authority:
 
 * Authentik should be treated as the canonical place where new suite users create their primary account
 * `RDocMan` should own only the local shadow user/profile/role record for app-specific settings
-* set `LOCAL_SELF_REGISTRATION_ENABLED=false` in production when you want to disable the legacy local `/auth/register` path
+* Keep **System Settings → Accounts and passwords → Allow local self-registration** off (default); this database policy replaces `LOCAL_SELF_REGISTRATION_ENABLED`. See [account invitations and password policy](docs/account-invitations.md).
 
 How to get the real `sub` today:
 

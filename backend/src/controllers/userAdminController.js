@@ -1,3 +1,6 @@
+import crypto from 'node:crypto';
+import { deliverInvitation, invitationUrl } from './invitationController.js';
+import { getAccountPolicy, passwordError } from '../services/accountPolicyService.js';
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
@@ -6,13 +9,13 @@ import { withSettingLock } from '../lib/settingLock.js';
 
 const SUPERADMIN_GUARD_LOCK = 'users.superadmin-guard';
 
-const fields = ['firstname', 'lastname', 'email', 'username', 'role', 'department', 'title', 'isActive', 'identityProvider', 'createdAt', 'updatedAt'];
+const fields = ['firstname', 'lastname', 'email', 'username', 'role', 'department', 'title', 'isActive', 'identityProvider', 'createdAt', 'updatedAt', 'invitationPending', 'invitationExpires'];
 const roles = ['viewer', 'editor', 'admin', 'superadmin'];
 const fail = (message, statusCode = 400) => Object.assign(new Error(message), { statusCode });
 const escapeRegex = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const publicUser = user => Object.fromEntries(['_id', ...fields].map(key => [key, key === 'isActive' ? user[key] !== false : user[key]]));
 
-export function validateAccount(body, creating = false) {
+export function validateAccount(body, creating = false, policy = { minLength: 18 }) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw fail('Account details are required.');
     const data = {};
     for (const field of ['firstname', 'lastname', 'email', 'username', 'department', 'title']) {
@@ -37,9 +40,8 @@ export function validateAccount(body, creating = false) {
     }
     if (creating || body.password !== undefined) {
         const password = body.password;
-        if (typeof password !== 'string' || [...password].length < 18 || Buffer.byteLength(password, 'utf8') > 72 || /[\x00-\x1f\x7f]/.test(password)) {
-            throw fail('Password must be at least 18 characters and at most 72 UTF-8 bytes, without control characters.');
-        }
+        const error = passwordError(password, policy);
+        if (error) throw fail(error);
         data.password = password;
     }
     return data;
@@ -81,22 +83,31 @@ export async function listAccounts(req, res) {
 
 export async function createAccount(req, res) {
     try {
-        const data = validateAccount(req.body, true);
+        invitationUrl('configuration-check');
+        const policy = await getAccountPolicy();
+        const data = validateAccount({ ...req.body, password: crypto.randomBytes(32).toString('hex'), isActive: false }, true, policy);
         // Canonicalize new usernames so concurrent case variants hit the unique index.
         data.username = data.username.toLowerCase();
         await checkDuplicates(data);
-        const user = await User.create({ ...data, identityProvider: 'local', lastUpdatedBy: req.user.id });
+        const user = await User.create({ ...data, identityProvider: 'local', invitationPending: true, lastUpdatedBy: req.user.id });
         await record(req, { action: AUDIT_ACTIONS.USER_CREATE, resourceType: 'user', resourceId: user._id, summary: `Created account ${user.username}`, metadata: { role: user.role } });
-        res.status(201).json({ user: publicUser(user) });
+        try {
+            await deliverInvitation(user, req);
+            res.status(201).json({ user: publicUser(user), message: 'Account created and invitation sent.' });
+        } catch {
+            res.status(201).json({ user: publicUser(user), invitationSent: false, message: 'Account created, but invitation delivery failed. Use Resend invitation after checking email settings.' });
+        }
     } catch (error) { respondError(res, error); }
 }
 
 export async function editAccount(req, res) {
     try {
         if (!mongoose.isValidObjectId(req.params.id)) throw fail('Invalid account identifier.');
-        const data = validateAccount(req.body);
+        const data = validateAccount(req.body, false, await getAccountPolicy());
         const before = await User.findById(req.params.id).lean();
         if (!before) throw fail('Account not found.', 404);
+        if (before.invitationPending && (data.password !== undefined || data.isActive === true || data.email !== undefined && data.email !== before.email)) throw fail('Pending accounts must accept an invitation. Revoke the invitation before changing email or setting a password.');
+        if (before.invitationPending && data.isActive === false) { data.invitationPending = false; data.invitationTokenHash = null; data.invitationExpires = null; }
         // Offboarding: a superadmin can demote or disable ANOTHER superadmin, never themselves, and never the
         // last active one. The check and the update run under a cross-process lock so two superadmins cannot
         // remove each other at the same moment.
@@ -127,7 +138,7 @@ export async function editAccount(req, res) {
         };
         const user = removesSuperadmin ? await withSettingLock(SUPERADMIN_GUARD_LOCK, apply) : await apply();
         await record(req, { action: passwordChanged ? AUDIT_ACTIONS.USER_PASSWORD_RESET : (data.role && data.role !== before.role ? AUDIT_ACTIONS.USER_ROLE_CHANGE : AUDIT_ACTIONS.USER_UPDATE), resourceType: 'user', resourceId: user._id,
-            summary: `Updated account ${user.username}`, changes: diffFields(publicUser(before), publicUser(user), fields.filter(key => !['createdAt', 'updatedAt'].includes(key))), metadata: { passwordChanged } });
+            summary: `Updated account ${user.username}`, changes: diffFields(publicUser(before), publicUser(user), fields.filter(key => !['createdAt', 'updatedAt', 'invitationPending', 'invitationExpires'].includes(key))), metadata: { passwordChanged } });
         res.json({ user: publicUser(user) });
     } catch (error) { respondError(res, error); }
 }

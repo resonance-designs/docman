@@ -1,5 +1,10 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## Account invitations and policy — November 20, 2026
+
+Implemented superadmin account invitations (24-hour, hashed single-use tokens, inactive until accepted), resend/revoke controls, public activation page, and account settings. Minimum length configurable 14–24 (default 18); the 72-byte bcrypt cap remains. Self-registration defaults off and is controlled in the database, replacing LOCAL_SELF_REGISTRATION_ENABLED; enabled public signup is viewer-only and still does not verify email. See [operations and acceptance checklist](docs/account-invitations.md). Existing accounts are unchanged. Initial CLI bootstrap remains independent of email. Changes are local, not deployed to NMDOH. Live invitation/browser and real-database concurrency acceptance remain pending. Do not include private local operations notes or temporary infrastructure workarounds in commits.
+
+
 ## Fresh-server installer and NMDOH validation — November 18, 2026
 
 Follow-up user requirement: provide an `update.sh` as well. Implemented the standard-layout updater and [complete update/recovery guide](docs/deployment/automated-updates.md), with `--check`, interactive target selection or `--ref`, builds before downtime, a mandatory encrypted pre-update snapshot, the shared maintenance lock, staged dependencies/Vue publication, migrations and HTTPS checks. It supports the existing non-root checkout owner (including NMDOH's `rbakos`) and `docman-build`. Obtain the updater in a separate tools clone on old servers; do not pull the live checkout first and lose the old source baseline. No automatic code-only rollback after mutation: failures stop writers and retain an ACTIVE guard plus recovery artifacts. Missing encryption/email machine keys are generated only if no corresponding encrypted records exist; existing keys/credentials/accounts are preserved. Local safety/backup integration evidence is in the update guide; full Ubuntu VM update/reboot/interruption acceptance remains pending. No NMDOH update was executed.

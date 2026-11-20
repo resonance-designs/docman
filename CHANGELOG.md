@@ -4,16 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [3.0.1] - 2026-11-18
 
-Focus on making the current release dependable for a reliable demo for secure document management in an enterprise or government level environment.
-
 ### Added
 
+- Superadmin-created accounts now receive 24-hour single-use email invitations to choose their own passwords, with pending status, resend/revoke actions, and explicit delivery-failure recovery.
+- Account settings for minimum password length (14–24, default 18) and local self-registration (off by default), with a viewer-only signup page and shared backend password policy. The existing 72 UTF-8 byte limit remains.
 - Interactive `update.sh` for existing standard-layout Ubuntu deployments: staged unprivileged builds, encrypted pre-update snapshots, maintenance locking, preserved configuration/keys, migration/result checks, matching frontend publication and trusted HTTPS verification. Includes failure-boundary tests and beginner update/recovery documentation; full Ubuntu VM update acceptance remains pending.
 - Interactive `install.sh` for fresh latest-LTS Ubuntu servers, with prerequisite installation, authenticated MongoDB/Redis, protected application keys, initial superadmin, Vue build, Apache/HTTPS, systemd startup, and optional encrypted backups/audit scheduling. Includes resumable configuration guards, beginner documentation and installer safety tests; full disposable-VM installation acceptance remains pending.
 - NMDOH POC deployment/validation execution record, separating confirmed server evidence from pending checks.
 
 ### Changed
 
+- Database-managed registration policy replaces the legacy environment switch. Existing accounts and passwords remain valid; bootstrap provisioning remains independent of email.
 - Allow an explicit backend `NODE_HOST`; fresh installations bind to loopback behind Apache while existing deployments retain the default when unset.
 
 ## [3.0.0] - 2026-11-18

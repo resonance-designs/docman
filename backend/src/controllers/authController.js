@@ -1,3 +1,4 @@
+import { getAccountPolicy, passwordError } from '../services/accountPolicyService.js';
 /*
  * @name authController
  * @file /docman/backend/src/controllers/authController.js
@@ -31,9 +32,6 @@ import {
     sanitizeEmail
 } from "../lib/validation.js";
 
-function isLocalSelfRegistrationEnabled() {
-    return process.env.LOCAL_SELF_REGISTRATION_ENABLED !== "false";
-}
 
 /**
  * Helper function to set refresh token cookie
@@ -57,9 +55,9 @@ function setRefreshCookie(res, token) {
  */
 export async function register(req, res) {
     try {
-        if (!isLocalSelfRegistrationEnabled()) {
+        if (!(await getAccountPolicy()).selfRegistrationEnabled) {
             return res.status(403).json({
-                message: "Local self-registration is disabled. Create a Resonance Account through Authentik instead.",
+                message: "Self-registration is disabled. Ask an administrator for an invitation.",
             });
         }
 
@@ -77,7 +75,8 @@ export async function register(req, res) {
         const emailResult = validateEmail(email);
         if (!emailResult.isValid) validationErrors.push({ field: "email", message: emailResult.error });
 
-        const passwordResult = validatePassword(password);
+        const policyError = passwordError(password, await getAccountPolicy());
+        const passwordResult = { isValid: !policyError, error: policyError };
         if (!passwordResult.isValid) validationErrors.push({ field: "password", message: passwordResult.error });
 
         if (role && role !== "viewer") {
@@ -223,7 +222,7 @@ export async function forgotPassword(req, res) {
     if (typeof email !== "string" || !email) return res.status(400).json({ message: "Email is required." });
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     // Same response whether or not the account exists (prevents account enumeration)
-    if (!user) return res.json(genericResponse);
+    if (!user || user.isActive === false || user.invitationPending || user.identityProvider === 'authentik') return res.json(genericResponse);
 
     const token = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = hashResetToken(token); // only the hash is stored
@@ -258,10 +257,12 @@ export async function resetPassword(req, res) {
     if (typeof token !== "string" || !token || typeof password !== "string") {
         return res.status(400).json({ message: "Invalid or expired token." });
     }
-    const passwordResult = validatePassword(password);
+    const policyError = passwordError(password, await getAccountPolicy());
+        const passwordResult = { isValid: !policyError, error: policyError };
     if (!passwordResult.isValid) return res.status(400).json({ message: passwordResult.error });
 
     const user = await User.findOne({
+        isActive: { $ne: false }, invitationPending: { $ne: true }, identityProvider: { $ne: 'authentik' },
         resetPasswordToken: hashResetToken(token),
         resetPasswordExpires: { $gt: Date.now() }
     });
