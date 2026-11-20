@@ -1,5 +1,10 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## Hosting retirement — November 20, 2026
+
+Render is no longer a deployment target. Removed active hosting instructions/navigation and replaced legacy NODE_ENV=render startup scripts with production mode. Use self-hosted Ubuntu/Linode guidance. The external service/Git integration and obsolete DNS records are not controlled by this repository and have not been disabled here; retire those before merging if automatic deployment is still enabled. Historical changelog entries remain historical.
+
+
 ## Resource management interfaces — November 20, 2026
 
 Follow-up gap pass: team/project resource permissions aligned with management roles; malformed inputs and invitation resend/reuse cases tested. Activity resource names are filtered by current access. Vue retries, route-change handling and mobile account actions corrected. Browser checks use synthetic API fixtures; live database, SMTP and multi-user acceptance remain separate. Final follow-up verification: 186 focused tests passed, Vue production build passed, both PDFs rebuilt/rendered. Fixed the document detail review-date timezone shift; timestamps remain localized.

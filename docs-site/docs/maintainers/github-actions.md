@@ -4,12 +4,7 @@ sidebar_position: 3
 
 # GitHub Actions
 
-The repository has two deployment concerns:
-
-- Render auto-deploys from GitHub through Render's own GitHub integration.
-- GitHub Actions can deploy to Linode over SSH when configured.
-
-Render does not require a GitHub Actions workflow unless maintainers intentionally switch to Render deploy hooks or API-based deploys.
+Application deployment to Linode is manual-only through GitHub Actions. Independently hosted Ubuntu servers use the documented installer/updater. Dependency audits and installer safety checks do not deploy the application.
 
 ## GitHub Pages Docs Site
 

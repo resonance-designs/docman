@@ -111,9 +111,9 @@ REFRESH_TOKEN_SECRET=your-refresh-secret
 ATLAS=no
 ```
 
-#### Render + MongoDB Atlas
+#### Optional MongoDB Atlas configuration
 
-Set the Render start command to `npm run start` and add these values in Render under **Environment Variables**. Do not use a Secret File for these values; the backend reads them from `process.env`.
+For a self-hosted deployment using Atlas, configure the backend environment with the following values. Follow the Ubuntu deployment guide for protected settings files and service setup.
 
 ```env
 NODE_ENV=production
@@ -126,7 +126,7 @@ UPSTASH_REDIS_REST_URL=<upstash-rest-url>
 UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 ```
 
-Render provides `PORT` automatically. The backend will use `PORT` first, then `NODE_PORT`, then `5001`.
+The backend uses `PORT` first, then `NODE_PORT`, then `5001`; configure the port to match the reverse proxy.
 
 Use `MONGO_URI` or `MONGODB_URI` for a full MongoDB connection string. `MONGO_ATLAS_URI` is not read by the backend.
 
@@ -236,7 +236,7 @@ The Vue/Vuetify frontend should be brought to feature parity in phases. The curr
 The existing React frontend should remain intact until the Vue/Vuetify frontend covers the primary workflows.
 ## ⚙️ Production Deployment & Update Scripts
 
-Maintainers should read the [Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md) before cutting release branches, operating Render, or changing deployment automation.
+Maintainers should read the [Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md) before cutting release branches, operating self-hosted servers, or changing deployment automation.
 
 DocMan includes three scripts to manage deployment and updates on a production Apache server.
 
@@ -422,7 +422,7 @@ frontend-vue/
 ### For Developers
 
 - **[Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md)** - Complete setup and workflow guide
-- **[Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md)** - Release branches, tags, Render, GitHub Actions, and deployment safety
+- **[Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md)** - Release branches, tags, Ubuntu/Linode, GitHub Actions, and deployment safety
 - **[Docs Site](./docs-site/README.md)** - Docusaurus source for the published DocMan documentation site
 - **[Architecture Decision Records](./docs/architecture/README.md)** - Design decisions and rationale
 - **[API Documentation](http://localhost:5001/api-docs)** - Interactive API documentation

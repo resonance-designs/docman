@@ -21,6 +21,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Retire Render hosting guidance, docs navigation and legacy startup environment; retain self-hosted Ubuntu/Linode deployment and optional Atlas support.
+
 - Fix review calendar dates displaying the previous day in timezones west of UTC, while retaining local-time activity timestamps.
 - Close management permission and invitation-retry gaps; filter activity resource names by current access. Improve failed-load recovery, public-link route refresh and narrow-screen account actions; refresh both PDF manuals for the management interfaces.
 

@@ -9,7 +9,6 @@ DocMan is a document management application for organizing documents, books, tea
 This site is focused on project maintainers:
 
 - release branch and tag workflow
-- Render deployment
 - Linode deployment
 - Cloudflare routing
 - Atlas data safety
