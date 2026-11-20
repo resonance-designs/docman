@@ -6,7 +6,6 @@
 import ReviewAssignment from "../models/ReviewAssignment.js";
 import Doc from "../models/Doc.js";
 import User from "../models/User.js";
-import { sendEmail } from "../lib/emailService.js";
 import mongoose from "mongoose";
 import { record, AUDIT_ACTIONS } from "../services/auditService.js";
 import { canEditDocument, canReadDocument, isAdmin } from "../middleware/documentAccess.js";
@@ -64,14 +63,8 @@ export async function createReviewAssignments(req, res) {
             
             await newAssignment.save();
             createdAssignments.push(newAssignment);
+            // Saving the assignment queues its activity notification.
 
-            // Send email notification to assignee
-            try {
-                await sendReviewAssignmentEmail(newAssignment, doc);
-            } catch (emailError) {
-                console.error("Error sending email notification:", emailError);
-                // Don't fail the entire operation if email fails
-            }
         }
 
         await record(req, {
@@ -336,76 +329,6 @@ export async function getOverdueReviewAssignments(req, res) {
     }
 }
 
-/**
- * Send email notification for review assignment
- * @param {Object} assignment - Review assignment object
- * @param {Object} doc - Document object
- * @returns {Promise<void>}
- */
-async function sendReviewAssignmentEmail(assignment, doc) {
-    try {
-        // Get assignee details
-        const assignee = await User.findById(assignment.assignee);
-        if (!assignee) return;
-
-        // Get document details
-        const document = doc || await Doc.findById(assignment.document);
-        if (!document) return;
-
-        // Get assigned by details
-        const assignedBy = await User.findById(assignment.assignedBy);
-        if (!assignedBy) return;
-
-        const subject = `Document Review Assignment: ${document.title}`;
-
-        const text = `
-Hello ${assignee.firstname},
-
-You have been assigned to review the document "${document.title}" by ${assignedBy.firstname} ${assignedBy.lastname}.
-
-Document details:
-- Title: ${document.title}
-- Due Date: ${assignment.dueDate.toDateString()}
-${assignment.notes ? `- Notes: ${assignment.notes}` : ''}
-
-Please review this document and provide your feedback.
-
-Best regards,
-DocMan System
-        `;
-
-        const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Document Review Assignment</title>
-</head>
-<body>
-    <h2>Hello ${assignee.firstname},</h2>
-    
-    <p>You have been assigned to review the document <strong>"${document.title}"</strong> by ${assignedBy.firstname} ${assignedBy.lastname}.</p>
-    
-    <h3>Document details:</h3>
-    <ul>
-        <li><strong>Title:</strong> ${document.title}</li>
-        <li><strong>Due Date:</strong> ${assignment.dueDate.toDateString()}</li>
-        ${assignment.notes ? `<li><strong>Notes:</strong> ${assignment.notes}</li>` : ''}
-    </ul>
-    
-    <p>Please review this document and provide your feedback.</p>
-    
-    <p>Best regards,<br>
-    DocMan System</p>
-</body>
-</html>
-        `;
-
-        await sendEmail(assignee.email, subject, text, html);
-    } catch (error) {
-        console.error("Error sending review assignment email:", error);
-        throw error;
-    }
-}
 
 /**
  * Create update assignment for author when updates are required
@@ -430,13 +353,8 @@ async function createUpdateAssignment(reviewAssignment) {
         });
 
         await updateAssignment.save();
+        // Saving the assignment queues its activity notification.
 
-        // Send email notification to author
-        try {
-            await sendUpdateAssignmentEmail(updateAssignment, doc);
-        } catch (emailError) {
-            console.error("Error sending update assignment email:", emailError);
-        }
 
         return updateAssignment;
     } catch (error) {
@@ -445,70 +363,6 @@ async function createUpdateAssignment(reviewAssignment) {
     }
 }
 
-/**
- * Send email notification for update assignment
- * @param {Object} assignment - Update assignment object
- * @param {Object} doc - Document object
- * @returns {Promise<void>}
- */
-async function sendUpdateAssignmentEmail(assignment, doc) {
-    try {
-        // Get assignee details (author)
-        const assignee = await User.findById(assignment.assignee);
-        if (!assignee) return;
-
-        // Get assigned by details (reviewer)
-        const assignedBy = await User.findById(assignment.assignedBy);
-        if (!assignedBy) return;
-
-        const subject = `Document Update Required: ${doc.title}`;
-
-        const text = `
-Hello ${assignee.firstname},
-
-Based on a recent review, updates have been requested for the document "${doc.title}".
-
-Review details:
-- Reviewer: ${assignedBy.firstname} ${assignedBy.lastname}
-- Notes: ${assignment.notes}
-
-Please make the necessary updates to this document.
-
-Best regards,
-DocMan System
-        `;
-
-        const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Document Update Required</title>
-</head>
-<body>
-    <h2>Hello ${assignee.firstname},</h2>
-    
-    <p>Based on a recent review, updates have been requested for the document <strong>"${doc.title}"</strong>.</p>
-    
-    <h3>Review details:</h3>
-    <ul>
-        <li><strong>Reviewer:</strong> ${assignedBy.firstname} ${assignedBy.lastname}</li>
-        <li><strong>Notes:</strong> ${assignment.notes}</li>
-    </ul>
-    
-    <p>Please make the necessary updates to this document.</p>
-    
-    <p>Best regards,<br>
-    DocMan System</p>
-</body>
-</html>
-        `;
-
-        await sendEmail(assignee.email, subject, text, html);
-    } catch (error) {
-        console.error("Error sending update assignment email:", error);
-        throw error;
-    }
-}
 
 /**
  * Clean up duplicate review assignments for a document, keeping only the latest for each assignee
@@ -671,17 +525,16 @@ export async function markAllReviewAssignmentsCompleted(documentId, completedBy)
  */
 export async function resetReviewAssignmentsForNewCycle(documentId) {
     try {
-        // Reset all existing review assignments for this document to pending
-        await ReviewAssignment.updateMany(
-            { document: documentId },
-            { 
-                status: 'pending',
-                completedDate: null,
-                requiresUpdates: false,
-                updateNotes: null
-            }
-        );
-        
+        // Save individually so each changed review receives the same notification handling.
+        const assignments = await ReviewAssignment.find({ document: documentId });
+        for (const assignment of assignments) {
+            assignment.status = 'pending';
+            assignment.completedDate = null;
+            assignment.requiresUpdates = false;
+            assignment.updateNotes = null;
+            await assignment.save();
+        }
+
         console.log(`Reset review assignments for document ${documentId} for new review cycle`);
     } catch (error) {
         console.error("Error resetting review assignments:", error);

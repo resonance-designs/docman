@@ -284,6 +284,10 @@ export async function getUserById(userId, requestingUser) {
  */
 export async function updateUser(userId, updateData, requestingUser) {
     try {
+        if (['password', 'email', 'username', 'role', 'isActive', 'identityProvider', 'authentikSub'].some(key => updateData[key] !== undefined)) {
+            throw new Error('Use My account for password changes or superadmin account administration for identity and access changes.');
+        }
+
         // Check access permissions
         if (!hasUserAccess(requestingUser.id, requestingUser.role, userId)) {
             throw new Error("Access denied");

@@ -1,3 +1,8 @@
+import Team from '../models/Team.js';
+import Project from '../models/Project.js';
+import Doc from '../models/Doc.js';
+import mongoose from 'mongoose';
+import User from '../models/User.js';
 /*
  * @name booksController
  * @file /docman/backend/src/controllers/booksController.js
@@ -19,39 +24,42 @@ import Category from "../models/Category.js";
  */
 export async function getAllBooks(req, res) {
     try {
-        const { 
-            limit = 50, 
-            page = 1, 
-            category, 
-            owner, 
-            search, 
-            startDate, 
-            endDate, 
-            sortBy = 'createdAt', 
-            sortOrder = 'desc' 
+        const {
+            limit = 50,
+            page = 1,
+            category,
+            owner,
+            search,
+            startDate,
+            endDate,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
         } = req.query;
 
         // Parse pagination
-        const limitNum = Math.min(parseInt(limit) || 50, 100); // Max 100 books per page
+        const limitNum = Math.max(1, Math.min(parseInt(limit) || 50, 100)); // Max 100 books per page
         const skip = (Math.max(parseInt(page) || 1, 1) - 1) * limitNum;
 
         // Build filter query
         const filter = {};
-        
+
+        if ([category, owner].some(value => value !== undefined && (typeof value !== 'string' || !mongoose.isValidObjectId(value)))) return res.status(400).json({message:'Invalid category or owner filter.'});
+        if ([startDate,endDate].some(value => value && (typeof value !== 'string' || Number.isNaN(new Date(value).getTime())))) return res.status(400).json({message:'Invalid date filter.'});
+
         // Category filter
         if (category) filter.category = category;
-        
+
         // Owner filter
         if (owner) filter.owners = { $in: [owner] };
-        
+
         // Text search filter (search in title and description)
         if (search) {
             filter.$or = [
-                { title: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+                { title: { $regex: String(search).slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+                { description: { $regex: String(search).slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
             ];
         }
-        
+
         // Date range filter
         if (startDate || endDate) {
             filter.createdAt = {};
@@ -127,8 +135,9 @@ export async function getBookById(req, res) {
  */
 export async function createBook(req, res) {
     try {
+        if (!await validateBookInput(req,res,true)) return;
         const { title, description, category, documents, owners } = req.body;
-        
+
         if (!title) {
             return res.status(400).json({ message: "Book title is required" });
         }
@@ -164,9 +173,9 @@ export async function createBook(req, res) {
             .populate('owners', 'firstname lastname email')
             .populate('lastUpdatedBy', 'firstname lastname email');
 
-        res.status(201).json({ 
-            message: "Book created successfully", 
-            book: populatedBook 
+        res.status(201).json({
+            message: "Book created successfully",
+            book: populatedBook
         });
     } catch (error) {
         console.error("Error creating book:", error);
@@ -182,98 +191,70 @@ export async function createBook(req, res) {
  */
 export async function updateBook(req, res) {
     try {
-        console.log("📚 UpdateBook: Request body:", req.body);
-        console.log("📚 UpdateBook: Book ID:", req.params.id);
-        console.log("📚 UpdateBook: User:", req.user);
-        
+        if (!await validateBookInput(req,res,false)) return;
+
         const { title, description, category, documents, owners } = req.body;
-        
+
         const book = await Book.findById(req.params.id);
-        console.log("📚 UpdateBook: Found book:", book ? "Yes" : "No");
         if (!book) {
             return res.status(404).json({ message: "Book not found" });
         }
 
         // Check if user has permission to update (owner or admin)
-        console.log("📚 UpdateBook: Checking permissions...");
-        console.log("📚 UpdateBook: Book owners:", book.owners);
-        console.log("📚 UpdateBook: User ID:", req.user.id);
-        console.log("📚 UpdateBook: User _id:", req.user._id);
-        console.log("📚 UpdateBook: User role:", req.user.role);
-        
+
         const userId = req.user.id || req.user._id;
-        console.log("📚 UpdateBook: Using user ID:", userId);
-        console.log("📚 UpdateBook: Is owner?", book.isOwner(userId));
-        
+
         if (!book.isOwner(userId) && req.user.role !== 'superadmin') {
-            console.log("📚 UpdateBook: Permission denied");
             return res.status(403).json({ message: "Not authorized to update this book" });
         }
 
         // If category is being updated, verify it's of type 'Book'
-        console.log("📚 UpdateBook: Checking category...");
-        console.log("📚 UpdateBook: New category:", category);
-        console.log("📚 UpdateBook: Current category:", book.category.toString());
-        
+
         if (category && category !== book.category.toString()) {
-            console.log("📚 UpdateBook: Category is being changed, validating...");
             const categoryDoc = await Category.findById(category);
             if (!categoryDoc) {
-                console.log("📚 UpdateBook: Category not found");
                 return res.status(400).json({ message: "Category not found" });
             }
             if (categoryDoc.type !== 'Book') {
-                console.log("📚 UpdateBook: Category is not of type 'Book':", categoryDoc.type);
                 return res.status(400).json({ message: "Category must be of type 'Book'" });
             }
-            console.log("📚 UpdateBook: Category validation passed");
         }
 
         // Update fields
-        console.log("📚 UpdateBook: Updating fields...");
         if (title) {
-            console.log("📚 UpdateBook: Updating title:", title);
             book.title = title;
         }
         if (description !== undefined) {
-            console.log("📚 UpdateBook: Updating description:", description);
             book.description = description;
         }
         if (category) {
-            console.log("📚 UpdateBook: Updating category:", category);
             book.category = category;
         }
         if (documents) {
-            console.log("📚 UpdateBook: Updating documents:", documents);
             book.documents = documents;
         }
         if (owners) {
-            console.log("📚 UpdateBook: Updating owners:", owners);
             book.owners = owners;
         }
         book.lastUpdatedBy = userId;
 
-        console.log("📚 UpdateBook: Saving book...");
         await book.save();
-        console.log("📚 UpdateBook: Book saved successfully");
 
         // Populate the updated book for response
-        console.log("📚 UpdateBook: Populating book for response...");
         const populatedBook = await Book.findById(book._id)
             .populate('category', 'name type')
             .populate({ path: 'documents', select: 'title description', match: documentReadFilter(req.user) })
             .populate('owners', 'firstname lastname email')
             .populate('lastUpdatedBy', 'firstname lastname email');
-        console.log("📚 UpdateBook: Book populated successfully");
 
-        res.status(200).json({ 
-            message: "Book updated successfully", 
-            book: populatedBook 
+        res.status(200).json({
+            message: "Book updated successfully",
+            book: populatedBook
         });
     } catch (error) {
         console.error("📚 UpdateBook: Error updating book:", error);
         console.error("📚 UpdateBook: Error stack:", error.stack);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        res.status(500).json({ message: "Internal Server Error",  });
     }
 }
 
@@ -296,6 +277,8 @@ export async function deleteBook(req, res) {
             return res.status(403).json({ message: "Not authorized to delete this book" });
         }
 
+        await Team.updateMany({books:book._id},{$pull:{books:book._id}});
+        await Project.updateMany({books:book._id},{$pull:{books:book._id}});
         await Book.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: "Book deleted successfully" });
     } catch (error) {
@@ -313,7 +296,7 @@ export async function deleteBook(req, res) {
 export async function addDocumentToBook(req, res) {
     try {
         const { documentId } = req.body;
-        
+
         const book = await Book.findById(req.params.id);
         if (!book) {
             return res.status(404).json({ message: "Book not found" });
@@ -325,6 +308,7 @@ export async function addDocumentToBook(req, res) {
             return res.status(403).json({ message: "Not authorized to modify this book" });
         }
 
+        if (typeof documentId !== 'string' || !mongoose.isValidObjectId(documentId) || !await Doc.exists({$and:[documentReadFilter(req.user),{_id:documentId}]})) return res.status(404).json({message:'Document unavailable.'});
         book.addDocument(documentId);
         book.lastUpdatedBy = userId;
         await book.save();
@@ -345,7 +329,7 @@ export async function addDocumentToBook(req, res) {
 export async function removeDocumentFromBook(req, res) {
     try {
         const { documentId } = req.params;
-        
+
         const book = await Book.findById(req.params.id);
         if (!book) {
             return res.status(404).json({ message: "Book not found" });
@@ -366,4 +350,19 @@ export async function removeDocumentFromBook(req, res) {
         console.error("Error removing document from book:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
+}
+async function validateBookInput(req, res, creating = false) {
+    const b = req.body || {};
+    if ((creating || b.title !== undefined) && (typeof b.title !== 'string' || !b.title.trim() || b.title.length > 254)) { res.status(400).json({message:'Enter a book title up to 254 characters.'}); return false; }
+    if (b.description !== undefined && (typeof b.description !== 'string' || b.description.length > 5000)) { res.status(400).json({message:'Description must be text up to 5000 characters.'}); return false; }
+    if (b.category !== undefined && !mongoose.isValidObjectId(b.category)) {res.status(400).json({message:'Select a valid book category.'});return false;}
+    for (const field of ['documents','owners']) {
+        if(b[field] === undefined) continue;
+        if(!Array.isArray(b[field]) || b[field].some(id => typeof id !== 'string' || !mongoose.isValidObjectId(id)) || (field==='owners' && !b[field].length)) {res.status(400).json({message:`Select valid ${field}.`});return false;}
+        const ids=[...new Set(b[field])];
+        const count = field==='documents' ? await Doc.countDocuments({$and:[documentReadFilter(req.user),{_id:{$in:ids}}]}) : await User.countDocuments({_id:{$in:ids},isActive:{$ne:false}});
+        if(count!==ids.length) {res.status(400).json({message:`One or more ${field} are unavailable.`});return false;}
+        b[field]=ids;
+    }
+    return true;
 }

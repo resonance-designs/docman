@@ -1,9 +1,11 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @author Richard Bakos
  * @version 3.0.0
  * @license UNLICENSED
  */
 import mongoose from "mongoose";
+
 
 const fileSchema = new mongoose.Schema({
     // Encrypted at rest (see lib/storageEncryption.js). Transparent to users.
@@ -76,5 +78,6 @@ fileSchema.pre('save', async function(next) {
     next();
 });
 
+fileSchema.plugin(notificationHooks, { kind: 'File' });
 export default mongoose.model("File", fileSchema);
 

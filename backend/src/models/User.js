@@ -1,3 +1,4 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @name User
  * @file /docman/backend/src/models/User.js
@@ -140,6 +141,8 @@ userSchema.index({ authentikSub: 1 }, { unique: true, sparse: true });
  * User model for managing user accounts and authentication
  * @type {mongoose.Model}
  */
+userSchema.plugin(notificationHooks, { kind: 'User' });
+
 const User = mongoose.model("User", userSchema);
 
 export default User;

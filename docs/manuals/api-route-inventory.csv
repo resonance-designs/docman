@@ -1,0 +1,159 @@
+id,method,path,handler,guards,source
+API-001,GET,/api/auth/account-policy,readPolicy,No route-level auth; inspect handler/global middleware,backend/src/routes/authRoutes.js:18
+API-002,POST,/api/auth/accept-invitation,acceptInvitation,limitPasswordReset,backend/src/routes/authRoutes.js:19
+API-003,POST,/api/auth/register,register,limitRegister,backend/src/routes/authRoutes.js:94
+API-004,POST,/api/auth/login,login,limitLogin,backend/src/routes/authRoutes.js:158
+API-005,POST,/api/auth/forgot-password,forgotPassword,limitPasswordReset,backend/src/routes/authRoutes.js:162
+API-006,POST,/api/auth/reset-password,resetPassword,limitPasswordReset,backend/src/routes/authRoutes.js:166
+API-007,GET,/api/auth/refresh,refreshToken,No route-level auth; inspect handler/global middleware,backend/src/routes/authRoutes.js:169
+API-008,POST,/api/auth/logout,logout,No route-level auth; inspect handler/global middleware,backend/src/routes/authRoutes.js:172
+API-009,GET,/api/auth/me,getCurrentSession,verifyAccessToken,backend/src/routes/authRoutes.js:175
+API-010,GET,/api/users/me/account,getAccount,verifyAccessToken,backend/src/routes/usersRoutes.js:35
+API-011,PATCH,/api/users/me/account,saveProfile,verifyAccessToken,backend/src/routes/usersRoutes.js:36
+API-012,POST,/api/users/me/password,changePassword,"verifyAccessToken, limitPasswordReset",backend/src/routes/usersRoutes.js:37
+API-013,POST,/api/users/manage/:id/invitation,resendInvitation,"verifyAccessToken, requireRole('superadmin'), limitPasswordReset",backend/src/routes/usersRoutes.js:40
+API-014,GET,/api/users/manage,listAccounts,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/usersRoutes.js:41
+API-015,POST,/api/users/manage,createAccount,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/usersRoutes.js:42
+API-016,PATCH,/api/users/manage/:id,editAccount,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/usersRoutes.js:43
+API-017,GET,/api/users,getAllUsers,"verifyAccessToken, requireRole(""viewer"")",backend/src/routes/usersRoutes.js:46
+API-018,GET,/api/users/authentik/unlinked,getUsersMissingAuthentikLink,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/usersRoutes.js:49
+API-019,POST,/api/users/authentik/link,linkUserToAuthentikIdentity,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/usersRoutes.js:52
+API-020,GET,/api/users/:id,getUserById,"verifyAccessToken, requireRole(""viewer"")",backend/src/routes/usersRoutes.js:55
+API-021,PUT,/api/users/:id,updateUser,"verifyAccessToken, requireRole(""viewer"")",backend/src/routes/usersRoutes.js:58
+API-022,POST,/api/users/:id/profile-picture,uploadProfilePicture,"verifyAccessToken, requireRole(""viewer""), uploadMid.single(""profilePicture"")",backend/src/routes/usersRoutes.js:61
+API-023,DELETE,/api/users/:id/profile-picture,deleteProfilePicture,"verifyAccessToken, requireRole(""viewer"")",backend/src/routes/usersRoutes.js:64
+API-024,POST,/api/users/:id/background-image,uploadBackgroundImage,"verifyAccessToken, requireRole(""viewer""), uploadMid.single(""backgroundImage"")",backend/src/routes/usersRoutes.js:67
+API-025,DELETE,/api/users/:id/background-image,deleteBackgroundImage,"verifyAccessToken, requireRole(""viewer"")",backend/src/routes/usersRoutes.js:70
+API-026,DELETE,/api/users/:id,deleteUser,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/usersRoutes.js:73
+API-027,GET,/api/docs/public/:token,publicDetails,resolvePublicDocument,backend/src/routes/docsRoutes.js:55
+API-028,GET,/api/docs/public/:token/download,publicDownload,resolvePublicDocument,backend/src/routes/docsRoutes.js:56
+API-029,GET,/api/docs/:id/sharing,sharingSettings,"verifyAccessToken, EDITOR, requireDocumentAccess('edit')",backend/src/routes/docsRoutes.js:57
+API-030,PUT,/api/docs/:id/sharing,setSharing,"verifyAccessToken, EDITOR, requireDocumentAccess('edit')",backend/src/routes/docsRoutes.js:58
+API-031,GET,/api/docs,getAllDocs,"verifyAccessToken, ANY_ROLE",backend/src/routes/docsRoutes.js:61
+API-032,POST,/api/docs,createDoc,"verifyAccessToken, EDITOR, documentUpload(""file"")",backend/src/routes/docsRoutes.js:62
+API-033,GET,/api/docs/approvals/pending,pendingApprovals,"verifyAccessToken, ANY_ROLE",backend/src/routes/docsRoutes.js:63
+API-034,GET,/api/docs/deleted,listDeletedDocs,"verifyAccessToken, ADMIN",backend/src/routes/docsRoutes.js:64
+API-035,GET,/api/docs/:id,getDocById,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:67
+API-036,GET,/api/docs/:id/files,listFiles,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:68
+API-037,GET,/api/docs/:id/files/:fileId/download,downloadFile,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:69
+API-038,GET,/api/docs/:id/version/:version,getVersion,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:70
+API-039,GET,/api/docs/:id/history,getVersionHistory,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:71
+API-040,GET,/api/docs/:id/compare,compareVersions,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:72
+API-041,GET,/api/docs/:id/revisions,revisions,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:73
+API-042,GET,/api/docs/:id/audit,documentAudit,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""audit"")",backend/src/routes/docsRoutes.js:76
+API-043,PUT,/api/docs/:id,updateDoc,"verifyAccessToken, EDITOR, requireDocumentAccess(""edit""), withUpload(uploadMid.none())",backend/src/routes/docsRoutes.js:79
+API-044,POST,/api/docs/:id/upload,uploadVersion,"verifyAccessToken, EDITOR, requireDocumentAccess(""edit""), documentUpload(""file"")",backend/src/routes/docsRoutes.js:80
+API-045,PUT,/api/docs/:id/review,markDocAsReviewed,"verifyAccessToken, EDITOR, requireDocumentAccess(""edit"")",backend/src/routes/docsRoutes.js:81
+API-046,POST,/api/docs/:id/versions/:version/approve,approve,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:84
+API-047,POST,/api/docs/:id/versions/:version/reject,reject,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:85
+API-048,POST,/api/docs/:id/versions/:version/withdraw,withdraw,"verifyAccessToken, ANY_ROLE, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:86
+API-049,DELETE,/api/docs/:id,deleteDoc,"verifyAccessToken, ADMIN, requireDocumentAccess(""read"")",backend/src/routes/docsRoutes.js:89
+API-050,POST,/api/docs/:id/restore,restoreDoc,"verifyAccessToken, ADMIN, requireDocumentAccess(""read"", { includeDeleted: true })",backend/src/routes/docsRoutes.js:90
+API-051,GET,/api/categories,getAllCategories,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/categoriesRoutes.js:24
+API-052,POST,/api/categories,createCategory,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/categoriesRoutes.js:27
+API-053,PUT,/api/categories/:id,updateCategory,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/categoriesRoutes.js:30
+API-054,DELETE,/api/categories/:id,deleteCategory,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/categoriesRoutes.js:33
+API-055,GET,/api/books,getAllBooks,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:38
+API-056,GET,/api/books/:id,getBookById,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:41
+API-057,POST,/api/books,createBook,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:44
+API-058,PUT,/api/books/:id,updateBook,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:47
+API-059,DELETE,/api/books/:id,deleteBook,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:50
+API-060,POST,/api/books/:id/documents,addDocumentToBook,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:53
+API-061,DELETE,/api/books/:id/documents/:documentId,removeDocumentFromBook,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/booksRoutes.js:56
+API-062,GET,/api/teams/my-teams,getUserTeams,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:63
+API-063,GET,/api/teams,getAllTeams,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:66
+API-064,GET,/api/teams/:id,getTeamById,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:69
+API-065,POST,/api/teams,createTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:72
+API-066,PUT,/api/teams/:id,updateTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:75
+API-067,DELETE,/api/teams/:id,deleteTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:78
+API-068,POST,/api/teams/:id/invite,inviteToTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:81
+API-069,POST,/api/teams/:id/members,addMemberToTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:82
+API-070,POST,/api/teams/accept/:token,acceptInvitation,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:83
+API-071,DELETE,/api/teams/:id/members/:userId,removeMember,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:84
+API-072,PUT,/api/teams/:id/members/:userId/role,updateMemberRole,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:85
+API-073,GET,/api/teams/:id/projects,getTeamProjects,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:88
+API-074,GET,/api/teams/:id/available-projects,getAvailableProjects,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:89
+API-075,POST,/api/teams/:id/projects,addProjectsToTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:90
+API-076,DELETE,/api/teams/:id/projects,removeProjectsFromTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:91
+API-077,GET,/api/teams/:id/books,getTeamBooks,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:94
+API-078,GET,/api/teams/:id/available-books,getAvailableBooks,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:95
+API-079,POST,/api/teams/:id/books,addBooksToTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:96
+API-080,DELETE,/api/teams/:id/books,removeBooksFromTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:97
+API-081,GET,/api/teams/:id/documents,getTeamDocuments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:100
+API-082,GET,/api/teams/:id/available-documents,getAvailableDocuments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:101
+API-083,POST,/api/teams/:id/documents,addDocumentsToTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:102
+API-084,DELETE,/api/teams/:id/documents,removeDocumentsFromTeam,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/teamsRoutes.js:103
+API-085,PUT,/api/projects/:id/collaborators/:userId/role,updateCollaboratorRole,"verifyAccessToken, requireRole('editor','admin','superadmin')",backend/src/routes/projectsRoutes.js:50
+API-086,GET,/api/projects,getAllProjects,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:53
+API-087,GET,/api/projects/my-projects,getUserProjects,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:56
+API-088,GET,/api/projects/team/:teamId,getTeamProjects,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:59
+API-089,GET,/api/projects/:id,getProjectById,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:62
+API-090,POST,/api/projects,createProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:65
+API-091,PUT,/api/projects/:id,updateProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:68
+API-092,DELETE,/api/projects/:id,deleteProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:71
+API-093,POST,/api/projects/:id/collaborators,addCollaborator,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:74
+API-094,DELETE,/api/projects/:id/collaborators/:userId,removeCollaborator,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:75
+API-095,GET,/api/projects/:id/collaborators,getProjectCollaborators,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:78
+API-096,GET,/api/projects/:id/available-collaborators,getAvailableCollaborators,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:79
+API-097,GET,/api/projects/:id/books,getProjectBooks,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:82
+API-098,GET,/api/projects/:id/available-books,getAvailableProjectBooks,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:83
+API-099,POST,/api/projects/:id/books,addBooksToProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:84
+API-100,DELETE,/api/projects/:id/books,removeBooksFromProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:85
+API-101,GET,/api/projects/:id/documents,getProjectDocuments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:88
+API-102,GET,/api/projects/:id/available-documents,getAvailableProjectDocuments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:89
+API-103,POST,/api/projects/:id/documents,addDocumentsToProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:90
+API-104,DELETE,/api/projects/:id/documents,removeDocumentsFromProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:91
+API-105,DELETE,/api/projects/:id/documents/:documentId,removeDocument,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:94
+API-106,GET,/api/system/public-sharing,readPublicSharingPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:38
+API-107,PUT,/api/system/public-sharing,savePublicSharingPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:39
+API-108,GET,/api/system/notifications,readNotificationSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:40
+API-109,PUT,/api/system/notifications,saveNotificationSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:41
+API-110,POST,/api/system/notifications/retry,retryNotifications,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:42
+API-111,GET,/api/system/accounts,readPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:43
+API-112,PUT,/api/system/accounts,savePolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:44
+API-113,GET,/api/system/storage,getStorageSettingsHandler,"verifyAccessToken, requireRole('viewer', 'editor', 'admin', 'superadmin')",backend/src/routes/systemRoutes.js:46
+API-114,PUT,/api/system/storage,updateStorageSettingsHandler,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:47
+API-115,GET,/api/system/email,getEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:48
+API-116,PUT,/api/system/email,updateEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:49
+API-117,POST,/api/system/email/test,testEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:50
+API-118,GET,/api/system/redis,getRedisSettings,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:73
+API-119,PUT,/api/system/redis,updateRedisSettings,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/systemRoutes.js:74
+API-120,GET,/api/system/info,getSystemInfo,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:76
+API-121,GET,/api/system/performance,getPerformanceMetrics,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:79
+API-122,POST,/api/system/clear/:collection,clearCollection,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:82
+API-123,POST,/api/system/restore/:collection,restoreCollection,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:85
+API-124,POST,/api/system/archive-files,archiveFiles,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:88
+API-125,POST,/api/system/restore-files,restoreFiles,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:91
+API-126,POST,/api/system/generate-dummy-data,generateDummyData,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:94
+API-127,GET,/api/analytics,getAnalyticsData,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/analyticsRoutes.js:24
+API-128,GET,/api/analytics/export,getAnalyticsExport,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/analyticsRoutes.js:27
+API-129,GET,/api/custom-charts,getAllCustomCharts,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:31
+API-130,GET,/api/custom-charts/:id,getCustomChartById,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:34
+API-131,GET,/api/custom-charts/:id/data,getChartData,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:37
+API-132,POST,/api/custom-charts,createCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:40
+API-133,PUT,/api/custom-charts/:id,updateCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:43
+API-134,DELETE,/api/custom-charts/:id,deleteCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:46
+API-135,POST,/api/reviews,createReviewAssignments,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:31
+API-136,GET,/api/reviews/document/:documentId,getDocumentReviewAssignments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:34
+API-137,GET,/api/reviews/user/:userId,getUserReviewAssignments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:37
+API-138,PUT,/api/reviews/:id,updateReviewAssignment,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:40
+API-139,GET,/api/reviews/overdue,getOverdueReviewAssignments,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:43
+API-140,POST,/api/reviews/document/:documentId/cleanup,cleanupDocumentReviewAssignments,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:46
+API-141,GET,/api/external-contacts/types,getAllExternalContactTypes,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:34
+API-142,POST,/api/external-contacts/types,createExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:37
+API-143,PUT,/api/external-contacts/types/:id,updateExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:40
+API-144,DELETE,/api/external-contacts/types/:id,deleteExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:43
+API-145,GET,/api/external-contacts,getAllExternalContacts,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:46
+API-146,POST,/api/external-contacts,createExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:49
+API-147,GET,/api/external-contacts/document/:id,getExternalContactsByDocument,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:52
+API-148,PUT,/api/external-contacts/:id,updateExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:55
+API-149,DELETE,/api/external-contacts/:id,deleteExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:58
+API-150,GET,/api/notifications,getUserNotifications,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:32
+API-151,GET,/api/notifications/unread-count,getUnreadNotificationsCount,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:35
+API-152,PATCH,/api/notifications/:id/read,markAsRead,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:38
+API-153,PATCH,/api/notifications/read-all,markAllAsRead,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:41
+API-154,DELETE,/api/notifications/:id,deleteNotification,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:44
+API-155,GET,/api/audit,listAuditEntries,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/auditRoutes.js:17
+API-156,GET,/api/audit/export,exportAuditEntries,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/auditRoutes.js:18
+API-157,GET,/api/audit/verify,verifyAuditChain,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/auditRoutes.js:19
+API-158,GET,/uploads/:filename,inline handler,No route-level auth; inspect handler/global middleware,backend/src/routes/mediaRoutes.js:24

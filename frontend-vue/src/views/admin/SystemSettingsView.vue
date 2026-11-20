@@ -84,10 +84,14 @@
     <AccountSettingsCard v-if="isSuperadmin" />
     <StorageSettingsCard v-if="isSuperadmin" />
     <EmailSettingsCard v-if="isSuperadmin" />
+    <NotificationSettingsCard v-if="isSuperadmin" />
+    <PublicSharingSettingsCard v-if="isSuperadmin" />
   </v-container>
 </template>
 
 <script setup>
+import PublicSharingSettingsCard from '@/components/admin/PublicSharingSettingsCard.vue';
+import NotificationSettingsCard from '@/components/admin/NotificationSettingsCard.vue';
 import AccountSettingsCard from '@/components/admin/AccountSettingsCard.vue';
 import { computed, onMounted, ref } from 'vue';
 import StorageSettingsCard from '@/components/admin/StorageSettingsCard.vue';

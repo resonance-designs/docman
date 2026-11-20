@@ -1,3 +1,4 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @author Richard Bakos
  * @version 3.0.0
@@ -6,6 +7,7 @@
 // backend/src/models/Project.js
 import mongoose from "mongoose";
 
+const memberId = value => String(value?._id || value || '');
 const projectSchema = new mongoose.Schema(
     {
         name: {
@@ -153,27 +155,27 @@ projectSchema.pre('save', function(next) {
 // Instance method to check if user is collaborator
 projectSchema.methods.isCollaborator = function(userId) {
     // Check if user is the owner
-    if (this.owner && this.owner.toString() === userId.toString()) {
+    if (this.owner && memberId(this.owner) === memberId(userId)) {
         return true;
     }
     
     // Check if user is in collaborators array
     return this.collaborators.some(collab => 
-        collab.user && collab.user.toString() === userId.toString()
+        collab.user && memberId(collab.user) === memberId(userId)
     );
 };
 
 // Instance method to check if user is manager
 projectSchema.methods.isManager = function(userId) {
     return this.collaborators.some(collab => 
-        collab.user && collab.user.toString() === userId.toString() && collab.role === 'manager'
+        collab.user && memberId(collab.user) === memberId(userId) && collab.role === 'manager'
     );
 };
 
 // Instance method to get user's role in project
 projectSchema.methods.getUserRole = function(userId) {
     const collaborator = this.collaborators.find(collab => 
-        collab.user && collab.user.toString() === userId.toString()
+        collab.user && memberId(collab.user) === memberId(userId)
     );
     return collaborator ? collaborator.role : null;
 };
@@ -232,6 +234,8 @@ projectSchema.methods.removeTeam = function(teamId) {
 projectSchema.methods.hasTeam = function(teamId) {
     return this.teams.some(id => id.toString() === teamId.toString());
 };
+
+projectSchema.plugin(notificationHooks, { kind: 'Project' });
 
 const Project = mongoose.model("Project", projectSchema);
 

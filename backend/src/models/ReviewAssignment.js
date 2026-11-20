@@ -1,3 +1,4 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @author Richard Bakos
  * @version 3.0.0
@@ -65,6 +66,8 @@ const reviewAssignmentSchema = new mongoose.Schema({
 reviewAssignmentSchema.index({ document: 1, assignee: 1 });
 reviewAssignmentSchema.index({ dueDate: 1 });
 reviewAssignmentSchema.index({ status: 1 });
+
+reviewAssignmentSchema.plugin(notificationHooks, { kind: 'ReviewAssignment' });
 
 const ReviewAssignment = mongoose.model("ReviewAssignment", reviewAssignmentSchema);
 

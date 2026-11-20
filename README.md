@@ -532,3 +532,23 @@ Stored credentials use AES-256-GCM with a dedicated server-side `EMAIL_SETTINGS_
 ### Encryption at rest and upload size
 
 Stored document files can be encrypted at rest, invisibly to users: files are encrypted while they stream to disk (no plaintext is ever written) and decrypted only for accounts allowed to download them. Each file has its own key, wrapped by the server's `DOCUMENT_ENCRYPTION_KEY`; nobody handles keys or document passwords. Superadmins turn encryption on and set the maximum upload size in **System Settings → Document storage**. See [Ubuntu guide section 15.1](docs/deployment/ubuntu-server-installation.md#151-encryption-at-rest-and-upload-size).
+
+Activity and email notifications: see [event coverage, setup, queue status and recovery](docs/activity-notifications.md).
+
+Users can open **My account** in the toolbar to edit their profile or change a local password. Password changes require the current password and sign out existing sessions. SSO profiles remain provider-managed; username and email changes require a superadmin.
+
+Document editors/owners and administrators can enable **Public sharing** on a document details page. Anyone with the random link can download the current approved file without signing in. Disable sharing to revoke the link; re-enabling issues a new link. Private versions, assignments, and audit history are excluded. Public access still requires network access to the server.
+
+Superadmins can disable new public sharing in System Settings and optionally suspend existing public links until sharing is re-enabled. Individual document revocation remains permanent.
+
+## User manual and QA guide
+
+- [Illustrated end-user manual (PDF)](output/pdf/docman-user-manual.pdf)
+- [End-to-end QA guide (PDF)](output/pdf/docman-qa-end-to-end-guide.pdf)
+- [Editable sources, blank results sheet and rebuild instructions](docs/manuals/README.md)
+
+The guides reflect the current Vue source, distinguish API-only functionality, and do not imply that local changes are deployed or that acceptance tests have been run.
+
+### Categories, books, teams and projects
+
+The Vue navigation now provides management interfaces for these resources. Categories are managed by admins/superadmins; books by editor/admin owners or superadmins; teams by owners/team admins or superadmins; projects by owners/managers or superadmins. Resource linking organizes existing documents and does not grant document access. See [management operations and acceptance checks](docs/resource-management.md).

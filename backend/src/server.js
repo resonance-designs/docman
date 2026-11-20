@@ -1,3 +1,4 @@
+import { startNotificationWorker } from './services/notificationDeliveryService.js';
 /*
  * @name Server Application
  * @file /docman/backend/src/server.js
@@ -137,6 +138,8 @@ const startServer = async () => {
 
     await connectDB();
     await initRedisProvider();
+    await (await import('./models/Notification.js')).default.init();
+    startNotificationWorker();
 
     if (String(process.env.SEED_ON_DEPLOY || '').toLowerCase() === 'true') {
         const { runSafeSeed } = await import('./scripts/seedSafe.js');

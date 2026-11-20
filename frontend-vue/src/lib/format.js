@@ -1,3 +1,14 @@
+// Calendar fields are stored at UTC midnight; their displayed day must not shift
+// with the viewer's timezone. Activity timestamps continue to use local time.
+export function formatCalendarDate(value) {
+  if (!value) return 'Not set';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not set';
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(date);
+}
+
 export function formatDate(value) {
   if (!value) {
     return 'Not set';

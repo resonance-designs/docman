@@ -1,3 +1,5 @@
+import { readPublicSharingPolicy, savePublicSharingPolicy } from '../controllers/publicSharingSettingsController.js';
+import { readNotificationSettings, saveNotificationSettings, retryNotifications } from '../controllers/notificationSettingsController.js';
 import { readPolicy, savePolicy } from '../controllers/accountPolicyController.js';
 /*
  * @name systemRoutes
@@ -33,6 +35,11 @@ import {
  * @type {express.Router}
  */
 const router = express.Router();
+router.get('/public-sharing', verifyAccessToken, requireRole('superadmin'), readPublicSharingPolicy);
+router.put('/public-sharing', verifyAccessToken, requireRole('superadmin'), savePublicSharingPolicy);
+router.get('/notifications', verifyAccessToken, requireRole('superadmin'), readNotificationSettings);
+router.put('/notifications', verifyAccessToken, requireRole('superadmin'), saveNotificationSettings);
+router.post('/notifications/retry', verifyAccessToken, requireRole('superadmin'), retryNotifications);
 router.get('/accounts', verifyAccessToken, requireRole('superadmin'), readPolicy);
 router.put('/accounts', verifyAccessToken, requireRole('superadmin'), savePolicy);
 // Document storage: encryption at rest + maximum upload size. Everyone signed in can read (upload forms show the limit).

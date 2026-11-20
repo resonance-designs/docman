@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Add Vue management interfaces for categories, books, teams and projects, including membership/collaborator roles, resource links, confirmation dialogs and Activity-based team invitation acceptance. Correct populated-member permissions, restrict organizational/document selectors, protect referenced categories, and clean linked references on deletion.
+- Add illustrated end-user and end-to-end QA PDF manuals, editable sources, a generated mounted-API inventory, a blank execution worksheet, and reproducible PDF build/verification scripts.
+- Add superadmin global public-sharing controls, with an optional existing-link suspension enforced on anonymous pages and downloads.
+- Add opt-in anonymous public document links with current-approved-version downloads, revocation, and restricted metadata.
+- Add My account profile editing and current-password-verified password changes with configured policy enforcement and session revocation. Restrict the legacy profile endpoint from changing credentials or access controls.
+- Persistent in-app/email activity notifications for document assignments and lifecycle, account roles/status, team/project membership changes, and review tasks/due reminders; background retries and superadmin pause/status/retry controls.
+- Notification event, delivery and hook regression tests and an operations/acceptance guide.
 - Superadmin-created accounts now receive 24-hour single-use email invitations to choose their own passwords, with pending status, resend/revoke actions, and explicit delivery-failure recovery.
 - Account settings for minimum password length (14–24, default 18) and local self-registration (off by default), with a viewer-only signup page and shared backend password policy. The existing 72 UTF-8 byte limit remains.
 - Interactive `update.sh` for existing standard-layout Ubuntu deployments: staged unprivileged builds, encrypted pre-update snapshots, maintenance locking, preserved configuration/keys, migration/result checks, matching frontend publication and trusted HTTPS verification. Includes failure-boundary tests and beginner update/recovery documentation; full Ubuntu VM update acceptance remains pending.
@@ -13,6 +20,9 @@ All notable changes to this project will be documented in this file.
 - NMDOH POC deployment/validation execution record, separating confirmed server evidence from pending checks.
 
 ### Changed
+
+- Fix review calendar dates displaying the previous day in timezones west of UTC, while retaining local-time activity timestamps.
+- Close management permission and invitation-retry gaps; filter activity resource names by current access. Improve failed-load recovery, public-link route refresh and narrow-screen account actions; refresh both PDF manuals for the management interfaces.
 
 - Database-managed registration policy replaces the legacy environment switch. Existing accounts and passwords remain valid; bootstrap provisioning remains independent of email.
 - Allow an explicit backend `NODE_HOST`; fresh installations bind to loopback behind Apache while existing deployments retain the default when unset.

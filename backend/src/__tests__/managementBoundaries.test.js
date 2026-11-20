@@ -1,0 +1,41 @@
+import Team from '../models/Team.js';
+import Project from '../models/Project.js';
+import User from '../models/User.js';
+import Notification from '../models/Notification.js';
+import { sendTeamInvitationNotification } from '../controllers/notificationsController.js';
+import { inviteToTeam, acceptInvitation, addDocumentsToTeam, getTeamBooks, getAllTeams } from '../controllers/teamsController.js';
+import { addDocumentsToProject } from '../controllers/projectsController.js';
+jest.mock('../models/Team.js',()=>({__esModule:true,default:{findById:jest.fn(),findOne:jest.fn(),findOneAndUpdate:jest.fn(),updateOne:jest.fn(),find:jest.fn()}}));
+jest.mock('../models/Project.js',()=>({__esModule:true,default:{findById:jest.fn(),find:jest.fn()}}));
+jest.mock('../models/User.js',()=>({__esModule:true,default:{findById:jest.fn(),findOne:jest.fn()}}));
+jest.mock('../models/Notification.js',()=>({__esModule:true,default:{updateMany:jest.fn()}}));
+jest.mock('../controllers/notificationsController.js',()=>({sendTeamInvitationNotification:jest.fn()}));
+jest.mock('../lib/notificationHooks.js',()=>({notificationHooks:jest.fn()}));
+jest.mock('../services/auditService.js',()=>({record:jest.fn(),AUDIT_ACTIONS:{}}));
+const owner='507f1f77bcf86cd799439011', recipient='507f1f77bcf86cd799439012', teamId='507f1f77bcf86cd799439013';
+const token='a'.repeat(64), email='invitee@example.test';
+const response=()=>{const r={status:jest.fn(),json:jest.fn()};r.status.mockReturnValue(r);return r;};
+const req=(body={},role='editor')=>({body,params:{id:teamId,token},user:{_id:owner,role},query:{}});
+let team;
+beforeEach(()=>{
+ team={_id:teamId,owner,isAdmin:()=>false,isMember:()=>false,settings:{allowMemberInvites:false},invitations:[]};
+ Team.findById.mockResolvedValue(team);Team.findOne.mockResolvedValue(team);Team.findOneAndUpdate.mockResolvedValue(team);
+ User.findOne.mockResolvedValue({_id:recipient,email});User.findById.mockResolvedValue({_id:owner,email});sendTeamInvitationNotification.mockResolvedValue({_id:'notification'});
+});
+test('invalid invitation email rejected before lookup',async()=>{const r=response();await inviteToTeam(req({email:'bad'}),r);expect(r.status).toHaveBeenCalledWith(400);expect(Team.findById).not.toHaveBeenCalled();});
+test('expired pending invitation can be replaced with atomic reservation',async()=>{
+ team.invitations=[{email,status:'pending',expiresAt:new Date(0)}];const r=response();await inviteToTeam(req({email}),r);expect(r.status).toHaveBeenCalledWith(200);
+ expect(Team.findOneAndUpdate).toHaveBeenCalledWith(expect.objectContaining({invitations:{$not:{$elemMatch:{email,status:'pending',expiresAt:{$gt:expect.any(Date)}}}},'members.user':{$ne:recipient}}),expect.objectContaining({$push:{invitations:expect.objectContaining({email,status:'pending',expiresAt:expect.any(Date)})}}),expect.any(Object));
+ expect(r.json.mock.calls[0][0]).not.toHaveProperty('invitationToken');
+});
+test('concurrent invite loser does not send duplicate notice',async()=>{Team.findOneAndUpdate.mockResolvedValue(null);const r=response();await inviteToTeam(req({email}),r);expect(r.status).toHaveBeenCalledWith(409);expect(sendTeamInvitationNotification).not.toHaveBeenCalled();});
+test('failed delivery releases reserved invitation',async()=>{sendTeamInvitationNotification.mockResolvedValue(null);const r=response();await inviteToTeam(req({email}),r);expect(r.status).toHaveBeenCalledWith(503);expect(Team.updateOne).toHaveBeenCalledWith({_id:teamId},{$pull:{invitations:{token:expect.stringMatching(/^[a-f0-9]{64}$/)}}});});
+test('malformed token rejected before lookup',async()=>{const r=response();await acceptInvitation({...req(),params:{token:'bad'}},r);expect(r.status).toHaveBeenCalledWith(400);expect(Team.findOne).not.toHaveBeenCalled();});
+test('consumption requires matching pending token and recipient atomically',async()=>{
+ team.invitations=[{token,email,role:'member',status:'pending',expiresAt:new Date(Date.now()+60000)}];const r=response();await acceptInvitation(req(),r);
+ expect(Team.findOneAndUpdate).toHaveBeenCalledWith(expect.objectContaining({invitations:{$elemMatch:{token,email,status:'pending',expiresAt:{$gt:expect.any(Date)}}},'members.user':{$ne:owner}}),expect.objectContaining({$set:expect.objectContaining({'invitations.$.status':'accepted'})}),expect.any(Object));expect(r.status).toHaveBeenCalledWith(200);
+});
+test('concurrent replay cannot grant membership again',async()=>{team.invitations=[{token,email,role:'member',status:'pending',expiresAt:new Date(Date.now()+60000)}];Team.findOneAndUpdate.mockResolvedValue(null);const r=response();await acceptInvitation(req(),r);expect(r.status).toHaveBeenCalledWith(409);expect(Notification.updateMany).not.toHaveBeenCalled();});
+test.each([[],['bad'],[{$ne:null}],[teamId,teamId]].map(value=>[value]))('malformed document batch rejected %p',async values=>{for(const fn of [addDocumentsToTeam,addDocumentsToProject]){const r=response();await fn(req({documentIds:values}),r);expect(r.status).toHaveBeenCalledWith(400);}expect(Team.findById).not.toHaveBeenCalled();expect(Project.findById).not.toHaveBeenCalled();});
+test('unrelated admin cannot read team resources',async()=>{team.owner=recipient;const chain={populate:jest.fn().mockReturnThis(),then:resolve=>resolve(team)};Team.findById.mockReturnValue(chain);const r=response();await getTeamBooks(req({},'admin'),r);expect(r.status).toHaveBeenCalledWith(403);});
+test('team search escapes user regex',async()=>{const chain={populate:jest.fn().mockReturnThis(),sort:jest.fn().mockResolvedValue([])};Team.find.mockReturnValue(chain);const r=response();await getAllTeams({...req({},'superadmin'),query:{search:'(a+)+$'}},r);const filter=Team.find.mock.calls[0][0];expect(filter.$or[0].name.$regex).toBe('\\(a\\+\\)\\+\\$');});

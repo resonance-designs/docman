@@ -21,11 +21,18 @@
       </v-navigation-drawer>
 
       <v-app-bar flat border color="surface">
-        <v-app-bar-nav-icon @click="drawer = !drawer" />
+        <v-app-bar-nav-icon aria-label="Toggle navigation" @click="drawer = !drawer" />
         <v-app-bar-title class="suite-wordmark">
           RDocMan
         </v-app-bar-title>
         <v-spacer />
+        <template v-if="mobile && isAuthenticated">
+          <v-btn icon="mdi-account-outline" aria-label="My account" title="My account" to="/account" />
+          <v-btn icon="mdi-bell-outline" aria-label="Activity" title="Activity" to="/notifications" />
+          <v-btn icon="mdi-logout" aria-label="Sign out" title="Sign out" :loading="signingOut" @click="handleLogout" />
+        </template>
+        <template v-else>
+        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-account-outline" to="/account">My account</v-btn>
         <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline" to="/notifications">
           Activity
         </v-btn>
@@ -46,6 +53,7 @@
         >
           Sign in
         </v-btn>
+        </template>
       </v-app-bar>
 
       <v-main>
@@ -64,7 +72,8 @@ import { useAuth } from '@/composables/useAuth';
 const { mobile } = useDisplay();
 const router = useRouter();
 const { isAuthenticated, hasRole, logout } = useAuth();
-const drawer = ref(true);
+const drawer = ref(!mobile.value);
+const signingOut = ref(false);
 
 const navItems = [
   { title: 'Users', subtitle: 'Accounts and access', icon: 'mdi-account-cog-outline', to: '/admin/users', roles: ['superadmin'] },
@@ -97,14 +106,14 @@ const navItems = [
     subtitle: 'People and permissions',
     icon: 'mdi-account-group-outline',
     to: '/teams',
-    roles: ['editor', 'admin', 'superadmin'],
+    roles: ['viewer', 'editor', 'admin', 'superadmin'],
   },
   {
     title: 'Projects',
     subtitle: 'Delivery spaces',
     icon: 'mdi-briefcase-outline',
     to: '/projects',
-    roles: ['editor', 'admin', 'superadmin'],
+    roles: ['viewer', 'editor', 'admin', 'superadmin'],
   },
   {
     title: 'Audit Log',
@@ -138,7 +147,9 @@ const visibleNavItems = computed(() => {
 });
 
 async function handleLogout() {
-  await logout();
-  await router.push('/login');
+  if (signingOut.value) return;
+  signingOut.value = true;
+  try { await logout(); await router.push('/login'); }
+  finally { signingOut.value = false; }
 }
 </script>

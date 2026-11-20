@@ -2813,3 +2813,14 @@ Expect the saved rule and `active`. The scheduled cleanup will delete eligible o
 This guide was written against the repository's actual configuration, models, scripts, and routes. Its Bash, Python, embedded JavaScript, JSON, relative links, and section anchors were checked; both Apache examples passed an isolated syntax check with temporary certificates. The documentation site build passed. Systemd parsing was checked, with missing target-installation services/script paths reported in the verification environment rather than installed there.
 
 Existing application verification is recorded in [HANDOFF](../../HANDOFF.md). That earlier Linux application verification used an isolated Ubuntu 22.04 environment with MongoDB 8.0 and Redis 7. The NMDOH Ubuntu 26.04 installation has separately confirmed only the dependency/startup checks listed at the top of this guide. Neither record claims that a complete Ubuntu 26.04 LTS application deployment, certificate setup, AWS configuration, and backup-host recovery has been executed together. Run the checkpoints on the target installation and retain the results as its acceptance record.
+
+
+### Activity email notifications after an update
+
+Deploy the backend and Vue frontend together. With outgoing email tested and APP_BASE_URL set to the real HTTPS application address, open **System Settings → Activity notifications**. Delivery defaults on. Assign a synthetic document to a real test account, check its Activity page and inbox, and refresh queue counts. Pending should become Sent after a worker poll (15 seconds plus queue/provider time). Sent is provider acceptance, so check actual receipt. If Failed counts increase, correct outgoing email/connectivity and use Retry failed emails. Pausing activity email preserves pending messages and does not disable invitations or password resets. No additional cron/service is required; see the [full notification setup and acceptance checklist](../activity-notifications.md).
+
+### Global public-sharing controls
+Superadmins can use System Settings → Public document sharing:
+- **Allow public document sharing**: off prevents creating or replacing public links.
+- **Disable existing public links while sharing is off**: on also blocks anonymous public pages and downloads while the first switch is off. Off preserves existing links.
+Both switches default to on (existing documents still remain private unless individually shared). Re-enabling global sharing restores existing links; this is a suspension, not permanent token deletion. Individual document revocation remains available regardless of global policy and permanently invalidates that link. Requests already authorized/in progress and downloaded copies cannot be recalled. Policy reads are uncached and failures deny public access. Only superadmins can read/write the global settings endpoint; authorized document editors receive policy status with their own sharing settings.

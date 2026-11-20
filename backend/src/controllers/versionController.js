@@ -85,7 +85,9 @@ export async function downloadFile(req, res) {
         const file = await File.findOne({ _id: fileId, documentId: req.document._id });
         if (!file) return res.status(404).json({ message: "File not found." });
 
-        if (!canAccessFileVersion(req.document, file, req.user)) {
+        const publicDownloadAllowed = req.publicFile && String(req.publicFile._id) === String(file._id)
+            && file.status === 'approved' && file.version === req.document.currentVersion;
+        if (!publicDownloadAllowed && !canAccessFileVersion(req.document, file, req.user)) {
             await record(req, {
                 action: AUDIT_ACTIONS.FILE_DOWNLOAD,
                 outcome: "denied",
