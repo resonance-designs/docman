@@ -8,6 +8,16 @@ import mongoose from "mongoose";
 
 const notificationSchema = new mongoose.Schema(
     {
+        eventKey: { type: String },
+        relatedProject: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
+        emailStatus: { type: String, enum: ['pending', 'sending', 'sent', 'failed', 'skipped'], default: 'pending', select: false },
+        emailAttempts: { type: Number, default: 0, select: false },
+        emailNextAttempt: { type: Date, default: Date.now, select: false },
+        emailLeaseUntil: { type: Date, select: false },
+        emailClaim: { type: String, select: false },
+        emailLastError: { type: String, select: false },
+        emailSentAt: { type: Date, select: false },
+        allowInactiveEmail: { type: Boolean, default: false, select: false },
         recipient: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -69,6 +79,8 @@ const notificationSchema = new mongoose.Schema(
     }
 );
 
+notificationSchema.index({ eventKey: 1 }, { unique: true, sparse: true });
+notificationSchema.index({ emailStatus: 1, emailNextAttempt: 1 });
 // Index for efficient queries
 notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ recipient: 1, type: 1 });

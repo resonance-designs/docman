@@ -1,3 +1,4 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @name Team
  * @file /docman/backend/src/models/Team.js
@@ -207,42 +208,9 @@ teamSchema.pre('save', function(next) {
  * @param {string|ObjectId} userId - User ID to check
  * @returns {boolean} True if user is a member of the team
  */
+const memberId = value => String(value?._id || value || '');
 teamSchema.methods.isMember = function(userId) {
-    console.log("isMember check - userId:", userId, "type:", typeof userId);
-    console.log("isMember check - owner:", this.owner, "type:", typeof this.owner);
-    console.log("isMember check - owner._id:", this.owner?._id, "type:", typeof this.owner?._id);
-    
-    // Check if user is the owner
-    // Handle both populated (object with _id) and non-populated (ObjectId) owner
-    let ownerIdStr;
-    if (this.owner) {
-        if (this.owner._id) {
-            // Owner is populated
-            ownerIdStr = this.owner._id.toString();
-        } else {
-            // Owner is not populated (just ObjectId)
-            ownerIdStr = this.owner.toString();
-        }
-    }
-    const userIdStr = userId.toString();
-    
-    console.log("isMember check - ownerIdStr:", ownerIdStr, "userIdStr:", userIdStr, "equal:", ownerIdStr === userIdStr);
-    
-    if (this.owner && ownerIdStr === userIdStr) {
-        console.log("User is owner, returning true");
-        return true;
-    }
-    
-    // Check if user is in members array
-    const isMemberInArray = this.members.some(member => {
-        if (!member.user) return false;
-        const memberIdStr = member.user._id ? member.user._id.toString() : member.user.toString();
-        console.log("Checking member:", memberIdStr, "against user:", userIdStr);
-        return memberIdStr === userIdStr;
-    });
-    
-    console.log("isMember result:", isMemberInArray);
-    return isMemberInArray;
+    return memberId(this.owner) === memberId(userId) || this.members.some(m => m.user && memberId(m.user) === memberId(userId));
 };
 
 /**
@@ -252,7 +220,7 @@ teamSchema.methods.isMember = function(userId) {
  */
 teamSchema.methods.isAdmin = function(userId) {
     return this.members.some(member =>
-        member.user && member.user.toString() === userId.toString() && member.role === 'admin'
+        member.user && memberId(member.user) === memberId(userId) && member.role === 'admin'
     );
 };
 
@@ -263,7 +231,7 @@ teamSchema.methods.isAdmin = function(userId) {
  */
 teamSchema.methods.getUserRole = function(userId) {
     const member = this.members.find(member =>
-        member.user && member.user.toString() === userId.toString()
+        member.user && memberId(member.user) === memberId(userId)
     );
     return member ? member.role : null;
 };
@@ -371,6 +339,8 @@ teamSchema.methods.hasProject = function(projectId) {
  * Team model for managing collaborative teams and memberships
  * @type {mongoose.Model}
  */
+teamSchema.plugin(notificationHooks, { kind: 'Team' });
+
 const Team = mongoose.model("Team", teamSchema);
 
 export default Team;

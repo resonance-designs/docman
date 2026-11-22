@@ -11,37 +11,8 @@ import Doc from "../models/Doc.js";
 import { record, AUDIT_ACTIONS } from "../services/auditService.js";
 import { recordRevision, snapshotDocument } from "../services/revisionService.js";
 import { areAllObjectFieldsEmpty } from "../lib/utils.js";
-import { sendDocumentAssignedNotification } from "./notificationsController.js";
 import * as documentService from "../services/documentService.js";
 import { resetReviewAssignmentsForNewCycle, markAllReviewAssignmentsCompleted } from "./reviewController.js";
-
-/**
- * Helper function to send document assigned notifications
- * @param {string} docId - Document ID
- * @param {Array} stakeholders - Array of stakeholder user IDs
- * @param {Array} owners - Array of owner user IDs
- * @param {Array} reviewAssignees - Array of review assignee user IDs
- * @param {string} senderId - ID of the user sending the notifications
- */
-async function sendDocumentNotifications(docId, stakeholders, owners, reviewAssignees, senderId) {
-    try {
-        // Combine stakeholders, owners, and review assignees into a single array
-        const recipients = [...(stakeholders || []), ...(owners || []), ...(reviewAssignees || [])];
-        
-        // Remove duplicates
-        const uniqueRecipients = [...new Set(recipients.map(id => id.toString()))];
-        
-        // Send notifications to each recipient
-        for (const recipientId of uniqueRecipients) {
-            // Skip if the recipient is the sender
-            if (recipientId.toString() !== senderId.toString()) {
-                await sendDocumentAssignedNotification(recipientId, senderId, docId);
-            }
-        }
-    } catch (error) {
-        console.error("Error sending document notifications:", error);
-    }
-}
 
 /**
  * Get all documents with optional filtering and sorting
@@ -112,18 +83,6 @@ export async function createDoc(req, res) {
         // Create document using service
         const doc = await documentService.createDocument(req.body, req.file, req.user, req);
 
-        // Send notifications to stakeholders, owners, and review assignees
-        const parsedFields = documentService.parseDocumentFields(req.body);
-        if (parsedFields.stakeholders || parsedFields.owners || parsedFields.reviewAssignees) {
-            await sendDocumentNotifications(
-                doc._id,
-                parsedFields.stakeholders || [],
-                parsedFields.owners || [],
-                parsedFields.reviewAssignees || [],
-                req.user?.id || null
-            );
-        }
-
         res.status(201).json({
             message: "Document created successfully",
             doc
@@ -158,19 +117,6 @@ export async function updateDoc(req, res) {
             req.user,
             req
         );
-
-        // Send notifications if stakeholders, owners, or review assignees were updated
-        const { stakeholders, owners, reviewAssignees } = req.body;
-        if (stakeholders || owners || reviewAssignees) {
-            const parsedFields = documentService.parseDocumentFields(req.body);
-            await sendDocumentNotifications(
-                updatedDoc._id,
-                parsedFields.stakeholders || updatedDoc.stakeholders,
-                parsedFields.owners || updatedDoc.owners,
-                parsedFields.reviewAssignees || updatedDoc.reviewAssignees,
-                req.user?.id || null
-            );
-        }
 
         res.status(200).json({
             message: "Document updated successfully",

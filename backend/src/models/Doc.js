@@ -1,3 +1,4 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @name Doc
  * @file /docman/backend/src/models/Doc.js
@@ -50,6 +51,7 @@ import mongoose from "mongoose";
  */
 const docSchema = new mongoose.Schema(
     {
+        publicShareToken: { type: String, select: false },
         title: {
             type: String,
             required: true
@@ -229,6 +231,8 @@ docSchema.pre('aggregate', function (next) {
  * Document model for managing document metadata and tracking
  * @type {mongoose.Model}
  */
+docSchema.plugin(notificationHooks, { kind: 'Document' });
+
 const Doc = mongoose.model("Document", docSchema);
 
 export default Doc;

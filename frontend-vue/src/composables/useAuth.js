@@ -153,6 +153,8 @@ export function useAuth() {
     authentikRegistrationAvailable,
     login,
     logout,
+    refreshProfile: hydrateCurrentSession,
+    clearLocalSession: clearSession,
     hasRole,
     startAuthentikLogin,
     startAuthentikRegistration,

@@ -9,7 +9,7 @@ const mockRows = new Map();
 jest.mock('../models/SystemSetting.js', () => ({ __esModule: true, default: {
     findOneAndUpdate: jest.fn(async (filter, update) => {
         const row = mockRows.get(filter.key);
-        const free = !row || !row.value?.holder || row.value.expiresAt < filter.$or[1]['value.expiresAt'].$lt;
+        const free = !row || !row.value?.holder || (filter.$or[1] && row.value.expiresAt < filter.$or[1]['value.expiresAt'].$lt);
         if (!free) throw Object.assign(new Error('duplicate key'), { code: 11000 });
         const next = { key: filter.key, value: update.$set.value };
         mockRows.set(filter.key, next);
@@ -43,4 +43,9 @@ test('releases the lock when the work throws', async () => {
 test('an expired lock from a crashed holder can be taken over', async () => {
     mockRows.set('k', { key: 'k', value: { holder: 'dead', expiresAt: new Date(Date.now() - 1000) } });
     await expect(withSettingLock('k', async () => 'ok')).resolves.toBe('ok');
+});
+
+test('non-expiring guards cannot be taken over by another non-expiring writer', async () => {
+    mockRows.set('category', { value: { holder: 'slow-writer', expiresAt: new Date(0) } });
+    await expect(withSettingLock('category', async () => 'unsafe', { ttlMs: null })).rejects.toBeInstanceOf(LockBusyError);
 });

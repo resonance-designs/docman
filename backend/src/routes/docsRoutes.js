@@ -1,3 +1,4 @@
+import { sharingSettings, setSharing, resolvePublicDocument, publicDetails, publicDownload } from '../controllers/publicDocumentController.js';
 /*
  * @name docsRoutes
  * @file /docman/backend/src/routes/docsRoutes.js
@@ -50,6 +51,11 @@ const ADMIN = requireRole("admin", "superadmin");
 function withUpload(middleware) {
     return (req, res, next) => middleware(req, res, (err) => (err ? handleUploadError(err, req, res, next) : next()));
 }
+
+router.get('/public/:token', resolvePublicDocument, publicDetails);
+router.get('/public/:token/download', resolvePublicDocument, publicDownload);
+router.get('/:id/sharing', verifyAccessToken, EDITOR, requireDocumentAccess('edit'), sharingSettings);
+router.put('/:id/sharing', verifyAccessToken, EDITOR, requireDocumentAccess('edit'), setSharing);
 
 // Collection-level routes (registered before /:id so they are not captured as ids)
 router.get("/", verifyAccessToken, ANY_ROLE, getAllDocs);

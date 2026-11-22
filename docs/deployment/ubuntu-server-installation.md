@@ -1,14 +1,16 @@
 # DocMan: complete Ubuntu server installation and operations guide
 
 **For:** a new, dedicated Ubuntu Server LTS machine. These instructions target **Ubuntu 26.04 LTS**, matching the NMDOH server.  
-**Application:** DocMan 2.3.0, Vue interface, native Linux services.  
+**Application:** DocMan 3.0.0, Vue interface, native Linux services.
 **Guide checked against the repository:** November 17, 2026.
 
 **Documentation standard:** This must remain a complete, beginner-followable, end-to-end walkthrough for the **latest stable Ubuntu Server LTS**, currently **26.04 LTS**. Every prerequisite must include installation and configuration instructions. Maintain one concrete sequence, with exact commands, file contents, expected results, and troubleshooting; do not add alternative walkthroughs for older LTS releases. When the latest LTS changes, verify official release information and dependency compatibility, then update and validate this guide. Document any compatibility blocker explicitly rather than claiming support without verification. Keep instructions given during guided installations reflected here, with completed and pending checks distinguished.
 
 This guide starts with obtaining a server and ends with a working HTTPS website, user accounts, document upload/download/replacement, automatic startup, email, backups, recovery, and updates. You do not need Docker, a project workspace, or an invitation system to share documents. Users need accounts and access to the documents they use.
 
-The main installation uses local DocMan accounts. An external identity provider is **not a prerequisite**. AWS SES is needed for outgoing email, including password-reset email; it is not needed to sign in or transfer files. A second server is used in the off-server backup instructions.
+**Interactive installation:** [`install.sh` and its walkthrough](automated-installation.md) automate fresh-server package/configuration setup with prompts, protected credentials, HTTPS and optional backups. Read its validation status and prerequisites first. Choose either that fresh-install sequence or this manual sequence; do not partially configure databases manually and then run the fresh installer. Existing servers use section 19. Installer backup artifact paths differ from the manual backup below; use the installer walkthrough's recovery instructions for those snapshots.
+
+The main installation uses local DocMan accounts. An external identity provider is **not a prerequisite**. Outgoing email can use an organization SMTP relay, authenticated SMTP, or AWS SES, configured by a superadmin (section 16). Email is needed for password-reset delivery, but not to sign in or transfer files. A second server is used in the off-server backup instructions.
 
 **Read this first:** These are fresh-install instructions, not commands to paste over an existing production server. If DocMan already contains documents, start with [existing installations and updates](#19-existing-installations-and-updates). Never delete its application directory before locating and backing up its uploaded files.
 
@@ -1219,13 +1221,13 @@ These instructions require the user-management update, not the older e9df951 ser
 
 1. Sign in as a **superadmin**. Choose **Users** in the navigation menu. Admins, editors, and viewers do not receive this menu and cannot call its management API.
 2. Click **Create user**. Enter first/last name, email, username, and role. Department/job title are optional. New usernames are saved in lowercase and accept 3–50 letters, digits, dots, underscores, or hyphens.
-3. Choose and privately save an initial password before submitting. Use at least 18 characters, no control characters, and at most 72 UTF-8 bytes (ordinary ASCII characters each use one byte). Spaces and punctuation are allowed. Enter the password twice. This is the person's DocMan login password; do not URL-encode it.
-4. Click **Create user**. Expect an account-created message and the new row. Share the saved credentials using the approved secure channel; the app does not email or redisplay the password. Duplicate emails/usernames produce an error and should be resolved without deleting an existing account.
+3. Confirm outgoing email is configured and tested (section 16), and `APP_BASE_URL` is the actual HTTPS application address. Use a real reachable recipient email. Administrators no longer enter an initial password in this form.
+4. Click **Create user**. Expect **Account created and invitation sent** and an **Invitation pending** row. The recipient follows the single-use link within 24 hours, sets a password, and then signs in. If delivery fails, fix mail settings and use **Resend invitation**; do not create a duplicate account. See the [complete invitation and policy guide](../account-invitations.md) for recovery and verification.
 5. **Edit** changes profile details and role. **Reset password** sets a new local password for another user and invalidates their previous local access/refresh sessions. Passwords for linked SSO accounts belong in the identity provider. Use another superadmin or the existing recovery procedure if your own password needs resetting.
 6. **Disable** asks for confirmation, blocks login and existing requests, and preserves the account's document/audit history. **Enable** permits fresh login; previous local sessions remain invalid. The interface does not permanently delete accounts.
 7. A superadmin can demote or disable **another** superadmin (for example when someone leaves), never their own account, and never the last active superadmin: DocMan refuses with **At least one other active superadmin must remain** until another superadmin exists. Demoting or disabling signs that person out everywhere immediately. These checks hold even if two superadmins act at the same moment. Role, status, creation, and password-reset actions are audited without passwords/hashes.
 
-Keep `LOCAL_SELF_REGISTRATION_ENABLED=false`. Administrator provisioning does not require enabling registration, inviting users into projects, or configuring email. Verify the new user's permitted access with a separate browser profile; a role alone does not assign access to every document.
+Keep **System Settings → Accounts and passwords → Allow local self-registration** off (the default). The database setting replaces the old `LOCAL_SELF_REGISTRATION_ENABLED` variable. UI invitations require working outgoing email; initial CLI superadmin provisioning does not. Minimum password length is configurable from 14 to 24, default 18; passwords may be longer, up to 72 UTF-8 bytes. Verify the new user's permitted access with a separate browser profile; a role alone does not assign access to every document.
 
 ### 11.2 Create the first document category
 
@@ -2493,6 +2495,10 @@ For an actual disaster recovery, use this same procedure on the replacement prod
 
 ## 19. Existing installations and updates
 
+**Guided standard-layout updater:** [`update.sh` and its walkthrough](automated-updates.md) automate staged builds, an encrypted pre-update backup, migration/publication and service checks. Read its validation status, prerequisite checks and recovery procedure first. On an older server, obtain the updater in a separate tools clone; do not pull the live checkout before its old commit is recorded/backed up. Custom layouts and major platform upgrades continue to use the manual procedure below. Updater snapshots have their own documented artifact layout.
+
+For installations created by `install.sh`, the checkout owner is the non-login `docman-build` account. Prefix this section's Git and npm commands with `sudo -u docman-build -H`; keep backup, service, environment and publication commands under your normal administrator login with sudo where shown. For example: `sudo -u docman-build -H git -C /var/www/docman status --short --branch`. Do not grant the build account sudo privileges or change protected environment-file ownership. Existing manually installed NMDOH deployments retain their established deployment account.
+
 ### 19.1 Inventory before touching an existing server
 
 Record its actual service name, working directory, Git commit, frontend choice, database location/name, upload path, environment-file locations, Apache configuration, and scheduled writers. Inspect `systemctl cat docman-backend` and the relevant configuration privately. Existing deployments may use `backend/uploads`, a different Node path, Atlas, or old scripts; do not assume this guide's paths already apply.
@@ -2807,3 +2813,14 @@ Expect the saved rule and `active`. The scheduled cleanup will delete eligible o
 This guide was written against the repository's actual configuration, models, scripts, and routes. Its Bash, Python, embedded JavaScript, JSON, relative links, and section anchors were checked; both Apache examples passed an isolated syntax check with temporary certificates. The documentation site build passed. Systemd parsing was checked, with missing target-installation services/script paths reported in the verification environment rather than installed there.
 
 Existing application verification is recorded in [HANDOFF](../../HANDOFF.md). That earlier Linux application verification used an isolated Ubuntu 22.04 environment with MongoDB 8.0 and Redis 7. The NMDOH Ubuntu 26.04 installation has separately confirmed only the dependency/startup checks listed at the top of this guide. Neither record claims that a complete Ubuntu 26.04 LTS application deployment, certificate setup, AWS configuration, and backup-host recovery has been executed together. Run the checkpoints on the target installation and retain the results as its acceptance record.
+
+
+### Activity email notifications after an update
+
+Deploy the backend and Vue frontend together. With outgoing email tested and APP_BASE_URL set to the real HTTPS application address, open **System Settings → Activity notifications**. Delivery defaults on. Assign a synthetic document to a real test account, check its Activity page and inbox, and refresh queue counts. Pending should become Sent after a worker poll (15 seconds plus queue/provider time). Sent is provider acceptance, so check actual receipt. If Failed counts increase, correct outgoing email/connectivity and use Retry failed emails. Pausing activity email preserves pending messages and does not disable invitations or password resets. No additional cron/service is required; see the [full notification setup and acceptance checklist](../activity-notifications.md).
+
+### Global public-sharing controls
+Superadmins can use System Settings → Public document sharing:
+- **Allow public document sharing**: off prevents creating or replacing public links.
+- **Disable existing public links while sharing is off**: on also blocks anonymous public pages and downloads while the first switch is off. Off preserves existing links.
+Both switches default to on (existing documents still remain private unless individually shared). Re-enabling global sharing restores existing links; this is a suspension, not permanent token deletion. Individual document revocation remains available regardless of global policy and permanently invalidates that link. Requests already authorized/in progress and downloaded copies cannot be recalled. Policy reads are uncached and failures deny public access. Only superadmins can read/write the global settings endpoint; authorized document editors receive policy status with their own sharing settings.

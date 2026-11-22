@@ -1,3 +1,5 @@
+import { readPolicy } from '../controllers/accountPolicyController.js';
+import { acceptInvitation } from '../controllers/invitationController.js';
 /*
  * @name authRoutes
  * @file /docman/backend/src/routes/authRoutes.js
@@ -13,6 +15,8 @@ import { limitLogin, limitRegister, limitPasswordReset } from "../middleware/aut
 import { verifyAccessToken } from "../lib/secretToken.js";
 
 const router = express.Router();
+router.get('/account-policy', readPolicy);
+router.post('/accept-invitation', limitPasswordReset, acceptInvitation);
 
 /**
  * @swagger

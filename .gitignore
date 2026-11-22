@@ -26,6 +26,9 @@ backend/src/lib/secretToken.js.bak
 
 node_modules/
 
+# Local npm cache used for dependency installation and verification
+/.npm-cache-local/
+
 .zencoder/
 
 docman.users.json
@@ -41,3 +44,10 @@ db/
 
 # Local tool binaries used only for verification (e.g. a mongod build)
 .verify-tools/
+
+# Isolated PDF build dependencies and rendered review intermediates
+/tmp/pdf-deps/
+/tmp/pdfs/
+
+# Temporary resource-management browser fixtures and review artifacts
+/tmp/management-ui/

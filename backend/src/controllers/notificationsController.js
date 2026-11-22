@@ -7,6 +7,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";
+import { documentReadFilter } from '../middleware/documentAccess.js';
 
 /**
  * Get all notifications for the current user
@@ -18,11 +19,18 @@ export async function getUserNotifications(req, res) {
     try {
         const userId = req.user._id.toString();
         
+        const membership = { $or: [{ owner: userId }, { 'members.user': userId }] };
+        const teamFilter = req.user.role === 'superadmin' ? {} : membership;
+        const teams = req.user.role === 'superadmin' ? [] : await Team.find(membership).select('_id').lean();
+        const projectFilter = req.user.role === 'superadmin' ? {} : {
+            $or: [{ owner: userId }, { 'collaborators.user': userId }, { teams: { $in: teams.map(team => team._id) } }]
+        };
         const notifications = await Notification.find({ recipient: userId })
             .sort({ createdAt: -1 })
             .populate('sender', 'firstname lastname email')
-            .populate('relatedDoc', 'title')
-            .populate('relatedTeam', 'name');
+            .populate({ path: 'relatedDoc', select: 'title', match: documentReadFilter(req.user) })
+            .populate({ path: 'relatedTeam', select: 'name', match: teamFilter })
+            .populate({ path: 'relatedProject', select: 'name', match: projectFilter });
         
         res.status(200).json(notifications);
     } catch (error) {

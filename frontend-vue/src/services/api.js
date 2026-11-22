@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getRuntimeConfig, getStorageKey } from '@/runtime/config';
 
-function resolveApiBaseUrl() {
+export function resolveApiBaseUrl() {
   const runtimeConfig = getRuntimeConfig();
   if (runtimeConfig.apiBaseUrl) {
     return runtimeConfig.apiBaseUrl;

@@ -1,3 +1,5 @@
+jest.mock('../controllers/invitationController.js', () => ({ deliverInvitation: jest.fn(), invitationUrl: jest.fn(), resendInvitation: jest.fn((req, res) => res.sendStatus(200)) }));
+jest.mock('../services/accountPolicyService.js', () => ({ ...jest.requireActual('../services/accountPolicyService.js'), getAccountPolicy: jest.fn(async () => ({ minLength: 18, selfRegistrationEnabled: false })) }));
 import express from 'express';
 import request from 'supertest';
 import bcrypt from 'bcrypt';
@@ -53,18 +55,18 @@ test.each(['viewer', 'editor', 'admin'])('%s cannot list, create, or change mana
 test('anonymous account creation is denied', async () => {
     expect((await request(app).post('/api/users/manage').send(details)).status).toBe(401);
 });
-test('creates a local account without enabling registration or returning credentials', async () => {
+test('creates an inactive invited account without enabling registration or returning credentials', async () => {
     process.env.LOCAL_SELF_REGISTRATION_ENABLED = 'false';
     const res = await asAdmin(request(app).post('/api/users/manage')).send({ ...details, identityProvider: 'authentik', refreshTokenHash: 'injected' });
     expect(res.status).toBe(201);
-    expect(User.create).toHaveBeenCalledWith(expect.objectContaining({ email: 'test@example.org', username: 'testuser', identityProvider: 'local', password }));
+    expect(User.create).toHaveBeenCalledWith(expect.objectContaining({ email: 'test@example.org', username: 'testuser', identityProvider: 'local', invitationPending: true, isActive: false, password: expect.any(String) }));
     expect(User.create.mock.calls[0][0]).not.toHaveProperty('refreshTokenHash');
     expect(res.body.user).not.toHaveProperty('password');
     expect(JSON.stringify(record.mock.calls.map(call => call[1]))).not.toContain(password);
     expect(process.env.LOCAL_SELF_REGISTRATION_ENABLED).toBe('false');
 });
 test.each(['short', 'x'.repeat(73), '😀'.repeat(19)])('rejects invalid password length %s', async value => {
-    expect((await asAdmin(request(app).post('/api/users/manage')).send({ ...details, password: value })).status).toBe(400);
+    expect((await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send({ password: value })).status).toBe(400);
     expect(User.create).not.toHaveBeenCalled();
 });
 test('accepts chosen passwords with spaces/punctuation without a composition rule', () => {
@@ -169,4 +171,18 @@ test('legacy tokens/accounts without sessionVersion still work before a manageme
     User.findById.mockReturnValue({ select: () => ({ lean: async () => ({ _id: id, role: 'viewer' }) }) });
     const token = jwt.sign({ id }, 'user-admin-test-key');
     expect((await resolveLocalTokenIdentity(token)).user.role).toBe('viewer');
+});
+
+
+test('pending accounts cannot be enabled, manually reset or have their email changed', async () => {
+    User.findById.mockReturnValue({ lean: async () => ({ ...account, invitationPending: true, isActive: false }) });
+    for (const change of [{ isActive: true }, { password }, { email: 'different@example.org' }]) {
+        expect((await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send(change)).status).toBe(400);
+    }
+    expect(User.findOneAndUpdate).not.toHaveBeenCalled();
+});
+test('revoking a pending invitation clears token and pending state', async () => {
+    User.findById.mockReturnValue({ lean: async () => ({ ...account, invitationPending: true, isActive: false }) });
+    expect((await asAdmin(request(app).patch(`/api/users/manage/${id}`)).send({ isActive: false })).status).toBe(200);
+    expect(User.findOneAndUpdate.mock.calls[0][1].$set).toMatchObject({ invitationPending: false, invitationTokenHash: null, invitationExpires: null, isActive: false });
 });

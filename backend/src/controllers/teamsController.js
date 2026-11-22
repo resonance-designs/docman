@@ -1,3 +1,6 @@
+import mongoose from 'mongoose';
+import { documentReadFilter } from '../middleware/documentAccess.js';
+import Notification from '../models/Notification.js';
 /*
  * @author Richard Bakos
  * @version 3.0.0
@@ -61,13 +64,13 @@ export async function getAllTeams(req, res) {
         const { search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
         // Build filter object
-        const filter = {};
+        const filter = req.user.role === 'superadmin' ? {} : { $and: [{ $or: [{ owner: req.user._id }, { 'members.user': req.user._id }] }] };
 
         // Search filter
         if (search) {
             filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+                { name: { $regex: literalSearch(search), $options: 'i' } },
+                { description: { $regex: literalSearch(search), $options: 'i' } }
             ];
         }
 
@@ -118,7 +121,6 @@ export async function getTeamById(req, res) {
 
         // Check if user has access to this team (member/owner or superadmin)
         if (!team.isMember(userId) && req.user.role !== 'superadmin') {
-            console.log("Access denied for user:", userId, "Team owner:", team.owner?._id?.toString(), "User role:", req.user.role);
             return res.status(403).json({ message: "Access denied" });
         }
 
@@ -144,6 +146,7 @@ export async function getTeamById(req, res) {
 export async function createTeam(req, res) {
     try {
         const { name, description } = req.body;
+        if (typeof name !== 'string' || !name.trim() || name.length>100 || (description!==undefined && (typeof description!=='string' || description.length>500))) return res.status(400).json({message:'Enter a team name up to 100 characters and description up to 500.'});
         const userId = req.user._id.toString();
 
         // Validation
@@ -218,6 +221,7 @@ export async function updateTeam(req, res) {
         const teamId = req.params.id;
         const userId = req.user._id.toString();
         const { name, description, settings } = req.body;
+        if ((name!==undefined && (typeof name!=='string' || !name.trim() || name.length>100)) || (description!==undefined && (typeof description!=='string' || description.length>500)) || (settings!==undefined && (!settings || typeof settings!=='object' || Array.isArray(settings) || Object.keys(settings).some(key=>!['allowMemberInvites','isPrivate'].includes(key)) || Object.values(settings).some(value=>typeof value!=='boolean')))) return res.status(400).json({message:'Invalid team name, description or settings.'});
 
         const team = await Team.findById(teamId);
         if (!team) {
@@ -256,7 +260,7 @@ export async function updateTeam(req, res) {
         const updatedTeam = await Team.findByIdAndUpdate(
             teamId,
             updateData,
-            { new: true }
+            { new: true, runValidators: true }
         )
         .populate('owner', 'firstname lastname email')
         .populate('members.user', 'firstname lastname email')
@@ -299,6 +303,7 @@ export async function deleteTeam(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
+        await Project.updateMany({ teams: teamId }, { $pull: { teams: teamId } });
         await Team.findByIdAndDelete(teamId);
 
         res.status(200).json({ message: "Team deleted successfully" });
@@ -318,10 +323,11 @@ export async function inviteToTeam(req, res) {
     try {
         const teamId = req.params.id;
         const userId = req.user._id.toString();
-        const { email, role = 'member' } = req.body;
+        const { role = 'member' } = req.body;
+        const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 
         // Validation
-        if (!email || !validateEmail(email)) {
+        if (!email || !validateEmail(email).isValid) {
             return res.status(400).json({ message: "Valid email is required" });
         }
 
@@ -343,15 +349,17 @@ export async function inviteToTeam(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
+        if (role === 'admin' && !team.isAdmin(userId) && String(team.owner) !== userId && req.user.role !== 'superadmin') return res.status(403).json({ message: 'Only team managers can invite team admins.' });
         // Check if user is already a member
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email, isActive: { $ne: false }, invitationPending: { $ne: true } });
+        if (!existingUser) return res.status(400).json({ message: 'Invite an active registered user. A superadmin must invite new accounts through Users first.' });
         if (existingUser && team.isMember(existingUser._id)) {
             return res.status(409).json({ message: "User is already a team member" });
         }
 
         // Check if invitation already exists
         const existingInvitation = team.invitations.find(inv =>
-            inv.email === email && inv.status === 'pending'
+            inv.email === email && inv.status === 'pending' && inv.expiresAt > new Date()
         );
 
         if (existingInvitation) {
@@ -361,25 +369,26 @@ export async function inviteToTeam(req, res) {
         // Create invitation
         const invitationToken = crypto.randomBytes(32).toString('hex');
 
-        team.invitations.push({
-            email,
-            role,
-            invitedBy: userId,
-            token: invitationToken
-        });
+        const now = new Date();
+        const invited = await Team.findOneAndUpdate({
+            _id: teamId,
+            invitations: { $not: { $elemMatch: { email, status: 'pending', expiresAt: { $gt: now } } } },
+            'members.user': { $ne: existingUser._id }
+        }, {
+            $push: { invitations: { email, role, invitedBy: userId, token: invitationToken,
+                invitedAt: now, expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), status: 'pending' } },
+            $set: { lastUpdatedBy: userId }
+        }, { new: true, runValidators: true });
+        if (!invited) return res.status(409).json({ message: 'Invitation already sent or user is already a member.' });
 
-        team.lastUpdatedBy = userId;
-        await team.save();
-
-        // Send notification to the user
-        const recipientUser = await User.findOne({ email });
-        if (recipientUser) {
-            await sendTeamInvitationNotification(recipientUser._id, userId, teamId, invitationToken);
+        const notice = await sendTeamInvitationNotification(existingUser._id, userId, teamId, invitationToken);
+        if (!notice) {
+            await Team.updateOne({ _id: teamId }, { $pull: { invitations: { token: invitationToken } } });
+            return res.status(503).json({ message: 'Invitation could not be delivered. Try inviting again.' });
         }
 
         res.status(200).json({
-            message: "Invitation sent successfully",
-            token: invitationToken // For testing purposes
+            message: "Invitation sent. The recipient can accept it from Activity."
         });
     } catch (error) {
         console.error("Error inviting to team:", error);
@@ -398,6 +407,7 @@ export async function addMemberToTeam(req, res) {
         const teamId = req.params.id;
         const currentUserId = req.user._id.toString();
         const { userId, role = 'member' } = req.body;
+        if (typeof userId !== 'string' || !mongoose.isValidObjectId(userId)) return res.status(400).json({message:'Select a valid user.'});
 
         // Validation
         if (!userId) {
@@ -423,7 +433,7 @@ export async function addMemberToTeam(req, res) {
 
         // Check if user exists
         const userToAdd = await User.findById(userId);
-        if (!userToAdd) {
+        if (!userToAdd || userToAdd.isActive === false || userToAdd.invitationPending) {
             return res.status(404).json({ message: "User not found" });
         }
 
@@ -442,14 +452,6 @@ export async function addMemberToTeam(req, res) {
         team.lastUpdatedBy = currentUserId;
         await team.save();
 
-        // Send notification to the added user
-        try {
-            await sendTeamInvitationNotification(userToAdd._id, team._id, currentUserId, 'added');
-        } catch (notificationError) {
-            console.error("Error sending notification:", notificationError);
-            // Don't fail the request if notification fails
-        }
-
         res.status(200).json({ message: "Member added successfully" });
     } catch (error) {
         console.error("Error adding member to team:", error);
@@ -466,6 +468,7 @@ export async function addMemberToTeam(req, res) {
 export async function acceptInvitation(req, res) {
     try {
         const { token } = req.params;
+        if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({message:'Invalid invitation.'});
         const userId = req.user._id.toString();
 
         const team = await Team.findOne({ 'invitations.token': token });
@@ -480,7 +483,7 @@ export async function acceptInvitation(req, res) {
 
         // Check if user email matches invitation
         const user = await User.findById(userId);
-        if (user.email !== invitation.email) {
+        if (!user || user.isActive === false || user.invitationPending || user.email !== invitation.email) {
             return res.status(403).json({ message: "Email mismatch" });
         }
 
@@ -489,19 +492,15 @@ export async function acceptInvitation(req, res) {
             return res.status(409).json({ message: "Already a team member" });
         }
 
-        // Add user to team
-        team.members.push({
-            user: userId,
-            role: invitation.role
-        });
-
-        // Update invitation status
-        invitation.status = 'accepted';
-
-        team.lastUpdatedBy = userId;
-        await team.save();
-
-        res.status(200).json({ message: "Invitation accepted successfully" });
+        const accepted = await Team.findOneAndUpdate({
+            _id: team._id,
+            invitations: { $elemMatch: { token, email: user.email, status: 'pending', expiresAt: { $gt: new Date() } } },
+            'members.user': { $ne: user._id }
+        }, { $push: { members: { user: user._id, role: invitation.role, joinedAt: new Date() } },
+             $set: { 'invitations.$.status': 'accepted', lastUpdatedBy: user._id } }, { new: true, runValidators: true });
+        if (!accepted) return res.status(409).json({ message: 'Invitation is no longer available.' });
+        await Notification.updateMany({ recipient: user._id, invitationToken: token }, { $unset: { invitationToken: 1 }, $set: { isRead: true, readAt: new Date() } });
+        res.status(200).json({ message: 'Invitation accepted successfully', teamId: team._id });
     } catch (error) {
         console.error("Error accepting invitation:", error);
         res.status(500).json({ message: "Internal Server Error" });
@@ -630,7 +629,7 @@ export async function getTeamBooks(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -662,7 +661,7 @@ export async function getAvailableBooks(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -695,7 +694,7 @@ export async function addBooksToTeam(req, res) {
         const currentUserId = req.user._id.toString();
         const { bookIds } = req.body;
 
-        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+        if (!validIdList(bookIds)) {
             return res.status(400).json({ message: "Book IDs array is required" });
         }
 
@@ -707,7 +706,7 @@ export async function addBooksToTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -752,7 +751,7 @@ export async function removeBooksFromTeam(req, res) {
         const currentUserId = req.user._id.toString();
         const { bookIds } = req.body;
 
-        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+        if (!validIdList(bookIds)) {
             return res.status(400).json({ message: "Book IDs array is required" });
         }
 
@@ -764,7 +763,7 @@ export async function removeBooksFromTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -805,6 +804,7 @@ export async function getTeamDocuments(req, res) {
         const team = await Team.findById(teamId)
             .populate({
                 path: 'documents',
+                match: documentReadFilter(req.user),
                 populate: [
                     { path: 'author', select: 'firstname lastname email' },
                     { path: 'category', select: 'name' }
@@ -818,7 +818,7 @@ export async function getTeamDocuments(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -850,7 +850,7 @@ export async function getAvailableDocuments(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -858,7 +858,7 @@ export async function getAvailableDocuments(req, res) {
 
         // Get all documents not assigned to this team
         const availableDocuments = await Doc.find({
-            _id: { $nin: team.documents }
+            $and: [documentReadFilter(req.user), { _id: { $nin: team.documents } }]
         })
         .populate('author', 'firstname lastname email')
         .populate('category', 'name')
@@ -883,7 +883,7 @@ export async function addDocumentsToTeam(req, res) {
         const currentUserId = req.user._id.toString();
         const { documentIds } = req.body;
 
-        if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        if (!validIdList(documentIds)) {
             return res.status(400).json({ message: "Document IDs array is required" });
         }
 
@@ -895,14 +895,14 @@ export async function addDocumentsToTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
         }
 
         // Verify all documents exist
-        const documents = await Doc.find({ _id: { $in: documentIds } });
+        const documents = await Doc.find({ $and: [documentReadFilter(req.user), { _id: { $in: documentIds } }] });
         if (documents.length !== documentIds.length) {
             return res.status(400).json({ message: "One or more documents not found" });
         }
@@ -940,7 +940,7 @@ export async function removeDocumentsFromTeam(req, res) {
         const currentUserId = req.user._id.toString();
         const { documentIds } = req.body;
 
-        if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        if (!validIdList(documentIds)) {
             return res.status(400).json({ message: "Document IDs array is required" });
         }
 
@@ -952,7 +952,7 @@ export async function removeDocumentsFromTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -998,7 +998,7 @@ export async function getTeamProjects(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -1041,7 +1041,7 @@ export async function getAvailableProjects(req, res) {
         // Check if user has access to this team
         const hasAccess = team.owner.toString() === currentUserId ||
                          team.isMember(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -1049,7 +1049,8 @@ export async function getAvailableProjects(req, res) {
 
         // Get all projects not assigned to this team
         const availableProjects = await Project.find({
-            _id: { $nin: team.projects }
+            _id: { $nin: team.projects },
+            ...projectManagementFilter(req.user)
         })
         .populate('owner', 'firstname lastname email')
         .populate('teams', 'name')
@@ -1075,7 +1076,7 @@ export async function addProjectsToTeam(req, res) {
         const currentUserId = req.user._id.toString();
         const { projectIds } = req.body;
 
-        if (!Array.isArray(projectIds) || projectIds.length === 0) {
+        if (!validIdList(projectIds)) {
             return res.status(400).json({ message: "Project IDs array is required" });
         }
 
@@ -1087,14 +1088,14 @@ export async function addProjectsToTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
         }
 
         // Verify all projects exist
-        const projects = await Project.find({ _id: { $in: projectIds } });
+        const projects = await Project.find({ _id: { $in: projectIds }, ...projectManagementFilter(req.user) });
         if (projects.length !== projectIds.length) {
             return res.status(400).json({ message: "One or more projects not found" });
         }
@@ -1138,7 +1139,7 @@ export async function removeProjectsFromTeam(req, res) {
         const currentUserId = req.user._id.toString();
         const { projectIds } = req.body;
 
-        if (!Array.isArray(projectIds) || projectIds.length === 0) {
+        if (!validIdList(projectIds)) {
             return res.status(400).json({ message: "Project IDs array is required" });
         }
 
@@ -1150,7 +1151,7 @@ export async function removeProjectsFromTeam(req, res) {
         // Check permissions (owner, admin, or system admin)
         const canManage = team.owner.toString() === currentUserId ||
                          team.isAdmin(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -1181,4 +1182,18 @@ export async function removeProjectsFromTeam(req, res) {
         console.error("Error removing projects from team:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
+}
+function projectManagementFilter(user) {
+    if (user.role === 'superadmin') return {};
+    const actor = user._id || user.id;
+    return {$or:[{owner:actor},{collaborators:{$elemMatch:{user:actor,role:'manager'}}}]};
+}
+
+function validIdList(values) {
+    return Array.isArray(values) && values.length > 0 && values.length <= 500
+        && values.every(value => typeof value === 'string' && mongoose.isValidObjectId(value))
+        && new Set(values).size === values.length;
+}
+function literalSearch(value) {
+    return String(value).slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

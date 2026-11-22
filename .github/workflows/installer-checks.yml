@@ -1,0 +1,39 @@
+name: Installation and update safety checks
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'install.sh'
+      - 'scripts/install/**'
+      - 'update.sh'
+      - 'scripts/update/**'
+      - '.github/workflows/installer-checks.yml'
+  push:
+    paths:
+      - 'install.sh'
+      - 'scripts/install/**'
+      - 'update.sh'
+      - 'scripts/update/**'
+      - '.github/workflows/installer-checks.yml'
+permissions:
+  contents: read
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax without installing or changing services
+        run: |
+          bash -n install.sh
+          bash -n update.sh
+          bash -n scripts/install/backup.sh
+          node --check scripts/install/bootstrap.mjs
+          bash install.sh --help
+          bash update.sh --help
+      - name: Check configuration safety and retry behavior in temporary directories
+        run: python3 -B -m unittest discover -s scripts/install -p 'test_*.py' -v
+      - name: Check update ordering and failure recovery without service changes
+        run: python3 -B -m unittest discover -s scripts/update -p 'test_*.py' -v

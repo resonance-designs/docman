@@ -1,32 +1,73 @@
 <template>
-  <ResourceListPage
-    eyebrow="Books"
-    title="Books"
-    subtitle="Review grouped document collections from DocMan."
-    :items="items"
-    :columns="columns"
-    :count="count"
-    :loading="loading"
-    :error="error"
-    empty-icon="mdi-book-open-page-variant-outline"
-    empty-title="No books found"
-    empty-text="Books will appear here once they exist in DocMan."
-  />
+  <v-container class="py-8" fluid>
+    <div class="d-flex flex-wrap align-center justify-space-between ga-4 mb-6"><div><div class="text-overline text-primary">Document collections</div><h1 class="text-h4 font-weight-bold">Books</h1><p class="text-medium-emphasis mt-2">Group related documents and manage the people responsible for each collection.</p></div><v-btn v-if="canCreate" color="primary" prepend-icon="mdi-book-plus-outline" @click="openEditor()">Create book</v-btn></div>
+    <v-alert v-if="message" type="success" class="mb-4" closable @click:close="message = ''">{{ message }}</v-alert>
+    <v-alert v-if="error" type="error" class="mb-4">{{ error }} <v-btn variant="text" @click="load">Retry</v-btn></v-alert>
+    <v-card><v-card-text><v-form @submit.prevent="page = 1; load()"><div class="d-flex flex-wrap align-start ga-3"><v-text-field v-model="search" label="Search books" prepend-inner-icon="mdi-magnify" clearable maxlength="100" hide-details style="min-width: 220px" /><v-btn type="submit" color="primary" :loading="loading">Search</v-btn><v-btn variant="text" :disabled="loading" @click="search = ''; page = 1; load()">Clear</v-btn></div></v-form></v-card-text>
+      <v-progress-linear v-if="loading" indeterminate />
+      <v-table><thead><tr><th>Book</th><th>Category</th><th>Owners</th><th>Visible documents</th><th class="text-right">Actions</th></tr></thead><tbody>
+        <tr v-for="book in books" :key="book._id"><td class="book-copy"><strong>{{ book.title }}</strong><div class="text-caption text-medium-emphasis">{{ book.description || 'No description' }}</div></td><td>{{ book.category?.name || 'Category unavailable' }}</td><td>{{ (book.owners || []).map(personName).join(', ') || 'No owners assigned' }}</td><td>{{ book.documents?.length || 0 }}</td><td class="text-right text-no-wrap"><v-btn size="small" variant="text" :aria-label="`Open ${book.title}`" @click="openDetail(book._id)">Open</v-btn><v-btn v-if="canManage(book)" size="small" variant="text" :aria-label="`Edit ${book.title}`" @click="openEditor(book)">Edit</v-btn><v-btn v-if="canManage(book)" size="small" variant="text" color="error" :aria-label="`Delete ${book.title}`" @click="deleteTarget = book; deleteError = ''">Delete</v-btn></td></tr>
+        <tr v-if="!loading && !books.length"><td colspan="5" class="py-8 text-center">{{ search ? 'No books match your search.' : 'No books yet. Create a collection to organize related documents.' }}</td></tr>
+      </tbody></v-table>
+      <v-card-actions class="flex-wrap"><span class="text-caption ml-2">{{ total }} books · page {{ page }} of {{ pages }}</span><v-spacer /><v-pagination v-model="page" :length="pages" :disabled="loading" total-visible="5" @update:model-value="load" /></v-card-actions>
+    </v-card>
+    <v-dialog v-model="editorOpen" max-width="680" :persistent="saving"><v-card :title="editing ? 'Edit book' : 'Create book'"><v-form @submit.prevent="save"><v-card-text>
+      <v-alert v-if="formError" type="error" class="mb-4">{{ formError }}</v-alert>
+      <v-progress-linear v-if="optionsLoading" indeterminate class="mb-4" />
+      <v-text-field v-model="form.title" label="Title" required maxlength="254" :disabled="saving" />
+      <v-textarea v-model="form.description" label="Description (optional)" maxlength="5000" counter rows="3" :disabled="saving" />
+      <v-autocomplete v-model="form.category" :items="categories" item-title="name" item-value="_id" label="Book category" :disabled="saving || optionsLoading" required no-data-text="No Book categories available" />
+      <v-alert v-if="!optionsLoading && !categories.length" type="info" class="mb-3">Ask an administrator to create a category with type Book.<v-btn v-if="hasRole(['admin','superadmin'])" to="/categories" variant="text">Manage categories</v-btn></v-alert>
+      <v-autocomplete v-model="form.owners" :items="ownerOptions" item-title="label" item-value="_id" label="Owners" multiple chips closable-chips :disabled="saving || optionsLoading" hint="Owners with an editor or admin account can manage this book. Superadmins can manage any book." persistent-hint />
+      <v-alert v-if="editing && !hasRole(['superadmin']) && !form.owners.includes(currentId)" type="warning" class="mt-4">Removing yourself from the owners will remove your ability to manage this book after saving.</v-alert>
+      <p class="text-caption mt-4">Manage linked documents after saving. Adding a document to a book does not grant access to its contents.</p>
+    </v-card-text><v-card-actions><v-spacer /><v-btn :disabled="saving" @click="editorOpen = false">Cancel</v-btn><v-btn color="primary" type="submit" :loading="saving" :disabled="optionsLoading || optionsFailed">{{ editing ? 'Save changes' : 'Create book' }}</v-btn></v-card-actions></v-form></v-card></v-dialog>
+    <v-dialog v-model="detailOpen" max-width="900" :persistent="associationBusy"><v-card :title="detail?.title || 'Book details'">
+      <v-card-text><v-progress-linear v-if="detailLoading" indeterminate /><v-alert v-if="detailError" type="error" class="mb-4">{{ detailError }} <v-btn v-if="detailId" variant="text" @click="fetchDetail">Retry</v-btn></v-alert>
+        <template v-if="detail && !detailLoading"><p class="mb-3">{{ detail.description || 'No description' }}</p><p class="text-body-2 mb-3">Category: {{ detail.category?.name || 'Unavailable' }} · Owners: {{ (detail.owners || []).map(personName).join(', ') || 'None' }}</p>
+          <v-alert type="info" variant="tonal" class="mb-4">Only documents you can read are shown. Membership in a book does not change document permissions. Removing a link does not delete the document.</v-alert>
+          <h2 class="text-h6 mb-2">Linked documents</h2>
+          <v-list v-if="detail.documents?.length" lines="two"><v-list-item v-for="doc in detail.documents" :key="doc._id" :title="doc.title || 'Untitled document'" :subtitle="doc.description"><template #append><div class="d-flex flex-wrap ga-1"><v-btn size="small" variant="text" :to="`/documents/${doc._id}`">Open</v-btn><v-btn v-if="canManage(detail)" size="small" variant="text" color="error" :disabled="associationBusy" @click="unlinkTarget = doc; unlinkError = ''">Remove link</v-btn></div></template></v-list-item></v-list>
+          <p v-else class="text-medium-emphasis py-4">No linked documents are visible to your account.</p>
+          <template v-if="canManage(detail)"><v-divider class="my-4" /><h2 class="text-h6 mb-3">Add a document</h2><v-form @submit.prevent="docPage = 1; findDocuments()"><div class="d-flex flex-wrap ga-3"><v-text-field v-model="docSearch" label="Search accessible documents" clearable maxlength="100" hide-details style="min-width: 220px" /><v-btn type="submit" variant="tonal" :loading="docLoading">Search</v-btn></div></v-form>
+            <v-alert v-if="docError" type="error" class="mt-3">{{ docError }}</v-alert>
+            <v-select v-model="selectedDoc" :items="availableDocs" item-title="title" item-value="_id" label="Select a document to link" class="mt-3" :disabled="docLoading || associationBusy" no-data-text="No unlinked documents on this page" />
+            <div class="d-flex flex-wrap align-center justify-space-between ga-3"><v-btn color="primary" :disabled="!selectedDoc || associationBusy" :loading="associationBusy" @click="addDocument">Add document</v-btn><v-pagination v-model="docPage" :length="docPages" :disabled="docLoading || associationBusy" total-visible="4" @update:model-value="findDocuments" /></div>
+          </template>
+        </template>
+      </v-card-text><v-card-actions><v-spacer /><v-btn :disabled="associationBusy" @click="detailOpen = false">Close</v-btn></v-card-actions></v-card></v-dialog>
+    <v-dialog :model-value="Boolean(unlinkTarget)" max-width="500" :persistent="associationBusy" @update:model-value="!$event && (unlinkTarget = null)"><v-card title="Remove document link?"><v-card-text><v-alert v-if="unlinkError" type="error" class="mb-3">{{ unlinkError }}</v-alert>Remove <strong>{{ unlinkTarget?.title }}</strong> from this book? The document and its access permissions will remain unchanged.</v-card-text><v-card-actions><v-spacer /><v-btn :disabled="associationBusy" @click="unlinkTarget = null; unlinkError = ''">Cancel</v-btn><v-btn color="error" :loading="associationBusy" @click="removeDocument">Remove link</v-btn></v-card-actions></v-card></v-dialog>
+    <v-dialog :model-value="Boolean(deleteTarget)" max-width="500" :persistent="saving" @update:model-value="!$event && (deleteTarget = null)"><v-card title="Delete book?"><v-card-text><v-alert v-if="deleteError" type="error" class="mb-3">{{ deleteError }}</v-alert>Delete <strong>{{ deleteTarget?.title }}</strong>? This permanently removes the book, not its documents or files.</v-card-text><v-card-actions><v-spacer /><v-btn :disabled="saving" @click="deleteTarget = null">Cancel</v-btn><v-btn color="error" :loading="saving" @click="remove">Delete book</v-btn></v-card-actions></v-card></v-dialog>
+  </v-container>
 </template>
-
 <script setup>
-import { onMounted } from 'vue';
-import ResourceListPage from '@/components/resources/ResourceListPage.vue';
-import { useResourceList } from '@/composables/useResourceList';
-
-const { items, count, loading, error, load } = useResourceList('/books');
-
-const columns = [
-  { key: 'title', title: 'Title', value: (item) => item.title || item.name || 'Untitled book' },
-  { key: 'description', title: 'Description' },
-  { key: 'documents', title: 'Documents', chip: true, value: (item) => item.documents?.length || 0 },
-];
-
+import { computed, onMounted, reactive, ref } from 'vue';
+import { api } from '@/services/api';
+import { useAuth } from '@/composables/useAuth';
+import { personName } from '@/lib/people';
+const { hasRole, state } = useAuth();
+const idOf = value => String(value?._id || value || '');
+const currentId = computed(() => idOf(state.user?.id || state.user?._id));
+const canCreate = computed(() => hasRole(['editor','admin','superadmin']));
+const canManage = book => canCreate.value && (hasRole(['superadmin']) || (book?.owners || []).some(owner => idOf(owner) === currentId.value));
+const books = ref([]), page = ref(1), pages = ref(1), total = ref(0), search = ref(''), loading = ref(false), error = ref(''), message = ref('');
+const editorOpen = ref(false), editing = ref(null), saving = ref(false), formError = ref(''), optionsLoading = ref(false), optionsFailed = ref(false), categories = ref([]), users = ref([]);
+const form = reactive({ title: '', description: '', category: null, owners: [] });
+const ownerOptions = computed(() => { const merged = new Map(users.value.map(user => [idOf(user), user])); for (const owner of editing.value?.owners || []) if (typeof owner === 'object' && !merged.has(idOf(owner))) merged.set(idOf(owner), owner); return [...merged.values()].map(user => ({ ...user, label: `${personName(user)}${user.email ? ` (${user.email})` : ''}` })); });
+const deleteTarget = ref(null), deleteError = ref(''), detailOpen = ref(false), detail = ref(null), detailId = ref(''), detailLoading = ref(false), detailError = ref('');
+const docSearch = ref(''), docPage = ref(1), docPages = ref(1), docLoading = ref(false), docError = ref(''), docRows = ref([]), selectedDoc = ref(null), associationBusy = ref(false), unlinkTarget = ref(null), unlinkError = ref('');
+const availableDocs = computed(() => docRows.value.filter(doc => !(detail.value?.documents || []).some(link => idOf(link) === idOf(doc))));
+let listRequest = 0, detailRequest = 0, docsRequest = 0, optionsRequest = 0;
+async function load() { const request = ++listRequest; loading.value = true; error.value = ''; try { const { data } = await api.get('/books', { params: { page: page.value, limit: 25, search: search.value?.trim() || undefined } }); if (request !== listRequest) return; books.value = data.books || []; total.value = data.pagination?.total || 0; pages.value = Math.max(1, data.pagination?.pages || 1); if (page.value > pages.value) { page.value = pages.value; return load(); } } catch (e) { if (request === listRequest) error.value = e.response?.data?.message || 'Unable to load books.'; } finally { if (request === listRequest) loading.value = false; } }
+async function allOptions(path, key, params = {}) { const result = []; let next = 1; let last = 1; do { const { data } = await api.get(path, { params: { ...params, page: next, limit: 100 } }); result.push(...(data[key] || [])); last = Math.max(1, data.pagination?.pages || 1); next++; } while (next <= last); return result; }
+async function openEditor(book = null) { const request = ++optionsRequest; editing.value = book; Object.assign(form, { title: book?.title || '', description: book?.description || '', category: book?.category ? idOf(book.category) : null, owners: book ? (book.owners || []).map(idOf) : [currentId.value] }); editorOpen.value = true; formError.value = ''; optionsLoading.value = true; optionsFailed.value = false; try { const results = await Promise.all([allOptions('/categories','categories',{ type: 'Book' }), allOptions('/users','users')]); if (request !== optionsRequest) return; categories.value = results[0]; users.value = results[1]; } catch (e) { if (request !== optionsRequest) return; optionsFailed.value = true; formError.value = e.response?.data?.message || 'Unable to load categories and owners. Close and retry.'; } finally { if (request === optionsRequest) optionsLoading.value = false; } }
+async function save() { if (saving.value || optionsLoading.value || optionsFailed.value) return; if (!form.title.trim() || !form.category || !form.owners.length) { formError.value = 'Enter a title, select a Book category and choose at least one owner.'; return; } saving.value = true; formError.value = ''; try { const payload = { title: form.title.trim(), description: form.description.trim(), category: form.category, owners: [...form.owners] }; const { data } = editing.value ? await api.put(`/books/${editing.value._id}`, payload) : await api.post('/books', payload); const created = !editing.value; editorOpen.value = false; message.value = created ? 'Book created.' : 'Book updated.'; await load(); if (created && data.book?._id) await openDetail(data.book._id); } catch (e) { formError.value = e.response?.data?.message || 'Unable to save book.'; } finally { saving.value = false; } }
+async function remove() { if (saving.value || !deleteTarget.value) return; saving.value = true; deleteError.value = ''; try { await api.delete(`/books/${deleteTarget.value._id}`); deleteTarget.value = null; message.value = 'Book deleted. Its documents remain available under their own permissions.'; await load(); } catch (e) { deleteError.value = e.response?.data?.message || 'Unable to delete book.'; } finally { saving.value = false; } }
+async function openDetail(id) { ++docsRequest; detailId.value = id; detail.value = null; detailOpen.value = true; docSearch.value = ''; docPage.value = 1; selectedDoc.value = null; docRows.value = []; await fetchDetail(); if (detail.value && canManage(detail.value)) await findDocuments(); }
+async function fetchDetail() { const request = ++detailRequest; const id = detailId.value; detailLoading.value = true; detailError.value = ''; try { const { data } = await api.get(`/books/${id}`); if (request === detailRequest) detail.value = data.book; } catch (e) { if (request === detailRequest) detailError.value = e.response?.data?.message || 'Unable to load book details.'; } finally { if (request === detailRequest) detailLoading.value = false; } }
+async function findDocuments() { const request = ++docsRequest; docLoading.value = true; docError.value = ''; selectedDoc.value = null; try { const { data } = await api.get('/docs', { params: { page: docPage.value, limit: 25, search: docSearch.value?.trim() || undefined } }); if (request !== docsRequest) return; docRows.value = data.documents || []; docPages.value = Math.max(1, data.pagination?.pages || 1); } catch (e) { if (request === docsRequest) docError.value = e.response?.data?.message || 'Unable to load accessible documents.'; } finally { if (request === docsRequest) docLoading.value = false; } }
+async function addDocument() { if (associationBusy.value || !selectedDoc.value) return; associationBusy.value = true; docError.value = ''; try { await api.post(`/books/${detailId.value}/documents`, { documentId: selectedDoc.value }); selectedDoc.value = null; await fetchDetail(); await load(); } catch (e) { docError.value = e.response?.data?.message || 'Unable to link document.'; } finally { associationBusy.value = false; } }
+async function removeDocument() { if (associationBusy.value || !unlinkTarget.value) return; associationBusy.value = true; unlinkError.value = ''; try { await api.delete(`/books/${detailId.value}/documents/${unlinkTarget.value._id}`); unlinkTarget.value = null; await fetchDetail(); await load(); } catch (e) { unlinkError.value = e.response?.data?.message || 'Unable to remove document link.'; } finally { associationBusy.value = false; } }
 onMounted(load);
 </script>
-
+<style scoped>.book-copy { min-width: 180px; max-width: 400px; overflow-wrap: anywhere; }.v-list-item { overflow-wrap: anywhere; }</style>

@@ -1,3 +1,4 @@
+import { notificationHooks } from '../lib/notificationHooks.js';
 /*
  * @name User
  * @file /docman/backend/src/models/User.js
@@ -96,6 +97,10 @@ const userSchema = new mongoose.Schema(
         },
         isActive: { type: Boolean, default: true },
         sessionVersion: { type: Number, default: 0 },
+        invitationPending: { type: Boolean, default: false },
+        invitationTokenHash: { type: String, select: false },
+        invitationExpires: Date,
+        emailVerifiedAt: Date,
         resetPasswordToken: String,
         resetPasswordExpires: Date,
         refreshTokenHash: { type: String },
@@ -136,6 +141,8 @@ userSchema.index({ authentikSub: 1 }, { unique: true, sparse: true });
  * User model for managing user accounts and authentication
  * @type {mongoose.Model}
  */
+userSchema.plugin(notificationHooks, { kind: 'User' });
+
 const User = mongoose.model("User", userSchema);
 
 export default User;

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 /*
  * @name teamsRoutes
  * @file /docman/backend/src/routes/teamsRoutes.js
@@ -43,9 +44,23 @@ import {
  * @type {express.Router}
  */
 const router = express.Router();
+for (const param of ['id','teamId','userId','documentId']) {
+    router.param(param, (req,res,next,value) => mongoose.isValidObjectId(value)
+        ? next() : res.status(400).json({message:'Invalid resource ID.'}));
+}
+
+router.use((req, res, next) => {
+    const json = res.json.bind(res);
+    res.json = value => {
+        const redact = (key, value) => key === 'invitations' && Array.isArray(value)
+            ? value.map(({ token, ...invitation }) => invitation) : value;
+        return json(JSON.parse(JSON.stringify(value, redact)));
+    };
+    next();
+});
 
 // Get user's teams (editors, admins, and superadmins can create teams)
-router.get("/my-teams", verifyAccessToken, requireRole("editor", "admin", "superadmin"), getUserTeams);
+router.get("/my-teams", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getUserTeams);
 
 // Get all teams (editors, admins, and superadmins can see all teams)
 router.get("/", verifyAccessToken, requireRole("editor", "admin", "superadmin"), getAllTeams);
