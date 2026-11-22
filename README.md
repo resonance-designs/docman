@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-3.0.0-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.0-green)
+![Static Badge](https://img.shields.io/badge/Version-3.0.1-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.1-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 

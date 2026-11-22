@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# @author Richard Bakos
+# @version 3.0.1
+# @license UNLICENSED
 # See docs/deployment/automated-updates.md. This wrapper never pulls over itself.
 set -Eeuo pipefail
 umask 077

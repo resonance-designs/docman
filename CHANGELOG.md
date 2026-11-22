@@ -21,11 +21,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Restrict `npm run version:sync` to an explicit allowlist of package manifests/lockfiles, README files, `DEVELOPER_ONBOARDING.md`, `project-config.json`, `App.jsx`, `install.sh`, and `update.sh` (at most 23 files). Stop recursively updating source-file version headers; existing comments outside the allowlist remain untouched to keep release PRs within review limits.
+- Add version markers to `install.sh` and `update.sh` so subsequent version syncs include both scripts. Add an isolated regression test covering allowed updates, unchanged excluded files, dependency-version preservation, patch increments, and invalid-version rejection.
 - Retire Render hosting guidance, docs navigation and legacy startup environment; retain self-hosted Ubuntu/Linode deployment and optional Atlas support.
-
 - Fix review calendar dates displaying the previous day in timezones west of UTC, while retaining local-time activity timestamps.
 - Close management permission and invitation-retry gaps; filter activity resource names by current access. Improve failed-load recovery, public-link route refresh and narrow-screen account actions; refresh both PDF manuals for the management interfaces.
-
 - Database-managed registration policy replaces the legacy environment switch. Existing accounts and passwords remain valid; bootstrap provisioning remains independent of email.
 - Allow an explicit backend `NODE_HOST`; fresh installations bind to loopback behind Apache while existing deployments retain the default when unset.
 
