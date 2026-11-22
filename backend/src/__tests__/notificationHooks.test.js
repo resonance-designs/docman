@@ -7,6 +7,15 @@ function harness(kind = 'User') {
     notificationHooks(schema, { kind }); return hooks;
 }
 beforeEach(() => Notification.updateOne.mockResolvedValue({}));
+
+test('saved review assignment queues generic notice without a document-access dependency', async () => {
+    const hooks = harness('ReviewAssignment');
+    const assignment = { _id: 'assignment', document: 'private-document', assignee: 'reviewer', assignedBy: 'owner', status: 'pending' };
+    await hooks.post.save({ constructor: {}, $locals: { notificationBefore: null }, toObject: () => assignment });
+    const notices = Notification.updateOne.mock.calls.map(call => call[1].$setOnInsert);
+    expect(notices.map(notice => notice.recipient).sort()).toEqual(['owner', 'reviewer']);
+    expect(notices.every(notice => notice.emailStatus === 'pending' && !Object.hasOwn(notice, 'relatedDoc'))).toBe(true);
+});
 test('post-save writes an email-pending in-app event with stable deduplication key', async () => {
     const hooks = harness();
     const doc = { constructor: {}, $locals: { notificationBefore: { _id: 'u', role: 'viewer' } }, toObject: () => ({ _id: 'u', role: 'editor', updatedAt: new Date(0) }) };

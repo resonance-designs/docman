@@ -1,3 +1,4 @@
+import { withCategoryWriteLock } from '../lib/categoryWriteLock.js';
 import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import Doc from '../models/Doc.js';
@@ -24,7 +25,7 @@ export async function createCategory(req,res) {
     let data; try { data=categoryInput(req.body); } catch(e) { return res.status(400).json({message:e.message}); }
     try { const category=await Category.create(data);return res.status(201).json({message:'Category created.',category}); } catch(e) { return failure(res,e); }
 }
-export async function updateCategory(req,res) {
+async function updateCategoryLocked(req,res) {
     if(!validId(req.params.id)) return res.status(400).json({message:'Invalid category ID.'});
     let data;try {data=categoryInput(req.body);}catch(e){return res.status(400).json({message:e.message});}
     try {
@@ -35,7 +36,7 @@ export async function updateCategory(req,res) {
         return res.json({message:'Category updated.',category});
     } catch(e){return failure(res,e);}
 }
-export async function deleteCategory(req,res) {
+async function deleteCategoryLocked(req,res) {
     if(!validId(req.params.id)) return res.status(400).json({message:'Invalid category ID.'});
     try {
         if(await referenced(req.params.id)) return res.status(409).json({message:'This category is in use, including retained deleted documents. Reassign its documents/books before deleting it.'});
@@ -43,4 +44,24 @@ export async function deleteCategory(req,res) {
         if(!category) return res.status(404).json({message:'Category not found.'});
         return res.json({message:'Category deleted.'});
     } catch(e){return failure(res,e);}
+}
+
+export async function updateCategory(req, res) {
+    try {
+        return await withCategoryWriteLock(() => updateCategoryLocked(req, res));
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.statusCode === 409
+            ? 'Another category or book change is in progress. Try again.'
+            : 'Could not coordinate category/book changes.' });
+    }
+}
+
+export async function deleteCategory(req, res) {
+    try {
+        return await withCategoryWriteLock(() => deleteCategoryLocked(req, res));
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.statusCode === 409
+            ? 'Another category or book change is in progress. Try again.'
+            : 'Could not coordinate category/book changes.' });
+    }
 }

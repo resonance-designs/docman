@@ -38,7 +38,10 @@ export function changeEvents(kind, before, after, context = {}) {
         if (before && after && ['name', 'description', 'status', 'documents', 'books', 'teams', 'projects'].some(k => !same(before[k], after[k]))) push([...next.keys()], `${kind} updated`, `A ${kind.toLowerCase()} you belong to was updated. Open DocMan for details.`, extra);
     }
     if (kind === 'ReviewAssignment' && after && (!before || ['assignee', 'dueDate', 'status', 'requiresUpdates', 'updateNotes'].some(k => !same(before[k], after[k])))) {
-        push([row.assignee, row.assignedBy, before?.assignee], 'Review assignment updated', `A review assignment was created or changed. Current status: ${row.status}. Open DocMan for details.`, { relatedDoc: row.document });
+        // Assignment alerts are account activity, not document disclosures. Saving a
+        // task does not grant document access; omit the resource reference so a new
+        // reviewer (or a removed reviewer) can still receive this generic notice.
+        push([row.assignee, row.assignedBy, before?.assignee], 'Review assignment updated', `A review assignment was created or changed. Current status: ${row.status}. Open DocMan for details.`);
     }
     if (kind === 'File' && after && before?.status !== after.status) {
         const doc = context.document;

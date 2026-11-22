@@ -271,16 +271,19 @@ import mongoose from 'mongoose';
 import EmailSetting from './src/models/EmailSetting.js';
 try {
   await mongoose.connect(process.env.MONGO_URI);
-  await EmailSetting.updateOne({ _id: 'outbound' }, {
+  const result = await EmailSetting.updateOne({ _id: 'outbound' }, {
     $set: { 'config.provider': 'disabled', encryptedSecrets: '' },
     $inc: { revision: 1 }
-  });
+  }, { upsert: true });
+  if (!result.acknowledged || (result.matchedCount !== 1 && result.upsertedCount !== 1)) {
+    throw new Error('STOP: outgoing email was not confirmed disabled. Keep the recovery application stopped.');
+  }
   console.log('Recovery email disabled');
 } finally { await mongoose.disconnect(); }
 JS
 ```
 
-**Expected:** `Recovery email disabled`. This deliberately removes saved mail credentials from the isolated recovery copy; it does not touch the original server or snapshot.
+**Expected:** `Recovery email disabled`, printed only after an acknowledged update matches the existing outbound record or inserts it if missing. This deliberately removes saved mail credentials from the isolated recovery copy; it does not touch the original server or snapshot. If the command reports an error or does not print the success message, stop and keep the recovery application stopped until this step succeeds.
 
 Use manual sections 12–14 to build/publish Vue, install the service and configure a valid certificate for the private recovery hostname. Keep timers disabled. Follow section 18.4 to verify the audit chain (`"valid":true`), start the backend (`active`), sign in with restored accounts, test permissions and download old/new document versions. Compare recovered downloads with known originals, including encrypted files. Record snapshot ID, source commit, checks, results and elapsed recovery time. A successful backup command alone does not establish recoverability.
 

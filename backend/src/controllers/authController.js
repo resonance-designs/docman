@@ -252,13 +252,18 @@ export async function forgotPassword(req, res) {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with success message or error message
  */
-export async function resetPassword(req, res) {
+export async function resetPassword(req, res, next) {
     const { token, password } = req.body;
     if (typeof token !== "string" || !token || typeof password !== "string") {
         return res.status(400).json({ message: "Invalid or expired token." });
     }
-    const policyError = passwordError(password, await getAccountPolicy());
-        const passwordResult = { isValid: !policyError, error: policyError };
+    let policyError;
+    try {
+        policyError = passwordError(password, await getAccountPolicy());
+    } catch (error) {
+        return next(error);
+    }
+    const passwordResult = { isValid: !policyError, error: policyError };
     if (!passwordResult.isValid) return res.status(400).json({ message: passwordResult.error });
 
     const user = await User.findOne({

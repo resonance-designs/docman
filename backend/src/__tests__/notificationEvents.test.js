@@ -40,4 +40,5 @@ test('rejected versions do not notify stakeholders', () => {
 test('review tasks notify assignee and assigner without disclosing notes', () => {
     const events = changeEvents('ReviewAssignment', null, { document: 'doc', assignee: 'a', assignedBy: 'b', status: 'pending', notes: 'private' });
     expect(events).toHaveLength(2); expect(JSON.stringify(events)).not.toContain('private');
+    expect(events.every(event => !Object.hasOwn(event, 'relatedDoc'))).toBe(true);
 });

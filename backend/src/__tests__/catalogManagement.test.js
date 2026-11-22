@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+jest.mock('../lib/categoryWriteLock.js', () => ({ withCategoryWriteLock: work => work() }));
 import Category from '../models/Category.js';
 import Doc from '../models/Doc.js';
 import Book from '../models/Book.js';

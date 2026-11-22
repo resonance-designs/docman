@@ -10,6 +10,19 @@ Admins and superadmins can create, edit and delete categories. Choose **Document
 
 Editors and higher roles can create books. Editor/admin owners and superadmins can manage an existing book. Select a Book category and owners, then use the details screen to link or unlink accessible documents. Metadata saves preserve existing document associations. Removing a link does not delete a document; deleting a book removes its team/project links.
 
+Book creation/editing and category deletion/type changes share the database guard `locks.category-book-references`. A concurrent request returns HTTP 409; retry after the other request finishes. The guard does not expire while a slow write is running. If its process crashes or releasing the guard fails, these operations stay blocked rather than risk invalid category references.
+
+For a persistent conflict after a crash, an administrator must stop **all application processes and other writers using this database**, confirm their in-flight writes have ended, and inspect affected books/categories before recovery. In an authenticated MongoDB shell with `docman` selected, clear only this guard:
+
+```javascript
+db.systemsettings.updateOne(
+  { key: "locks.category-book-references" },
+  { $set: { value: {} } }
+)
+```
+
+Expected: `acknowledged: true` and `matchedCount: 1` when the guard exists. Restart the stopped writers and retry the operation. Never clear it while another writer could still be active. This coordination covers the book/category API paths; it does not serialize direct database edits or unrelated document writers.
+
 ## Teams
 
 Editors and higher roles can create teams. Owners, team admins and superadmins can manage members and roles; only owners/superadmins can delete a team. Viewers can inspect their teams without gaining management rights. Team membership does not grant access to every linked document.

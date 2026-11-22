@@ -355,6 +355,8 @@ Installed package versions:
 {versions}
 '''
     atom(STATE / 'RESULTS.txt', report)
+    c['person'].pop('password', None)
+    save(c)
     (STATE / 'complete').touch(mode=0o600)
     print(report)
 

@@ -29,6 +29,14 @@ All notable changes to this project will be documented in this file.
 - Database-managed registration policy replaces the legacy environment switch. Existing accounts and passwords remain valid; bootstrap provisioning remains independent of email.
 - Allow an explicit backend `NODE_HOST`; fresh installations bind to loopback behind Apache while existing deployments retain the default when unset.
 
+### Fixed
+
+- Remove the initial administrator's plaintext password from persisted installer state after writing completion results and before marking installation complete; add regression coverage for cleanup and failed writes.
+- Make the isolated-recovery email-disable command upsert a missing outbound settings record and require an acknowledged match or insert before reporting success. Preserve provider disabling and credential clearing; explicitly keep the recovery app stopped on failure.
+- Keep newly created review-assignment alerts deliverable to reviewers without separate document access by queuing generic account notices after assignment save, without a document reference or access mutation. Preserve document-event access rechecks and recipient safeguards; add event, post-save and worker regression coverage.
+- Serialize category deletion/type changes with book creation and category reassignment under one cross-process database guard, holding validation through the book save. Concurrent requests receive a retryable conflict. Add interleaving regression tests and document recovery for an interrupted non-expiring guard.
+- Forward password-reset account-policy lookup failures to Express error middleware instead of leaving an unhandled rejected promise. Preserve input validation and configured password requirements; add regression tests for error forwarding and validation before policy lookup.
+
 ## [3.0.0] - 2026-11-18
 
 Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these do not represent a new release.

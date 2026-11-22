@@ -1,3 +1,4 @@
+import { withCategoryWriteLock } from '../lib/categoryWriteLock.js';
 import Team from '../models/Team.js';
 import Project from '../models/Project.js';
 import Doc from '../models/Doc.js';
@@ -133,7 +134,7 @@ export async function getBookById(req, res) {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with created book data or error message
  */
-export async function createBook(req, res) {
+async function createBookLocked(req, res) {
     try {
         if (!await validateBookInput(req,res,true)) return;
         const { title, description, category, documents, owners } = req.body;
@@ -189,7 +190,7 @@ export async function createBook(req, res) {
  * @param {Object} res - Express response object
  * @returns {Object} JSON response with updated book data or error message
  */
-export async function updateBook(req, res) {
+async function updateBookLocked(req, res) {
     try {
         if (!await validateBookInput(req,res,false)) return;
 
@@ -365,4 +366,24 @@ async function validateBookInput(req, res, creating = false) {
         b[field]=ids;
     }
     return true;
+}
+
+export async function createBook(req, res) {
+    try {
+        return await withCategoryWriteLock(() => createBookLocked(req, res));
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.statusCode === 409
+            ? 'Another category or book change is in progress. Try again.'
+            : 'Could not coordinate category/book changes.' });
+    }
+}
+
+export async function updateBook(req, res) {
+    try {
+        return await withCategoryWriteLock(() => updateBookLocked(req, res));
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.statusCode === 409
+            ? 'Another category or book change is in progress. Try again.'
+            : 'Could not coordinate category/book changes.' });
+    }
 }

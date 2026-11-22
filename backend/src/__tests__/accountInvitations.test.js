@@ -1,4 +1,6 @@
 import bcrypt from 'bcrypt';
+import express from 'express';
+import request from 'supertest';
 import User from '../models/User.js';
 import SystemSetting from '../models/SystemSetting.js';
 import { sendEmail } from '../lib/emailService.js';
@@ -75,6 +77,28 @@ test('reset uses configured password policy', async () => {
     SystemSetting.findOne.mockReturnValue({ lean: async () => ({ value: { minLength: 24 } }) });
     const res = response(); await resetPassword({ body: { token, password: 'a'.repeat(18) } }, res);
     expect(res.status).toHaveBeenCalledWith(400); expect(User.findOne).not.toHaveBeenCalled();
+});
+test('reset policy lookup failure reaches Express error middleware without accessing users', async () => {
+    const failure = new Error('Policy storage unavailable');
+    SystemSetting.findOne.mockReturnValue({ lean: jest.fn().mockRejectedValue(failure) });
+    const app = express();
+    app.use(express.json());
+    app.post('/reset-password', resetPassword);
+    const errors = jest.fn((error, req, res, next) => res.status(503).json({ message: 'Temporarily unavailable.' }));
+    app.use(errors);
+    const result = await request(app).post('/reset-password').send({ token, password: 'a'.repeat(24) }).timeout(2000);
+    expect(result.status).toBe(503);
+    expect(errors).toHaveBeenCalledTimes(1);
+    expect(errors.mock.calls[0][0]).toBe(failure);
+    expect(User.findOne).not.toHaveBeenCalled();
+    expect(User.updateOne).not.toHaveBeenCalled();
+});
+test('reset rejects malformed input before loading account policy', async () => {
+    const res = response(), next = jest.fn();
+    await resetPassword({ body: { token: '', password: 'a'.repeat(24) } }, res, next);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(SystemSetting.findOne).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
 });
 test('production invitations require an HTTPS base URL', () => {
     const old = process.env.NODE_ENV; process.env.NODE_ENV = 'production'; process.env.APP_BASE_URL = 'http://example.org';

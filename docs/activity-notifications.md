@@ -35,6 +35,8 @@ This does not implement per-user preferences, digests, arbitrary messaging, emai
 
 ## Delivery and privacy
 
+Review-task notices are generic account activity and contain no document reference. A newly assigned reviewer can receive them without separate document access; assigning a task does not grant that access. The notice is queued by the assignment's post-save hook, so there is no separate access mutation to coordinate with the task save. Ordinary document notices still require current document access. Previously queued notices retain their original fields and delivery behavior.
+
 Email contains a generic event category and a sign-in link, not document titles/content, attachments, review notes, passwords or tokens. Specific in-app notices link to the relevant resource. Current document authorization is checked again before delivering queued document events; stale events are skipped when access has been removed. Assignment-removal/deletion notices are generic and may still be mailed. Missing/pending/inactive recipients are skipped, except explicit account-status notices. Recipient email is read at delivery time.
 
 Each event is an in-app Notification document with hidden email-delivery fields. Workers atomically claim jobs with a two-minute lease. Failed submissions retry with backoff; after five failed attempts they remain Failed for administrator action. Process crashes can recover expired leases. SMTP acceptance followed by a process crash before acknowledgement can produce a duplicate email: this is not an exactly-once SMTP guarantee.

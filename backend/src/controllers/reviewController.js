@@ -63,7 +63,8 @@ export async function createReviewAssignments(req, res) {
             
             await newAssignment.save();
             createdAssignments.push(newAssignment);
-            // Saving the assignment queues its activity notification.
+            // The post-save hook queues a generic account notice without granting
+            // document access or requiring a separate access write to succeed.
 
         }
 

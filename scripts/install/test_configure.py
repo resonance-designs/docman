@@ -27,6 +27,42 @@ class ConfigurationTests(unittest.TestCase):
             p.start()
             self.addCleanup(p.stop)
 
+    def finish_config(self):
+        return {'hostname': 'example.org', 'commit': 'test-commit',
+                'person': {'username': 'admin', 'password': secrets.token_hex(16)},
+                'backup_repository': 'none', 'tls_mode': 'self-signed'}
+
+    def test_finish_removes_saved_password_and_can_be_repeated(self):
+        c = self.finish_config()
+        installer.save(c)
+        with patch.object(installer.subprocess, 'check_output', return_value='versions'), patch('builtins.print'):
+            installer.finish(c)
+            saved = installer.load()
+            self.assertNotIn('password', saved['person'])
+            self.assertEqual(saved['person']['username'], 'admin')
+            self.assertTrue((self.state / 'complete').exists())
+            installer.finish(saved)
+
+    def test_finish_report_failure_preserves_bootstrap_password(self):
+        c = self.finish_config()
+        installer.save(c)
+        with patch.object(installer.subprocess, 'check_output', return_value='versions'), patch.object(installer, 'atom', side_effect=OSError('write failed')):
+            with self.assertRaises(OSError):
+                installer.finish(c)
+        self.assertEqual(installer.load(), c)
+        self.assertFalse((self.state / 'complete').exists())
+
+    def test_finish_state_save_failure_does_not_mark_complete(self):
+        c = self.finish_config()
+        installer.save(c)
+        original = installer.load()
+        with patch.object(installer.subprocess, 'check_output', return_value='versions'), patch.object(installer, 'save', side_effect=OSError('save failed')):
+            with self.assertRaises(OSError):
+                installer.finish(c)
+        self.assertEqual(installer.load(), original)
+        self.assertTrue((self.state / 'RESULTS.txt').exists())
+        self.assertFalse((self.state / 'complete').exists())
+
     def test_hostname_rejects_config_injection(self):
         for name in ['https://example.org', 'x\nServerName evil', '-x.example', 'x..org', 'x.org/anything', '*.example.org', 'x;id']:
             self.assertFalse(installer.host_valid(name), name)

@@ -4,6 +4,7 @@ import Doc from '../models/Doc.js';
 import SystemSetting from '../models/SystemSetting.js';
 import { sendEmail } from '../lib/emailService.js';
 import { deliverOne, activityUrl } from '../services/notificationDeliveryService.js';
+import { changeEvents } from '../services/notificationEvents.js';
 jest.mock('../models/Notification.js', () => ({ __esModule: true, default: { findOneAndUpdate: jest.fn(), updateOne: jest.fn() } }));
 jest.mock('../models/User.js', () => ({ __esModule: true, default: { findById: jest.fn() } }));
 jest.mock('../models/Doc.js', () => ({ __esModule: true, default: { findById: jest.fn() } }));
@@ -50,3 +51,26 @@ test('removed document access suppresses delayed document mail', async () => {
     expect(Notification.updateOne.mock.calls[0][1].$set.emailStatus).toBe('skipped');
 });
 test('application URL is not taken from request data', () => { expect(activityUrl()).toBe('https://docman.example.org/notifications'); });
+
+test('new review assignment notice reaches a reviewer without document access', async () => {
+    const events = changeEvents('ReviewAssignment', null, {
+        _id: 'assignment', document: 'private-document', assignee: item.recipient,
+        assignedBy: 'owner', status: 'pending', notes: 'confidential review notes',
+    });
+    queue(events.find(event => event.recipient === item.recipient));
+    await deliverOne();
+    expect(Doc.findById).not.toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmail.mock.calls[0][2]).toContain('Review assignment updated');
+    expect(sendEmail.mock.calls[0][2]).not.toContain('private-document');
+    expect(sendEmail.mock.calls[0][2]).not.toContain('confidential review notes');
+    expect(Notification.updateOne.mock.calls[0][1].$set.emailStatus).toBe('sent');
+});
+
+test('generic assignment notices still respect inactive-recipient safeguards', async () => {
+    queue({ title: 'Review assignment updated' });
+    User.findById.mockReturnValue({ select: () => ({ lean: async () => ({ isActive: false }) }) });
+    await deliverOne();
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(Notification.updateOne.mock.calls[0][1].$set.emailStatus).toBe('skipped');
+});
