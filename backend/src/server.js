@@ -1,3 +1,4 @@
+import { startNotificationWorker } from './services/notificationDeliveryService.js';
 /*
  * @name Server Application
  * @file /docman/backend/src/server.js
@@ -137,13 +138,15 @@ const startServer = async () => {
 
     await connectDB();
     await initRedisProvider();
+    await (await import('./models/Notification.js')).default.init();
+    startNotificationWorker();
 
     if (String(process.env.SEED_ON_DEPLOY || '').toLowerCase() === 'true') {
         const { runSafeSeed } = await import('./scripts/seedSafe.js');
         await runSafeSeed({ manageConnection: false });
     }
 
-    app.listen(nodePort, () => {
+    app.listen(nodePort, process.env.NODE_HOST || undefined, () => {
         console.log("Node server is running on port:", nodePort);
         console.log("Server is ready to accept requests.");
     });

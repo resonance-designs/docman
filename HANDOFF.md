@@ -1,5 +1,39 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## Hosting retirement — November 20, 2026
+
+Render is no longer a deployment target. Removed active hosting instructions/navigation and replaced legacy NODE_ENV=render startup scripts with production mode. Use self-hosted Ubuntu/Linode guidance. The external service/Git integration and obsolete DNS records are not controlled by this repository and have not been disabled here; retire those before merging if automatic deployment is still enabled. Historical changelog entries remain historical.
+
+
+## Resource management interfaces — November 20, 2026
+
+Follow-up gap pass: team/project resource permissions aligned with management roles; malformed inputs and invitation resend/reuse cases tested. Activity resource names are filtered by current access. Vue retries, route-change handling and mobile account actions corrected. Browser checks use synthetic API fixtures; live database, SMTP and multi-user acceptance remain separate. Final follow-up verification: 186 focused tests passed, Vue production build passed, both PDFs rebuilt/rendered. Fixed the document detail review-date timezone shift; timestamps remain localized.
+
+Implemented Vue category/book/team/project management, role-aware forms, resource linking, collaborator role updates and team invitation acceptance through Activity. Backend fixes cover populated membership checks, readable document selectors, project/team list visibility, category reference protection and deletion cleanup. No deployment performed. See [operations and acceptance checks](docs/resource-management.md). The PDF manuals now include these management screens and updated QA procedures. Preserve earlier uncommitted account, notifications and public-sharing work.
+
+
+## Activity notifications — November 20, 2026
+
+Implemented persistent activity-email delivery and mutation-based notices for document assignments (including approvers/removals), account roles/status, team/project membership and resource changes, review tasks/reminders, and file publication workflows. Added superadmin Activity notifications switch/counts/retry controls. No new infrastructure dependency; backend worker polls every 15 seconds, review scan hourly. Existing invitations/resets remain separate. See [operations, coverage and limits](docs/activity-notifications.md). Snapshot/change hooks use ordinary Mongoose writes; queue insertion is not transactional with the business mutation, and SMTP delivery is not exactly once. Local changes only; live NMDOH notification tests have not run. Preserve the ignored local operations note; do not publish its temporary infrastructure workaround.
+
+
+## Account invitations and policy — November 20, 2026
+
+Implemented superadmin account invitations (24-hour, hashed single-use tokens, inactive until accepted), resend/revoke controls, public activation page, and account settings. Minimum length configurable 14–24 (default 18); the 72-byte bcrypt cap remains. Self-registration defaults off and is controlled in the database, replacing LOCAL_SELF_REGISTRATION_ENABLED; enabled public signup is viewer-only and still does not verify email. See [operations and acceptance checklist](docs/account-invitations.md). Existing accounts are unchanged. Initial CLI bootstrap remains independent of email. Changes are local, not deployed to NMDOH. Live invitation/browser and real-database concurrency acceptance remain pending. Do not include private local operations notes or temporary infrastructure workarounds in commits.
+
+
+## Fresh-server installer and NMDOH validation — November 18, 2026
+
+Follow-up user requirement: provide an `update.sh` as well. Implemented the standard-layout updater and [complete update/recovery guide](docs/deployment/automated-updates.md), with `--check`, interactive target selection or `--ref`, builds before downtime, a mandatory encrypted pre-update snapshot, the shared maintenance lock, staged dependencies/Vue publication, migrations and HTTPS checks. It supports the existing non-root checkout owner (including NMDOH's `rbakos`) and `docman-build`. Obtain the updater in a separate tools clone on old servers; do not pull the live checkout first and lose the old source baseline. No automatic code-only rollback after mutation: failures stop writers and retain an ACTIVE guard plus recovery artifacts. Missing encryption/email machine keys are generated only if no corresponding encrypted records exist; existing keys/credentials/accounts are preserved. Local safety/backup integration evidence is in the update guide; full Ubuntu VM update/reboot/interruption acceptance remains pending. No NMDOH update was executed.
+
+New explicit user requirement: provide a repository-root interactive Bash `install.sh` that installs **all application prerequisites and configuration on a fresh latest-LTS Ubuntu server**, prompting where input is necessary. Keep it and the beginner walkthrough synchronized; do not assume preinstalled Apache, MongoDB, Node or backup tools. Human passwords remain user-chosen (18+ characters); encode connection-string values automatically, generate machine keys separately, and preserve credentials/keys on retries.
+
+Implemented on `feature/poc-release-validation`: `install.sh`, private Python configuration helpers, account bootstrap, Apache/systemd templates, optional restic backup scheduling and local safety tests. [Installer walkthrough](docs/deployment/automated-installation.md) covers obtaining/cloning prerequisites, prompts, success/failure, retries, key recovery, mail setup and remaining acceptance. Target Ubuntu 26.04 LTS x86_64/AVX; fail on unsupported OS or a newer LTS in the updated distribution catalog rather than mixing repositories. Native services only. npm runs unprivileged. Installer configures `NODE_HOST=127.0.0.1`; unset preserves existing Node listening behavior. Privileged retry helpers/state are root-only and separate from build-owned application source. The installer refuses an existing deployment and is **not an updater**.
+
+Verification details and pending fresh-VM acceptance are in the installer walkthrough. No installation has been performed on NMDOH by the assistant. Do not equate syntax/unit/bootstrap tests with a successful fresh Ubuntu installation. Full certificate issuance, package/reboot/interruption tests and an isolated backup restore remain acceptance tasks. Email starts disabled and is configured through the existing superadmin UI; no test mail is sent by the installer. Daily backup and audit verification share the maintenance lock because audit verification itself writes an event.
+
+Parallel ongoing objective: update NMDOH's existing POC and document end-to-end results in [the execution record](docs/deployment/nmdoh-poc-validation.md). Latest user evidence: clean server checkout at `67b1790` on `feature/compliance-hardening`; backend/Apache/MongoDB/Redis active; 37 GB free. Waiting for the user's backup-tool/timer inventory before deployment changes. The fresh installer must **not** be run there. Preserve existing database/files/keys and follow section 19 of the manual guide.
+
 **Repo:** `C:\Dev\Projects\docman` (WSL: `/mnt/c/Dev/Projects/docman`)
 **Branch:** `feature/compliance-hardening` (based on `dev` @ `000274b`, "Merge pull request #46"). Published through `e9df951`; subsequent documentation corrections remain local.
 **Owner:** Richard Bakos (Resonance Designs). DocMan is being pitched as a proof of concept for a secure document
@@ -352,3 +386,26 @@ Update 67b1790: NMDOH frontend build confirmed successful (656 modules, Vite 8.0
 ## PR 47 security-check triage
 
 See [PR check triage](docs/pr-47-checks.md) for six exact GitGuardian incidents and classification evidence. Current smoke-test fallback removed; verification and relevant fixtures generate random credentials. Historical incidents still require maintainer classification and confirmation that the old admin default was not deployed/reused. No dismissal, history rewrite, push or merge was performed. Picomatch still has no patched version listed; audit remains failing. CodeRabbit review remains skipped due to file-count limit.
+
+## My account self-service (2026-11-20)
+Local implementation, not deployed: authenticated `/account` page for all roles; profile names/telephone/title/department/bio and current-password-verified local password changes. Password updates use current account policy and atomically revoke sessions, refresh tokens, and outstanding reset tokens. SSO profiles/passwords remain provider-managed. Username/email changes remain superadmin-managed; verified self-service email changes are deferred. Legacy profile endpoint rejects credential/identity/access fields. Verify profile persistence, incorrect current password, configured minimum, logout and new-password login on NMDOH after deployment.
+
+Validation: 58 focused account/profile/invitation/admin tests passed; Vue production build passed (existing bundle-size warning). NMDOH browser validation remains pending.
+
+## Public document links (2026-11-20)
+Opt-in Public sharing card on document details, restricted by existing edit authorization. Anonymous `/public/documents/:token` page and `/api/docs/public/:token[/download]` endpoints require a random 256-bit link token, nondeleted document, and current approved file. Token is excluded from normal model selection; sharing management requires edit access. Downloads reuse integrity verification, encrypted storage decryption and audit logging. Disabling removes token; re-enabling rotates it. Existing downloaded copies cannot be revoked. No public listing/search, private metadata, draft/version history, or write access. Default existing documents remain private. Test in a signed-out browser after deployment, including disabling, deleting, and approving a replacement version. Public link tokens may appear in web-server access logs; protect those logs. Restore preserves sharing settings, so a restored document can reactivate its previous link.
+
+Public sharing validation: 18 focused public-link/access-control tests passed; Vue production build passed. Anonymous browser download and encrypted-file end-to-end validation remain pending on NMDOH.
+
+### Global public-sharing controls
+Superadmins can use System Settings → Public document sharing:
+- **Allow public document sharing**: off prevents creating or replacing public links.
+- **Disable existing public links while sharing is off**: on also blocks anonymous public pages and downloads while the first switch is off. Off preserves existing links.
+Both switches default to on (existing documents still remain private unless individually shared). Re-enabling global sharing restores existing links; this is a suspension, not permanent token deletion. Individual document revocation remains available regardless of global policy and permanently invalidates that link. Requests already authorized/in progress and downloaded copies cannot be recalled. Policy reads are uncached and failures deny public access. Only superadmins can read/write the global settings endpoint; authorized document editors receive policy status with their own sharing settings.
+Validation: 22 focused public-sharing/access tests passed; Vue production build passed. Backend dependencies restored successfully after the earlier failed install. Live NMDOH verification remains pending.
+
+## User and QA manuals - 2026-11-20
+
+Created editable sources under docs/manuals and PDFs under output/pdf. User guide includes four labeled vector diagrams; these are not captured application screenshots. QA guide includes 60 scenario cases and 157 generated mounted-route cases, with all 217 result-template rows NOT RUN. It identifies browse-only Vue modules, missing reset UI, date display concern, and live-validation limits. No infrastructure workaround or credentials were included.
+
+Rebuild using scripts/documentation/build_manuals.py; render/check using scripts/documentation/verify_manuals.py (dependencies and output conventions in docs/manuals/README.md). Keep actual run results separate: generation overwrites the blank template. Update both source guides and generated PDFs with feature changes. PDF visual/mechanical verification does not execute the described app tests.

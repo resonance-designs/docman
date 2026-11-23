@@ -16,6 +16,7 @@
     <v-skeleton-loader v-if="loading" type="article, actions" />
 
     <template v-else-if="document">
+      <PublicSharingCard v-if="canEdit" :key="document._id" :document-id="document._id" />
       <v-row>
         <v-col cols="12" lg="8">
           <v-card>
@@ -43,12 +44,12 @@
                   <v-list density="comfortable">
                     <v-list-item prepend-icon="mdi-account-outline" title="Author" :subtitle="personName(document.author)" />
                     <v-list-item prepend-icon="mdi-folder-outline" title="Category" :subtitle="document.category?.name || document.category || 'Not set'" />
-                    <v-list-item prepend-icon="mdi-calendar-start" title="Opens for Review" :subtitle="formatDate(document.opensForReview)" />
+                    <v-list-item prepend-icon="mdi-calendar-start" title="Opens for Review" :subtitle="formatCalendarDate(document.opensForReview)" />
                   </v-list>
                 </v-col>
                 <v-col cols="12" md="6">
                   <v-list density="comfortable">
-                    <v-list-item prepend-icon="mdi-calendar-check" title="Next Review Due" :subtitle="formatDate(document.nextReviewDueOn)" />
+                    <v-list-item prepend-icon="mdi-calendar-check" title="Next Review Due" :subtitle="formatCalendarDate(document.nextReviewDueOn)" />
                     <v-list-item prepend-icon="mdi-update" title="Updated" :subtitle="formatDate(document.updatedAt)" />
                     <v-list-item prepend-icon="mdi-clock-outline" title="Created" :subtitle="formatDate(document.createdAt)" />
                   </v-list>
@@ -119,12 +120,13 @@
 </template>
 
 <script setup>
+import PublicSharingCard from '@/components/PublicSharingCard.vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useResourceDetail } from '@/composables/useResourceDetail';
 import { useAuth } from '@/composables/useAuth';
 import { personName } from '@/lib/people';
-import { errorMessage, formatDate } from '@/lib/format';
+import { errorMessage, formatDate, formatCalendarDate } from '@/lib/format';
 import { api } from '@/services/api';
 import DocumentVersionsPanel from '@/components/documents/DocumentVersionsPanel.vue';
 import DocumentHistoryPanel from '@/components/documents/DocumentHistoryPanel.vue';

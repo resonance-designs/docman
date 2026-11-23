@@ -88,6 +88,7 @@
                 Sign in with local DocMan account
               </v-btn>
             </v-form>
+            <v-btn v-if="registrationEnabled" to="/register" variant="text" class="mt-3">Create a local account</v-btn>
           </v-card-text>
         </v-card>
       </v-col>
@@ -96,7 +97,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { api } from '@/services/api';
+const registrationEnabled = ref(false);
+onMounted(async () => { try { registrationEnabled.value = (await api.get('/auth/account-policy')).data.selfRegistrationEnabled; } catch { registrationEnabled.value = false; } });
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 

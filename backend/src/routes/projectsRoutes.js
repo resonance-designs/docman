@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+import { updateCollaboratorRole } from '../controllers/projectsController.js';
 /*
  * @name projectsRoutes
  * @file /docman/backend/src/routes/projectsRoutes.js
@@ -40,6 +42,12 @@ import {
  * @type {express.Router}
  */
 const router = express.Router();
+for (const param of ['id','teamId','userId','documentId']) {
+    router.param(param, (req,res,next,value) => mongoose.isValidObjectId(value)
+        ? next() : res.status(400).json({message:'Invalid resource ID.'}));
+}
+
+router.put('/:id/collaborators/:userId/role', verifyAccessToken, requireRole('editor','admin','superadmin'), updateCollaboratorRole);
 
 // Get all projects (editors, admins, and superadmins can see all projects)
 router.get("/", verifyAccessToken, requireRole("editor", "admin", "superadmin"), getAllProjects);

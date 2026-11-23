@@ -64,5 +64,5 @@ After the branch and tag are pushed:
 1. Open a PR from `release/X.X.X` into `master`.
 2. Review the diff.
 3. Merge the PR.
-4. Confirm Render auto-deploy starts from `master`.
+4. Deploy the approved release explicitly to the intended server.
 5. Confirm Linode deployment automation behavior before relying on it.

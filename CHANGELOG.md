@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2026-11-18
+
+### Added
+
+- Add Vue management interfaces for categories, books, teams and projects, including membership/collaborator roles, resource links, confirmation dialogs and Activity-based team invitation acceptance. Correct populated-member permissions, restrict organizational/document selectors, protect referenced categories, and clean linked references on deletion.
+- Add illustrated end-user and end-to-end QA PDF manuals, editable sources, a generated mounted-API inventory, a blank execution worksheet, and reproducible PDF build/verification scripts.
+- Add superadmin global public-sharing controls, with an optional existing-link suspension enforced on anonymous pages and downloads.
+- Add opt-in anonymous public document links with current-approved-version downloads, revocation, and restricted metadata.
+- Add My account profile editing and current-password-verified password changes with configured policy enforcement and session revocation. Restrict the legacy profile endpoint from changing credentials or access controls.
+- Persistent in-app/email activity notifications for document assignments and lifecycle, account roles/status, team/project membership changes, and review tasks/due reminders; background retries and superadmin pause/status/retry controls.
+- Notification event, delivery and hook regression tests and an operations/acceptance guide.
+- Superadmin-created accounts now receive 24-hour single-use email invitations to choose their own passwords, with pending status, resend/revoke actions, and explicit delivery-failure recovery.
+- Account settings for minimum password length (14–24, default 18) and local self-registration (off by default), with a viewer-only signup page and shared backend password policy. The existing 72 UTF-8 byte limit remains.
+- Interactive `update.sh` for existing standard-layout Ubuntu deployments: staged unprivileged builds, encrypted pre-update snapshots, maintenance locking, preserved configuration/keys, migration/result checks, matching frontend publication and trusted HTTPS verification. Includes failure-boundary tests and beginner update/recovery documentation; full Ubuntu VM update acceptance remains pending.
+- Interactive `install.sh` for fresh latest-LTS Ubuntu servers, with prerequisite installation, authenticated MongoDB/Redis, protected application keys, initial superadmin, Vue build, Apache/HTTPS, systemd startup, and optional encrypted backups/audit scheduling. Includes resumable configuration guards, beginner documentation and installer safety tests; full disposable-VM installation acceptance remains pending.
+- NMDOH POC deployment/validation execution record, separating confirmed server evidence from pending checks.
+
+### Changed
+
+- Restrict `npm run version:sync` to an explicit allowlist of package manifests/lockfiles, README files, `DEVELOPER_ONBOARDING.md`, `project-config.json`, `App.jsx`, `install.sh`, and `update.sh` (at most 23 files). Stop recursively updating source-file version headers; existing comments outside the allowlist remain untouched to keep release PRs within review limits.
+- Add version markers to `install.sh` and `update.sh` so subsequent version syncs include both scripts. Add an isolated regression test covering allowed updates, unchanged excluded files, dependency-version preservation, patch increments, and invalid-version rejection.
+- Retire Render hosting guidance, docs navigation and legacy startup environment; retain self-hosted Ubuntu/Linode deployment and optional Atlas support.
+- Fix review calendar dates displaying the previous day in timezones west of UTC, while retaining local-time activity timestamps.
+- Close management permission and invitation-retry gaps; filter activity resource names by current access. Improve failed-load recovery, public-link route refresh and narrow-screen account actions; refresh both PDF manuals for the management interfaces.
+- Database-managed registration policy replaces the legacy environment switch. Existing accounts and passwords remain valid; bootstrap provisioning remains independent of email.
+- Allow an explicit backend `NODE_HOST`; fresh installations bind to loopback behind Apache while existing deployments retain the default when unset.
+
+### Fixed
+
+- Remove the initial administrator's plaintext password from persisted installer state after writing completion results and before marking installation complete; add regression coverage for cleanup and failed writes.
+- Make the isolated-recovery email-disable command upsert a missing outbound settings record and require an acknowledged match or insert before reporting success. Preserve provider disabling and credential clearing; explicitly keep the recovery app stopped on failure.
+- Keep newly created review-assignment alerts deliverable to reviewers without separate document access by queuing generic account notices after assignment save, without a document reference or access mutation. Preserve document-event access rechecks and recipient safeguards; add event, post-save and worker regression coverage.
+- Serialize category deletion/type changes with book creation and category reassignment under one cross-process database guard, holding validation through the book save. Concurrent requests receive a retryable conflict. Add interleaving regression tests and document recovery for an interrupted non-expiring guard.
+- Forward password-reset account-policy lookup failures to Express error middleware instead of leaving an unhandled rejected promise. Preserve input validation and configured password requirements; add regression tests for error forwarding and validation before policy lookup.
+
 ## [3.0.0] - 2026-11-18
 
 Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these do not represent a new release.
@@ -9,28 +44,19 @@ Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these 
 ### Added
 
 - Encryption at rest for stored document files, transparent to users: uploads stream to disk encrypted (chunked AES-256-GCM, per-file keys wrapped by `DOCUMENT_ENCRYPTION_KEY`), downloads stream and decrypt with per-chunk authentication. Superadmin **System Settings → Document storage** controls encryption and the maximum upload size (default 50 MB, ceiling `MAX_UPLOAD_MB_CEILING`). Replaces the short-lived per-version document passwords and user-held encryption keys, which were removed before release.
-
 - Superadmins can demote or disable other superadmins (never themselves, never the last active superadmin), serialized by a cross-process lock; role changes revoke sessions.
-
 - Superadmin-only outgoing email settings and test-email action: authenticated or IP-authorized SMTP relay, STARTTLS/direct TLS, AWS SES server credentials or stored API keys, legacy SES environment mode, and disabled sending. Existing password-reset/review callers use saved settings.
-
 - Superadmin-only Users interface for account creation, profile/role editing, password resets, and disabling/re-enabling accounts, with pagination/search and audit records. Self-registration remains independently disabled.
-
 - Complete beginner-oriented Ubuntu 26.04 LTS server installation and operations guide, including prerequisites, secure native services, local account provisioning, HTTPS, SES, encrypted off-server backups, restore drills, and safe updates. Supersedes the old manual checkout-deletion procedure.
 
 ### Security
 
 - Remove the smoke-test administrator password fallback; require explicit test credentials and generate fresh verification/Redis-fixture passwords. Document PR 47 historical secret findings without suppressing checks.
-
 - Plaintext of uploaded documents is never written to disk when encryption at rest is on; stored files are created with mode 0600. Existing passwords continue to unlock their versions.
-
 - Encrypt UI-managed email credentials with AES-256-GCM and a dedicated server key; never return credentials/ciphertext to clients. Enforce TLS for SMTP login, certificate validation, revision conflict detection, audited operations, and test-email rate limits.
-
 - Refreshed dependency lockfiles across backend, Vue, legacy React, documentation, and root tools; removed obsolete npm crypto and replaced unused vulnerable Nodemailer with patched 10.6.0 for the new SMTP transport. Backend production audit is clean and all trees have zero critical findings. Unpatched Picomatch findings remain open; see [dependency review](docs/dependency-security-review.md) for scope and counts.
 - Repaired the cross-platform dependency audit to cover all five lockfiles and fail on unavailable/invalid reports; added weekly/change-triggered CI auditing without suppressing known findings.
-
 - Enforced account-management authorization server-side; reject disabled accounts and invalidate local sessions after administrator password/status changes. Superadmins cannot be deleted, and only another superadmin can demote or disable one, provided at least one active superadmin remains.
-
 - Applied document visibility rules to book/project responses, analytics exports, and custom document charts to prevent metadata exposure through related endpoints.
 - Enforced token blacklisting for Authentik sessions and report logout failure when token invalidation cannot be persisted.
 - Removed document-list and analytics response caching so permission changes take effect on subsequent requests; added no-store headers for API responses.
@@ -39,7 +65,6 @@ Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these 
 ### Fixed
 
 - Preserve real filesystem existence checks in the test setup so native bcrypt selects the correct Linux libc; include user-management tests in Linux verification.
-
 - Prevented concurrent uploads from creating duplicate version numbers or multiple active versions using database uniqueness constraints.
 - Made interrupted publication resumable through a durable `publishing` state and a Vue **Retry publication** action; retries preserve a single version-history entry and publication revision.
 - Made successful publication audit events idempotent across concurrent server processes using a sparse unique database key. Retries reuse the existing event without consuming audit sequence numbers or emitting duplicate stdout records; historical entries and hashes remain unchanged.
@@ -50,15 +75,10 @@ Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these 
 ### Changed
 
 - Documented the reported NMDOH REDCap SMTP endpoint (`webmail.state.nm.us:25`) as a candidate for DocMan, with unconfirmed TLS/authentication, sender restrictions, network access, relay authorization, and delivery checkpoints.
-
 - Aligned Jest/babel-jest, upgraded documentation tooling with explicit security overrides, and migrated legacy React validation to patched Zod/resolver versions with regression coverage.
-
 - Completed time-service installation/internal-source guidance, outbound dependency-access requirements, and application file-log rotation/retention instructions after a fresh-server dependency cross-check.
-
 - Reworked fresh-server preparation into ordered package/update/time checkpoints, documented stage completion criteria, separated backup-host prerequisites, protected existing settings and certificate requests on retries, and replaced conflicting handoff progress notes with a current-status table.
-
 - Consolidated fresh-server prerequisite installation, added explicit tool/time and backup-tool checks, corrected backup-user prompt sequencing, and reconciled current NMDOH deployment status with confirmed evidence.
-
 - Added an explicit Apache installation/version checkpoint before website configuration; clarified that the www-data permission check does not prove Apache is installed.
 - Added an explicit save-before-edit checkpoint for encoded database/Redis credentials and the JWT key, with recovery after clearing the terminal or interrupting configuration editing.
 - Expanded Redis deployment instructions with startup-error diagnosis, malformed-line correction, restart-limit recovery, and step-by-step authentication checks; updated confirmed NMDOH installation checkpoints.
@@ -73,11 +93,8 @@ Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these 
 ### Verification
 
 - Email settings: 130 targeted backend tests pass on Windows and Linux/Node 22, including 31 new email tests. Verified local relay/TLS/STARTTLS delivery, certificate rejection, encryption/redaction, role enforcement, rate limits, concurrent saves, and browser save/reload/test flows. NMDOH mail delivery and live AWS SES remain pending.
-
 - Dependency update: 99 targeted backend tests and five audit/schema checks pass on Windows and Linux/Node 22; Vue production/remote, legacy React, documentation builds, and Swagger generation pass. Disposable-MongoDB smoke tests pass all 24 checks plus concurrent publication recovery (memory rate-limit store). See the dependency review for fixture/verification limitations. Full-tree audits remain nonzero only for unpatched Picomatch.
-
 - User management: passed 39 targeted tests and 25 disposable-MongoDB integration checks; built Vue and verified browser account creation and disabling. NMDOH deployment of this update remains pending.
-
 - Passed 78 targeted security, compliance, and identity tests across seven suites.
 - Forced two independent Node processes to retry the same publication simultaneously against MongoDB; verified one publication audit entry, one history entry, one revision, database uniqueness, and a valid gap-free audit chain (`verifyAuditConcurrency.js`).
 - Passed 24 end-to-end checks against real MongoDB with both memory and local Redis 7 rate limiting, without Redis fallback.

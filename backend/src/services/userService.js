@@ -1,3 +1,4 @@
+import { getAccountPolicy, passwordError } from './accountPolicyService.js';
 /*
  * @name userService
  * @file /docman/backend/src/services/userService.js
@@ -283,13 +284,25 @@ export async function getUserById(userId, requestingUser) {
  */
 export async function updateUser(userId, updateData, requestingUser) {
     try {
+        if (['password', 'email', 'username', 'role', 'isActive', 'identityProvider', 'authentikSub'].some(key => updateData[key] !== undefined)) {
+            throw new Error('Use My account for password changes or superadmin account administration for identity and access changes.');
+        }
+
         // Check access permissions
         if (!hasUserAccess(requestingUser.id, requestingUser.role, userId)) {
             throw new Error("Access denied");
         }
 
-        // Validate and sanitize input data
-        const validation = validateUserData(updateData, true);
+        // Pending invitation email/password cannot be changed through the legacy profile API.
+        const account = await User.findById(userId).select('invitationPending identityProvider authentikSub').lean();
+        if (account?.invitationPending && (updateData.password !== undefined || updateData.email !== undefined)) throw new Error('Manage pending invitations through account administration.');
+        if ((account?.identityProvider === 'authentik' || account?.authentikSub) && updateData.password !== undefined) throw new Error('Manage this password in the identity provider.');
+        const validation = validateUserData({ ...updateData, password: undefined }, true);
+        if (updateData.password !== undefined) {
+            const error = passwordError(updateData.password, await getAccountPolicy());
+            if (error) throw new Error(error);
+            validation.sanitized.password = updateData.password;
+        }
         if (!validation.isValid) {
             throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
         }

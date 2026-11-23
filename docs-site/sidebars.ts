@@ -17,7 +17,6 @@ const sidebars: SidebarsConfig = {
       label: 'Deployment',
       items: [
         'deployment/ubuntu',
-        'deployment/render',
         'deployment/linode',
         'deployment/cloudflare',
         'deployment/data-safety',

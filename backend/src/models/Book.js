@@ -84,7 +84,7 @@ bookSchema.methods.removeDocument = function(documentId) {
 // Instance method to check if user is owner
 bookSchema.methods.isOwner = function(userId) {
     return this.owners.some(ownerId => 
-        ownerId.toString() === userId.toString()
+        ownerId && String(ownerId._id || ownerId) === String(userId?._id || userId)
     );
 };
 

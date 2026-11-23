@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 /*
  * @author Richard Bakos
  * @version 3.0.0
@@ -9,9 +10,9 @@ import Team from "../models/Team.js";
 import Doc from "../models/Doc.js";
 import Book from "../models/Book.js";
 import User from "../models/User.js";
-import { 
-    validateName, 
-    sanitizeString 
+import {
+    validateName,
+    sanitizeString
 } from "../lib/validation.js";
 
 /**
@@ -26,12 +27,17 @@ export async function getAllProjects(req, res) {
 
         // Build filter object
         const filter = {};
+        if (req.user.role !== 'superadmin') {
+            const actor = req.user._id || req.user.id;
+            const teams = await Team.find({$or:[{owner:actor},{'members.user':actor}]}).select('_id').lean();
+            filter.$and = [{$or:[{owner:actor},{'collaborators.user':actor},{teams:{$in:teams.map(team=>team._id)}}]}];
+        }
 
         // Search filter
         if (search) {
             filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+                { name: { $regex: literalSearch(search), $options: 'i' } },
+                { description: { $regex: literalSearch(search), $options: 'i' } }
             ];
         }
 
@@ -47,15 +53,15 @@ export async function getAllProjects(req, res) {
 
         // Build sort object
         const sort = {};
-        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        sort[['name','createdAt','status','priority','startDate','endDate'].includes(sortBy) ? sortBy : 'createdAt'] = sortOrder === 'asc' ? 1 : -1;
 
         const projects = await Project.find(filter)
             .populate('teams', 'name')
-            .populate('collaborators', 'name email')
+            .populate('collaborators.user', 'firstname lastname email')
             .populate({ path: 'documents', select: 'title', match: documentReadFilter(req.user) })
             .sort(sort);
 
-        res.status(200).json({ 
+        res.status(200).json({
             projects,
             total: projects.length
         });
@@ -93,8 +99,8 @@ export async function getTeamProjects(req, res) {
         // Search filter
         if (search) {
             filter.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+                { name: { $regex: literalSearch(search), $options: 'i' } },
+                { description: { $regex: literalSearch(search), $options: 'i' } }
             ];
         }
 
@@ -152,8 +158,8 @@ export async function getUserProjects(req, res) {
             filter.$and = filter.$and || [];
             filter.$and.push({
                 $or: [
-                    { name: { $regex: search, $options: 'i' } },
-                    { description: { $regex: search, $options: 'i' } }
+                    { name: { $regex: literalSearch(search), $options: 'i' } },
+                    { description: { $regex: literalSearch(search), $options: 'i' } }
                 ]
             });
         }
@@ -212,8 +218,8 @@ export async function getProjectById(req, res) {
         // Check if user has access to this project
         let hasTeamAccess = false;
         if (project.teams && project.teams.length > 0) {
-            for (const teamId of project.teams) {
-                const team = await Team.findById(teamId._id);
+            for (const teamId of project.teams.filter(Boolean)) {
+                const team = await Team.findById(teamId._id || teamId);
                 if (team && team.isMember(userId)) {
                     hasTeamAccess = true;
                     break;
@@ -244,6 +250,9 @@ export async function createProject(req, res) {
         const { name, description, teamIds, status, priority, startDate, endDate, tags } = req.body;
         const userId = req.user._id.toString();
 
+        const inputError = projectInputError(req.body, {});
+        if (inputError) return res.status(400).json({ message: inputError });
+
         // Validation
         const validationErrors = [];
 
@@ -256,7 +265,7 @@ export async function createProject(req, res) {
             }
         }
 
-        if (!teamIds || !Array.isArray(teamIds) || teamIds.length === 0) {
+        if (!validIdList(teamIds)) {
             validationErrors.push("At least one team ID is required");
         }
 
@@ -273,16 +282,16 @@ export async function createProject(req, res) {
             return res.status(404).json({ message: "One or more teams not found" });
         }
 
-        let hasAccess = false;
+        let hasAccess = true;
         for (const team of teams) {
-            if (team.isMember(userId) || (req.user.role === 'admin' || req.user.role === 'superadmin')) {
-                hasAccess = true;
+            if (!team.isMember(userId) && !['admin','superadmin'].includes(req.user.role)) {
+                hasAccess = false;
                 break;
             }
         }
 
         if (!hasAccess) {
-            return res.status(403).json({ message: "Access denied - must be member of at least one team" });
+            return res.status(403).json({ message: "Access denied - must have access to every selected team" });
         }
 
         // Create project
@@ -363,6 +372,9 @@ export async function updateProject(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
+        const inputError = projectInputError(req.body, project);
+        if (inputError) return res.status(400).json({ message: inputError });
+
         // Validation
         const validationErrors = [];
 
@@ -374,7 +386,7 @@ export async function updateProject(req, res) {
         }
 
         if (teamIds !== undefined) {
-            if (!Array.isArray(teamIds) || teamIds.length === 0) {
+            if (!validIdList(teamIds)) {
                 validationErrors.push("At least one team ID is required");
             }
         }
@@ -394,16 +406,16 @@ export async function updateProject(req, res) {
                 return res.status(404).json({ message: "One or more teams not found" });
             }
 
-            let hasAccess = false;
+            let hasAccess = true;
             for (const team of teams) {
-                if (team.isMember(userId) || (req.user.role === 'admin' || req.user.role === 'superadmin')) {
-                    hasAccess = true;
+                if (!team.isMember(userId) && !['admin','superadmin'].includes(req.user.role)) {
+                    hasAccess = false;
                     break;
                 }
             }
 
             if (!hasAccess) {
-                return res.status(403).json({ message: "Access denied - must be member of at least one team" });
+                return res.status(403).json({ message: "Access denied - must have access to every selected team" });
             }
 
             // Remove project from old teams
@@ -434,8 +446,8 @@ export async function updateProject(req, res) {
         if (priority && ['low', 'medium', 'high', 'critical'].includes(priority)) {
             updateData.priority = priority;
         }
-        if (startDate) updateData.startDate = new Date(startDate);
-        if (endDate) updateData.endDate = new Date(endDate);
+        if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+        if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
         if (tags && Array.isArray(tags)) {
             updateData.tags = tags.map(tag => sanitizeString(tag)).filter(tag => tag.length > 0);
         }
@@ -444,7 +456,7 @@ export async function updateProject(req, res) {
         const updatedProject = await Project.findByIdAndUpdate(
             projectId,
             updateData,
-            { new: true }
+            { new: true, runValidators: true }
         )
         .populate('teams', 'name')
         .populate('owner', 'firstname lastname email')
@@ -487,6 +499,7 @@ export async function deleteProject(req, res) {
             { $pull: { projects: projectId } }
         );
 
+        await Team.updateMany({ projects: projectId }, { $pull: { projects: projectId } });
         await Project.findByIdAndDelete(projectId);
 
         res.status(200).json({ message: "Project deleted successfully" });
@@ -522,6 +535,9 @@ export async function addCollaborator(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
+        if (typeof collaboratorId !== 'string' || !mongoose.isValidObjectId(collaboratorId) || !await User.exists({_id:collaboratorId,isActive:{$ne:false},invitationPending:{$ne:true}})) {
+            return res.status(400).json({message:'Select an active registered user.'});
+        }
         // Check if user exists and is member of at least one team
         let isTeamMember = false;
         if (project.teams && project.teams.length > 0) {
@@ -620,12 +636,13 @@ export async function addDocument(req, res) {
         }
 
         // Check permissions (collaborator or admin)
-        if (!project.isCollaborator(userId) && req.user.role !== 'superadmin') {
+        if (!project.isManager(userId) && String(project.owner) !== userId && req.user.role !== 'superadmin') {
             return res.status(403).json({ message: "Access denied" });
         }
 
         // Check if document exists
-        const document = await Doc.findById(documentId);
+        if (typeof documentId !== 'string' || !mongoose.isValidObjectId(documentId)) return res.status(400).json({message:'Invalid document ID.'});
+        const document = await Doc.findOne({$and:[documentReadFilter(req.user),{_id:documentId}]});
         if (!document) {
             return res.status(404).json({ message: "Document not found" });
         }
@@ -721,9 +738,7 @@ export async function getProjectBooks(req, res) {
         }
 
         // Check if user has access to this project
-        const hasAccess = project.owner.toString() === currentUserId ||
-                         project.isCollaborator(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+        const hasAccess = await canReadProject(project, req.user);
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -753,9 +768,7 @@ export async function getAvailableProjectBooks(req, res) {
         }
 
         // Check if user has access to this project
-        const hasAccess = project.owner.toString() === currentUserId ||
-                         project.isCollaborator(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+        const hasAccess = await canReadProject(project, req.user);
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -788,7 +801,7 @@ export async function addBooksToProject(req, res) {
         const currentUserId = req.user._id.toString();
         const { bookIds } = req.body;
 
-        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+        if (!validIdList(bookIds)) {
             return res.status(400).json({ message: "Book IDs array is required" });
         }
 
@@ -800,7 +813,7 @@ export async function addBooksToProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -826,7 +839,7 @@ export async function addBooksToProject(req, res) {
 
         await project.save();
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: `${addedCount} book(s) added to project successfully`,
             addedCount
         });
@@ -848,7 +861,7 @@ export async function removeBooksFromProject(req, res) {
         const currentUserId = req.user._id.toString();
         const { bookIds } = req.body;
 
-        if (!Array.isArray(bookIds) || bookIds.length === 0) {
+        if (!validIdList(bookIds)) {
             return res.status(400).json({ message: "Book IDs array is required" });
         }
 
@@ -860,7 +873,7 @@ export async function removeBooksFromProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -880,7 +893,7 @@ export async function removeBooksFromProject(req, res) {
 
         await project.save();
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: `${removedCount} book(s) removed from project successfully`,
             removedCount
         });
@@ -916,9 +929,7 @@ export async function getProjectDocuments(req, res) {
         }
 
         // Check if user has access to this project
-        const hasAccess = project.owner.toString() === currentUserId ||
-                         project.isCollaborator(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+        const hasAccess = await canReadProject(project, req.user);
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -948,9 +959,7 @@ export async function getAvailableProjectDocuments(req, res) {
         }
 
         // Check if user has access to this project
-        const hasAccess = project.owner.toString() === currentUserId ||
-                         project.isCollaborator(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+        const hasAccess = await canReadProject(project, req.user);
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
@@ -983,7 +992,7 @@ export async function addDocumentsToProject(req, res) {
         const currentUserId = req.user._id.toString();
         const { documentIds } = req.body;
 
-        if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        if (!validIdList(documentIds)) {
             return res.status(400).json({ message: "Document IDs array is required" });
         }
 
@@ -995,14 +1004,14 @@ export async function addDocumentsToProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
         }
 
         // Verify all documents exist
-        const documents = await Doc.find({ _id: { $in: documentIds } });
+        const documents = await Doc.find({ $and: [documentReadFilter(req.user), { _id: { $in: documentIds } }] });
         if (documents.length !== documentIds.length) {
             return res.status(400).json({ message: "One or more documents not found" });
         }
@@ -1035,7 +1044,7 @@ export async function addDocumentsToProject(req, res) {
             }
         }
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: `${addedCount} document(s) added to project successfully`,
             addedCount
         });
@@ -1057,7 +1066,7 @@ export async function removeDocumentsFromProject(req, res) {
         const currentUserId = req.user._id.toString();
         const { documentIds } = req.body;
 
-        if (!Array.isArray(documentIds) || documentIds.length === 0) {
+        if (!validIdList(documentIds)) {
             return res.status(400).json({ message: "Document IDs array is required" });
         }
 
@@ -1069,7 +1078,7 @@ export async function removeDocumentsFromProject(req, res) {
         // Check permissions (owner, manager, or admin)
         const canManage = project.owner.toString() === currentUserId ||
                          project.isManager(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
@@ -1101,7 +1110,7 @@ export async function removeDocumentsFromProject(req, res) {
             }
         }
 
-        res.status(200).json({ 
+        res.status(200).json({
             message: `${removedCount} document(s) removed from project successfully`,
             removedCount
         });
@@ -1137,16 +1146,14 @@ export async function getProjectCollaborators(req, res) {
         }
 
         // Check if user has access to this project
-        const hasAccess = project.owner.toString() === currentUserId ||
-                         project.isCollaborator(currentUserId) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+        const hasAccess = await canReadProject(project, req.user);
 
         if (!hasAccess) {
             return res.status(403).json({ message: "Access denied" });
         }
 
         // Extract direct collaborators
-        const directCollaborators = project.collaborators.map(collab => ({
+        const directCollaborators = project.collaborators.filter(c => c.user).map(collab => ({
             ...collab.user.toObject(),
             role: collab.role,
             joinedAt: collab.joinedAt,
@@ -1157,14 +1164,14 @@ export async function getProjectCollaborators(req, res) {
         // Extract team members
         const teamMembers = [];
         if (project.teams && project.teams.length > 0) {
-            project.teams.forEach(team => {
+            project.teams.filter(Boolean).forEach(team => {
                 if (team.members && team.members.length > 0) {
-                    team.members.forEach(member => {
+                    team.members.filter(member => member.user).forEach(member => {
                         // Avoid duplicates with direct collaborators
                         const isAlreadyDirectCollaborator = directCollaborators.some(
                             collab => collab._id.toString() === member.user._id.toString()
                         );
-                        
+
                         if (!isAlreadyDirectCollaborator) {
                             teamMembers.push({
                                 ...member.user.toObject(),
@@ -1223,42 +1230,27 @@ export async function getAvailableCollaborators(req, res) {
 
         // Check if user has permission to manage collaborators
         const canManage = project.owner.toString() === currentUserId ||
-                         project.collaborators.some(collab => 
-                             collab.user._id.toString() === currentUserId && 
+                         project.collaborators.some(collab =>
+                             collab.user && collab.user._id.toString() === currentUserId &&
                              ['manager', 'admin'].includes(collab.role)
                          ) ||
-                         (req.user.role === 'admin' || req.user.role === 'superadmin');
+                         req.user.role === 'superadmin';
 
         if (!canManage) {
             return res.status(403).json({ message: "Access denied" });
         }
 
-        // Get all existing collaborator IDs (direct + team members)
-        const existingCollaboratorIds = new Set();
-        
-        // Add direct collaborators
-        project.collaborators.forEach(collab => {
-            existingCollaboratorIds.add(collab.user._id.toString());
-        });
-
-        // Add team members
-        if (project.teams && project.teams.length > 0) {
-            project.teams.forEach(team => {
-                if (team.members && team.members.length > 0) {
-                    team.members.forEach(member => {
-                        existingCollaboratorIds.add(member.user._id.toString());
-                    });
-                }
-            });
+        const idOf = value => String(value?._id || value || '');
+        const existing = new Set([idOf(project.owner), ...project.collaborators.map(c => idOf(c.user))]);
+        const eligible = new Set();
+        for (const team of project.teams || []) {
+            if (!team) continue;
+            if (team.owner) eligible.add(idOf(team.owner));
+            for (const member of team.members || []) if (member.user) eligible.add(idOf(member.user));
         }
-
-        // Add project owner
-        existingCollaboratorIds.add(project.owner.toString());
-
-        // Get all users except existing collaborators
         const availableUsers = await User.find({
-            _id: { $nin: Array.from(existingCollaboratorIds) },
-            role: { $ne: 'admin' } // Optionally exclude admins
+            _id: { $in: [...eligible].filter(id => !existing.has(id)) },
+            isActive: { $ne: false }, invitationPending: { $ne: true }
         }).select('firstname lastname email username');
 
         res.status(200).json(availableUsers);
@@ -1266,4 +1258,51 @@ export async function getAvailableCollaborators(req, res) {
         console.error("Error fetching available collaborators:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
+}
+
+export function projectInputError(body, current = {}) {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return 'Invalid project settings.';
+    if (body.settings !== undefined && (!body.settings || typeof body.settings !== 'object' || Array.isArray(body.settings) || Object.keys(body.settings).some(key => !['isPrivate','allowDocumentUpload','requireApproval'].includes(key)) || Object.values(body.settings).some(value => typeof value !== 'boolean'))) return 'Invalid project settings.';
+    if (body.name !== undefined && (typeof body.name !== 'string' || !body.name.trim() || body.name.length > 100)) return 'Enter a project name up to 100 characters.';
+    if (body.description !== undefined && (typeof body.description !== 'string' || body.description.length > 1000)) return 'Description must be text up to 1000 characters.';
+    if (body.status !== undefined && !['active','completed','archived','on-hold'].includes(body.status)) return 'Select a valid status.';
+    if (body.priority !== undefined && !['low','medium','high','critical'].includes(body.priority)) return 'Select a valid priority.';
+    if (body.tags !== undefined && (!Array.isArray(body.tags) || body.tags.some(t => typeof t !== 'string' || t.length > 50))) return 'Tags must be text up to 50 characters each.';
+    const dates = {};
+    for (const key of ['startDate','endDate']) {
+        const value=body[key] !== undefined ? body[key] : current[key];
+        dates[key]=value ? new Date(value) : null;
+        if (value && (typeof value === 'object' && !(value instanceof Date) || Number.isNaN(dates[key].getTime()))) return 'Enter valid dates.';
+    }
+    if(dates.startDate && dates.endDate && dates.endDate < dates.startDate) return 'End date cannot be before start date.';
+    return null;
+}
+export async function updateCollaboratorRole(req,res) {
+    try {
+        const {role}=req.body;
+        if(!['viewer','contributor','manager'].includes(role) || !mongoose.isValidObjectId(req.params.userId)) return res.status(400).json({message:'Choose a valid collaborator and role.'});
+        const project=await Project.findById(req.params.id);
+        if(!project) return res.status(404).json({message:'Project not found.'});
+        const actor=String(req.user._id || req.user.id);
+        if(String(project.owner)!==actor && !project.isManager(actor) && req.user.role!=='superadmin') return res.status(403).json({message:'Access denied.'});
+        if(String(project.owner)===req.params.userId) return res.status(400).json({message:'Cannot change project owner role.'});
+        const member=project.collaborators.find(c=>String(c.user)===req.params.userId);
+        if(!member) return res.status(404).json({message:'Direct collaborator not found.'});
+        member.role=role;await project.save();return res.json({message:'Collaborator role updated.'});
+    } catch {return res.status(500).json({message:'Could not update collaborator role.'});}
+}
+
+async function canReadProject(project, user) {
+    const actor = String(user._id || user.id);
+    if (user.role === 'superadmin' || project.isCollaborator(actor)) return true;
+    return Boolean(await Team.exists({_id:{$in:(project.teams || []).filter(Boolean).map(team=>team?._id || team)},$or:[{owner:actor},{'members.user':actor}]}));
+}
+
+function validIdList(values) {
+    return Array.isArray(values) && values.length > 0 && values.length <= 500
+        && values.every(value => typeof value === 'string' && mongoose.isValidObjectId(value))
+        && new Set(values).size === values.length;
+}
+function literalSearch(value) {
+    return String(value).slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

@@ -1,8 +1,16 @@
 # DocMan
 
+- [x] Fix shared mobile header at 375px: compact labeled account actions, verified with a browser fixture.
+- [ ] Run live multi-user acceptance for Categories, Books, Teams and Projects using `docs/resource-management.md`; local fixture review does not verify database writes or mail delivery.
+
+
 DocMan hopes to be the most comprehensive piece of software to manage all of your documentation. You can schedule your documentation for review between stakeholders, the original authors, contributors, relevant tech leads, etc... Categorize, analyze, version repositories, and basically everything you would need to keep your documentation well organized, maintained, analyzed, and backed up.
 
 ## Current priorities — reviewed November 18, 2026
+
+- [ ] **Updater acceptance:** validate [`update.sh`](docs/deployment/automated-updates.md) on a disposable Ubuntu 26.04 VM from both manual and installer-created deployments. Exercise real service/timer locking, failed backup/build/migration/health checks, power-loss recovery, off-server restore, reboot and browser workflows. Local safety tests do not establish NMDOH deployment success.
+
+- [ ] **Interactive installer acceptance:** `install.sh` and its [beginner walkthrough](docs/deployment/automated-installation.md) are implemented. Local configuration safety and disposable-MongoDB bootstrap tests pass; run the complete latest-LTS fresh-VM install/reboot/interruption/certificate/backup-restore checklist before claiming deployment validation. Keep installer and manual walkthrough synchronized when the latest Ubuntu LTS changes. Never run the fresh installer over NMDOH's existing app; that update is tracked [separately](docs/deployment/nmdoh-poc-validation.md).
 
 This backlog separates implementation from deployment verification. An unchecked item is outstanding; historical strikethroughs below record earlier work and are not evidence of current security, complete test coverage, or Vue feature parity. Record the tested commit, environment, result, and responsible owner before closing security or operational items.
 
@@ -28,7 +36,21 @@ Work through dependency triage and storage-encryption verification first, then i
 - [ ] **Agency acceptance:** establish permitted document classifications and intended external-agency access. Obtain the agency's assessment of applicable requirements; if ePHI is in scope, include the required risk analysis and administrative, physical, and technical safeguards. Do not claim HIPAA compliance or production readiness solely from HTTPS or this checklist. Reference: [HHS Security Rule summary](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html).
 - [ ] **Complete deployment documentation:** incorporate every resulting installation/configuration/recovery step into the [Ubuntu walkthrough](docs/deployment/ubuntu-server-installation.md) and keep [HANDOFF](HANDOFF.md) current. Follow the standing requirement: one latest-stable-LTS path, all prerequisites, exact steps, expected results, and failure recovery understandable to a beginner without this chat.
 
+## Approval policies — deferred beyond core POC validation
+
+Current accepted POC behavior: one eligible approval publishes a version; self-approval is blocked by default. Multiple assigned approvers define who may decide, not a requirement for every assignee to approve. Keep this behavior unchanged while validating core document functionality.
+
+- [ ] Add approval policies per Team and per Document, with explicit inheritance/override rules and clear handling of documents associated with multiple teams.
+- [ ] Support any-one, minimum-count, majority, and all-eligible-approver policies. Clearly display the effective policy and remaining approvals on the document and approval screens.
+- [ ] Define eligible voters and validate that the policy can be satisfied without uploader self-approval; handle disabled/removed approvers and assignment changes during pending approval.
+- [ ] Define how policy changes affect already-pending versions, preserve an auditable policy snapshot, and test concurrent decisions, rejection, withdrawal, and publication.
+
 ## Email configuration
+
+- [x] Implement persistent activity email delivery, assignment/change detection, role/team/project notices, review reminders, and superadmin queue controls. See [coverage and operating limits](docs/activity-notifications.md).
+- [ ] Verify activity emails end to end on NMDOH for assignments, roles, teams, versions, review tasks, pause/resume and failed-delivery retry. Invitation/test-email success does not validate these new event flows.
+- [ ] Harden notification durability: transactional event capture/reconciliation, real-database concurrent-worker/crash tests, retention and optional per-user preferences/digests.
+
 
 - [x] Implement superadmin-only outgoing email UI/API: SMTP password login or IP-authorized relay, TLS modes, AWS SES credentials/roles, sender/reply-to, disabled mode, encrypted saved credentials, audited changes, and a rate-limited test email.
 - [x] Document key setup, private CA trust, provider prerequisites, UI steps, expected results, backup/recovery, and failures in Ubuntu guide section 16.
@@ -225,3 +247,6 @@ Authentication security, session lifetime, MFA, and operational checks are conso
 - [ ] Encrypt existing plaintext files (one-off migration script) if the agency requires all stored files encrypted, not only new uploads.
 - [ ] Design and test master-key rotation (key versioning, rewrap of per-file keys only; never replace the key in place).
 - [ ] Keep infrastructure disk/swap/backup encryption; application encryption does not replace it.
+
+- [ ] Add verified self-service email changes (confirmation to the new address, security notice to the old address, expiry and single-use tokens).
+- [ ] Validate My account on NMDOH: profile persistence, password policy/current-password checks, session revocation, and SSO restrictions.

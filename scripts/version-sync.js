@@ -22,23 +22,22 @@ const lockFiles = [
   'docs-site/package-lock.json',
 ];
 
-const versionHeaderRoots = [
-  'backend/src',
-  'frontend/src',
-  'frontend-vue/src',
-  'scripts',
-  'docs',
+// Explicit allowlist: never walk source trees for release metadata.
+// Existing version comments elsewhere are intentionally left unchanged.
+const versionTextFiles = [
+  'README.md',
+  'backend/README.md',
+  'frontend/README.md',
+  'frontend/src/README.md',
+  'frontend-vue/README.md',
+  'docs-site/README.md',
+  'docs/architecture/README.md',
+  'docs/manuals/README.md',
+  'docs/DEVELOPER_ONBOARDING.md',
+  'frontend/src/App.jsx',
+  'install.sh',
+  'update.sh',
 ];
-
-const ignoredDirs = new Set([
-  'node_modules',
-  'dist',
-  'build',
-  'coverage',
-  '.git',
-  '.vite',
-  'test-backups',
-]);
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(repoRoot, relativePath), 'utf8'));
@@ -128,63 +127,20 @@ function updateProjectConfig(targetVersion) {
   return relativePath;
 }
 
-function updateReadme(targetVersion) {
-  const relativePath = 'README.md';
+function updateVersionText(relativePath, targetVersion) {
   const absolutePath = path.join(repoRoot, relativePath);
-  if (!fs.existsSync(absolutePath)) {
-    return null;
-  }
+  if (!fs.existsSync(absolutePath)) return null;
 
   const original = fs.readFileSync(absolutePath, 'utf8');
   const updated = original
     .replace(/(badge\/Version-)([^-]+)(-orange)/g, `$1${targetVersion}$3`)
-    .replace(/(badge\/Latest_Release-v)([^-]+)(-green)/g, `$1${targetVersion}$3`);
+    .replace(/(badge\/Latest_Release-v)([^-]+)(-green)/g, `$1${targetVersion}$3`)
+    .replace(/^([ \t]*[ *#]+[ \t]*@version[ \t]+)[^\r\n]+/gm, `$1${targetVersion}`)
+    .replace(/^([ \t]*(?:-[ \t]+)?Version:[ \t]*)\d+\.\d+\.\d+/gm, `$1${targetVersion}`);
 
-  if (updated !== original) {
-    fs.writeFileSync(absolutePath, updated, 'utf8');
-  }
-
+  if (updated === original) return null;
+  fs.writeFileSync(absolutePath, updated, 'utf8');
   return relativePath;
-}
-
-function walkFiles(directory, files = []) {
-  const absoluteDirectory = path.join(repoRoot, directory);
-  if (!fs.existsSync(absoluteDirectory)) {
-    return files;
-  }
-
-  for (const entry of fs.readdirSync(absoluteDirectory, { withFileTypes: true })) {
-    if (ignoredDirs.has(entry.name)) {
-      continue;
-    }
-
-    const relativePath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      walkFiles(relativePath, files);
-    } else if (entry.isFile()) {
-      files.push(relativePath);
-    }
-  }
-
-  return files;
-}
-
-function updateVersionHeaders(targetVersion) {
-  const changed = [];
-  const files = versionHeaderRoots.flatMap((root) => walkFiles(root));
-
-  for (const relativePath of files) {
-    const absolutePath = path.join(repoRoot, relativePath);
-    const original = fs.readFileSync(absolutePath, 'utf8');
-    const updated = original.replace(/^(\s*\*\s*@version\s+).+$/gm, `$1${targetVersion}`);
-
-    if (updated !== original) {
-      fs.writeFileSync(absolutePath, updated, 'utf8');
-      changed.push(relativePath);
-    }
-  }
-
-  return changed;
 }
 
 function main() {
@@ -207,12 +163,10 @@ function main() {
     changed.push(projectConfig);
   }
 
-  const readme = updateReadme(targetVersion);
-  if (readme) {
-    changed.push(readme);
+  for (const relativePath of versionTextFiles) {
+    const updated = updateVersionText(relativePath, targetVersion);
+    if (updated) changed.push(updated);
   }
-
-  changed.push(...updateVersionHeaders(targetVersion));
 
   const uniqueChanged = [...new Set(changed)].sort();
   console.log(`Version sync complete: ${currentVersion} -> ${targetVersion} (${mode})`);

@@ -1,3 +1,6 @@
+import { getAccount, saveProfile, changePassword } from '../controllers/accountController.js';
+import { resendInvitation } from '../controllers/invitationController.js';
+import { limitPasswordReset } from '../middleware/authRateLimiter.js';
 /*
  * @name usersRoutes
  * @file /docman/backend/src/routes/usersRoutes.js
@@ -29,8 +32,12 @@ import { uploadProfilePicture, deleteProfilePicture, uploadBackgroundImage, dele
  * @type {express.Router}
  */
 const router = express.Router();
+router.get('/me/account', verifyAccessToken, getAccount);
+router.patch('/me/account', verifyAccessToken, saveProfile);
+router.post('/me/password', verifyAccessToken, limitPasswordReset, changePassword);
 
 // Account administration is separate from the user picker/profile API.
+router.post('/manage/:id/invitation', verifyAccessToken, requireRole('superadmin'), limitPasswordReset, resendInvitation);
 router.get('/manage', verifyAccessToken, requireRole('superadmin'), listAccounts);
 router.post('/manage', verifyAccessToken, requireRole('superadmin'), createAccount);
 router.patch('/manage/:id', verifyAccessToken, requireRole('superadmin'), editAccount);

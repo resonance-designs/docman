@@ -1,3 +1,5 @@
+import AcceptInvitationView from '@/views/auth/AcceptInvitationView.vue';
+import RegisterView from '@/views/auth/RegisterView.vue';
 import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router';
 import SuiteHome from '@/views/SuiteHome.vue';
 import LoginView from '@/views/auth/LoginView.vue';
@@ -18,6 +20,10 @@ import ApprovalsView from '@/views/approvals/ApprovalsView.vue';
 import { useAuth } from '@/composables/useAuth';
 
 const routes = [
+  { path: '/public/documents/:token', component: () => import('@/views/documents/PublicDocumentView.vue'), meta: { public: true } },
+  { path: '/account', component: () => import('@/views/AccountView.vue'), meta: { requiresAuth: true } },
+  { path: '/accept-invitation', component: AcceptInvitationView },
+  { path: '/register', component: RegisterView },
   { path: '/notifications', component: () => import('@/views/NotificationsView.vue'), meta: { requiresAuth: true } },
   { path: '/admin/users', name: 'user-management', component: UsersView, meta: { requiresAuth: true, roles: ['superadmin'] } },
   {
@@ -77,13 +83,13 @@ const routes = [
     path: '/teams',
     name: 'teams',
     component: TeamsView,
-    meta: { requiresAuth: true, roles: ['editor', 'admin', 'superadmin'] },
+    meta: { requiresAuth: true, roles: ['viewer', 'editor', 'admin', 'superadmin'] },
   },
   {
     path: '/projects',
     name: 'projects',
     component: ProjectsView,
-    meta: { requiresAuth: true, roles: ['editor', 'admin', 'superadmin'] },
+    meta: { requiresAuth: true, roles: ['viewer', 'editor', 'admin', 'superadmin'] },
   },
   {
     path: '/approvals',

@@ -75,8 +75,8 @@ const config: Config = {
           title: 'Deployments',
           items: [
             {
-              label: 'Render',
-              to: '/docs/deployment/render',
+              label: 'Ubuntu',
+              to: '/docs/deployment/ubuntu',
             },
             {
               label: 'Linode',

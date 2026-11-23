@@ -13,7 +13,7 @@ export default function Home(): JSX.Element {
           <p className={styles.eyebrow}>Resonance Designs</p>
           <Heading as="h1">DocMan Documentation</Heading>
           <p className={styles.lede}>
-            Operational notes for release branches, Render, Linode, Cloudflare, and the
+            Operational notes for release branches, Ubuntu, Linode, Cloudflare, and the
             Vue/Vuetify production interface.
           </p>
           <div className={styles.actions}>

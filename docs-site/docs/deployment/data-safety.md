@@ -12,7 +12,7 @@ DocMan includes destructive `clear:*` scripts for development and administrative
 CONFIRM_PRODUCTION_CLEAR=true
 ```
 
-Do not set this variable in Render, GitHub Actions, or Linode production environments.
+Do not set this variable in GitHub Actions or other production environments.
 
 ## Safe Seeding
 

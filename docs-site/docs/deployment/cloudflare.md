@@ -9,14 +9,8 @@ Recommended target hostnames:
 | Hostname | Origin |
 | --- | --- |
 | `docman.resonancedesigns.dev` | Linode |
-| `docman.render.resonancedesigns.dev` | Render |
 
-For Render custom domains:
-
-1. Add the custom domain in Render.
-2. Point the Cloudflare DNS record to the Render `*.onrender.com` hostname.
-3. Use DNS-only while Render verifies the domain and issues the certificate.
-4. After the certificate is issued, proxying can be enabled if desired.
+Point the application DNS record to the intended self-hosted origin and install a valid certificate for its hostname.
 
 Cloudflare SSL/TLS mode should be:
 

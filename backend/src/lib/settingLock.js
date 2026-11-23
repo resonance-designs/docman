@@ -23,15 +23,15 @@ export class LockBusyError extends Error {
  * @param {string} key - SystemSetting key used as the lock name
  * @param {Function} fn - async work to run under the lock
  * @param {Object} [options]
- * @param {number} [options.ttlMs=15000]
+ * @param {number|null} [options.ttlMs=15000] null disables expiry; crashed holders require manual recovery.
  */
 export async function withSettingLock(key, fn, { ttlMs = 15000 } = {}) {
     const holder = crypto.randomUUID();
     const now = new Date();
     try {
         await SystemSetting.findOneAndUpdate(
-            { key, $or: [{ "value.holder": { $exists: false } }, { "value.expiresAt": { $lt: now } }] },
-            { $set: { value: { holder, expiresAt: new Date(now.getTime() + ttlMs) } } },
+            { key, $or: [{ "value.holder": { $exists: false } }, ...(ttlMs === null ? [] : [{ "value.expiresAt": { $lt: now } }])] },
+            { $set: { value: { holder, ...(ttlMs === null ? {} : { expiresAt: new Date(now.getTime() + ttlMs) }) } } },
             { upsert: true, new: true }
         );
     } catch (error) {

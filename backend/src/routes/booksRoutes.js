@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 /*
  * @name booksRoutes
  * @file /docman/backend/src/routes/booksRoutes.js
@@ -27,6 +28,11 @@ import {
  * @type {express.Router}
  */
 const router = express.Router();
+for (const param of ['id','teamId','userId','documentId']) {
+    router.param(param, (req,res,next,value) => mongoose.isValidObjectId(value)
+        ? next() : res.status(400).json({message:'Invalid resource ID.'}));
+}
+
 
 // GET /api/books - Get all books (all authenticated users can view books)
 router.get("/", verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"), getAllBooks);

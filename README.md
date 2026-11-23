@@ -2,12 +2,20 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-3.0.0-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.0-green)
+![Static Badge](https://img.shields.io/badge/Version-3.0.1-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.1-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
 DocMan is also the baseline UI guidepost for the larger Resonance Designs local app ecosystem. New suite-facing UI work should use Vue, Vite, Vuetify, and shared Material-style interaction patterns.
+
+## Install on a fresh Ubuntu server
+
+The interactive [`install.sh`](install.sh) installs prerequisites and configures native services, authenticated databases, the first superadmin, encrypted storage, HTTPS and optional scheduled backups. Start with the [guided installer walkthrough](docs/deployment/automated-installation.md), including prerequisites, prompts, expected results and recovery. Target: latest Ubuntu LTS (currently 26.04), x86_64 with AVX. Full fresh-VM acceptance remains pending; local safety/bootstrap checks are documented there.
+
+After cloning the reviewed release on a **fresh server**, run `bash install.sh --check`, then `sudo bash install.sh`. For an existing deployment, use [the update procedure](docs/deployment/ubuntu-server-installation.md#19-existing-installations-and-updates), not this installer.
+
+For an existing standard-layout server, [`update.sh`](update.sh) stages the selected release, requires an encrypted pre-update backup, preserves settings/keys, runs migrations and verifies the published application. Read the [guided update and recovery walkthrough](docs/deployment/automated-updates.md). Obtain it in a separate tools clone before changing an older live checkout, then run `sudo bash update.sh --check`. Full Ubuntu VM update acceptance remains pending.
 
 ## ✨ Features
 
@@ -103,9 +111,9 @@ REFRESH_TOKEN_SECRET=your-refresh-secret
 ATLAS=no
 ```
 
-#### Render + MongoDB Atlas
+#### Optional MongoDB Atlas configuration
 
-Set the Render start command to `npm run start` and add these values in Render under **Environment Variables**. Do not use a Secret File for these values; the backend reads them from `process.env`.
+For a self-hosted deployment using Atlas, configure the backend environment with the following values. Follow the Ubuntu deployment guide for protected settings files and service setup.
 
 ```env
 NODE_ENV=production
@@ -118,7 +126,7 @@ UPSTASH_REDIS_REST_URL=<upstash-rest-url>
 UPSTASH_REDIS_REST_TOKEN=<upstash-rest-token>
 ```
 
-Render provides `PORT` automatically. The backend will use `PORT` first, then `NODE_PORT`, then `5001`.
+The backend uses `PORT` first, then `NODE_PORT`, then `5001`; configure the port to match the reverse proxy.
 
 Use `MONGO_URI` or `MONGODB_URI` for a full MongoDB connection string. `MONGO_ATLAS_URI` is not read by the backend.
 
@@ -195,7 +203,7 @@ Suite registration authority:
 
 * Authentik should be treated as the canonical place where new suite users create their primary account
 * `RDocMan` should own only the local shadow user/profile/role record for app-specific settings
-* set `LOCAL_SELF_REGISTRATION_ENABLED=false` in production when you want to disable the legacy local `/auth/register` path
+* Keep **System Settings → Accounts and passwords → Allow local self-registration** off (default); this database policy replaces `LOCAL_SELF_REGISTRATION_ENABLED`. See [account invitations and password policy](docs/account-invitations.md).
 
 How to get the real `sub` today:
 
@@ -228,7 +236,7 @@ The Vue/Vuetify frontend should be brought to feature parity in phases. The curr
 The existing React frontend should remain intact until the Vue/Vuetify frontend covers the primary workflows.
 ## ⚙️ Production Deployment & Update Scripts
 
-Maintainers should read the [Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md) before cutting release branches, operating Render, or changing deployment automation.
+Maintainers should read the [Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md) before cutting release branches, operating self-hosted servers, or changing deployment automation.
 
 DocMan includes three scripts to manage deployment and updates on a production Apache server.
 
@@ -414,7 +422,7 @@ frontend-vue/
 ### For Developers
 
 - **[Developer Onboarding Guide](./docs/DEVELOPER_ONBOARDING.md)** - Complete setup and workflow guide
-- **[Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md)** - Release branches, tags, Render, GitHub Actions, and deployment safety
+- **[Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md)** - Release branches, tags, Ubuntu/Linode, GitHub Actions, and deployment safety
 - **[Docs Site](./docs-site/README.md)** - Docusaurus source for the published DocMan documentation site
 - **[Architecture Decision Records](./docs/architecture/README.md)** - Design decisions and rationale
 - **[API Documentation](http://localhost:5001/api-docs)** - Interactive API documentation
@@ -524,3 +532,23 @@ Stored credentials use AES-256-GCM with a dedicated server-side `EMAIL_SETTINGS_
 ### Encryption at rest and upload size
 
 Stored document files can be encrypted at rest, invisibly to users: files are encrypted while they stream to disk (no plaintext is ever written) and decrypted only for accounts allowed to download them. Each file has its own key, wrapped by the server's `DOCUMENT_ENCRYPTION_KEY`; nobody handles keys or document passwords. Superadmins turn encryption on and set the maximum upload size in **System Settings → Document storage**. See [Ubuntu guide section 15.1](docs/deployment/ubuntu-server-installation.md#151-encryption-at-rest-and-upload-size).
+
+Activity and email notifications: see [event coverage, setup, queue status and recovery](docs/activity-notifications.md).
+
+Users can open **My account** in the toolbar to edit their profile or change a local password. Password changes require the current password and sign out existing sessions. SSO profiles remain provider-managed; username and email changes require a superadmin.
+
+Document editors/owners and administrators can enable **Public sharing** on a document details page. Anyone with the random link can download the current approved file without signing in. Disable sharing to revoke the link; re-enabling issues a new link. Private versions, assignments, and audit history are excluded. Public access still requires network access to the server.
+
+Superadmins can disable new public sharing in System Settings and optionally suspend existing public links until sharing is re-enabled. Individual document revocation remains permanent.
+
+## User manual and QA guide
+
+- [Illustrated end-user manual (PDF)](output/pdf/docman-user-manual.pdf)
+- [End-to-end QA guide (PDF)](output/pdf/docman-qa-end-to-end-guide.pdf)
+- [Editable sources, blank results sheet and rebuild instructions](docs/manuals/README.md)
+
+The guides reflect the current Vue source, distinguish API-only functionality, and do not imply that local changes are deployed or that acceptance tests have been run.
+
+### Categories, books, teams and projects
+
+The Vue navigation now provides management interfaces for these resources. Categories are managed by admins/superadmins; books by editor/admin owners or superadmins; teams by owners/team admins or superadmins; projects by owners/managers or superadmins. Resource linking organizes existing documents and does not grant document access. See [management operations and acceptance checks](docs/resource-management.md).
