@@ -17,12 +17,16 @@
 <script setup>
 import { computed, watch, ref } from 'vue';
 import { api } from '@/services/api';
+import { getRuntimeConfig } from '@/runtime/config';
 const props = defineProps({ documentId: { type: String, required: true } });
 const loaded = ref(false);
 let generation = 0;
 const policy = ref({ enabled: true, disableExistingLinks: true });
 const enabled = ref(false), token = ref(''), error = ref(''), busy = ref(false), loading = ref(true), copied = ref(false);
-const link = computed(() => `${window.location.origin}/public/documents/${token.value}`);
+const link = computed(() => {
+  const base = String(getRuntimeConfig().routerBase || '/').replace(/^\/+|\/+$/g, '');
+  return `${window.location.origin}/${base ? `${base}/` : ''}public/documents/${token.value}`;
+});
 function apply(data) { if (data.policy) policy.value = data.policy; enabled.value = data.enabled; token.value = data.token || ''; copied.value = false; }
 async function load() {
   const current = ++generation;

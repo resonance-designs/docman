@@ -54,13 +54,19 @@ function syncStateFromStorage() {
 }
 
 async function hydrateCurrentSession() {
+  const token = state.token;
   const response = await api.get('/auth/me');
+  if (!token || state.token !== token) {
+    const error = new Error('Session changed while refreshing. Retry using the current account.');
+    error.code = 'SESSION_SUPERSEDED';
+    throw error;
+  }
   const user = response.data?.user;
   if (!user) {
     throw new Error('Unable to resolve the current DocMan session.');
   }
 
-  persistSession(state.token, user);
+  persistSession(token, user);
   return {
     user,
     identity: response.data?.identity || null,
@@ -137,6 +143,7 @@ export function useAuth() {
         redirectPath: consumePostLoginRedirect(),
       };
     } catch (error) {
+      if (error.code === 'SESSION_SUPERSEDED') throw error;
       clearSession();
       state.error = error.message || 'Authentik login failed.';
       throw error;

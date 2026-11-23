@@ -124,9 +124,9 @@ export async function updateDoc(req, res) {
         });
     } catch (error) {
         console.error("Error updating document:", error);
-        const statusCode = error.message.includes("not found") ? 404 :
+        const statusCode = error.statusCode || (error.message.includes("not found") ? 404 :
                           error.message.includes("Access denied") ? 403 :
-                          error.message.includes("Invalid") ? 400 : 500;
+                          error.message.includes("Invalid") ? 400 : 500);
         res.status(statusCode).json({
             message: error.message || "Failed to update document"
         });

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Documentation
+
+- Track all 42 PR #50 CodeRabbit findings with individual 3.0.2 dispositions and validation evidence. Correct update/restore/email setup ordering, lock recovery, existing repository password guidance, and generated manual metadata/QA heading verification.
+
+### Fixed
+
+- Execute the installer from root-owned private state, persist completion and administrator-password removal atomically, and make interrupted configuration writes and invalid upload-size answers retryable.
+- Remove public bearer tokens from serialized audit paths and Apache access logs; document applying the safe log format to existing deployments.
+- Coordinate document category writes with book/category guards, retry holder-matched guard release, and prevent concurrent project date updates from creating invalid ranges.
+- Prevent stale account/project saves from emitting false change notices; report committed invitation/settings changes accurately when audit or notification cleanup fails. Preserve legacy password verification and multiline biographies.
+- Preserve consistent backups across pending service restarts; exclude incomplete snapshots from retention. Harden updater environment snapshots, backup destinations, ignored local files, read-only checks, TLS checks, and interruption recovery.
+- Correct stale session/editor responses, project metadata edits with unchanged teams, public links under a router base, and uppercase reciprocal project IDs. Check missing uploads independently of checksum backfill.
+- Isolate MongoDB test endpoints, verify child identity before fixture writes, and cancel stalled bootstrap processes. Add focused backend, frontend, installer, updater, Apache and manual-generation regressions.
+
 ## [3.0.1] - 2026-11-18
 
 ### Added

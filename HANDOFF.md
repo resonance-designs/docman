@@ -1,5 +1,11 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## PR #50 fixes for 3.0.2 — November 22, 2026
+
+All 42 captured CodeRabbit findings were verified and addressed on `bugs/3.0.1-fixes`; see [individual dispositions and validation](docs/reviews/pr-50-coderabbit-3.0.2.md). Changes are local and uncommitted, with no deployment. Preserve the existing 3.0.1 release tag; do not claim that server installations have these fixes. Package versions remain unchanged until the next release is cut.
+
+Existing installations need the safe Apache access-log configuration applied separately: the updater intentionally preserves Apache configuration. Follow the updated installation/manual guide and address historical token-bearing logs separately. Complete fresh-Ubuntu/systemd/restic restore and live browser/SMTP acceptance before claiming deployment validation. The manual generator now records current metadata; previously generated PDFs retain their old metadata until rebuilt.
+
 ## Hosting retirement — November 20, 2026
 
 Render is no longer a deployment target. Removed active hosting instructions/navigation and replaced legacy NODE_ENV=render startup scripts with production mode. Use self-hosted Ubuntu/Linode guidance. The external service/Git integration and obsolete DNS records are not controlled by this repository and have not been disabled here; retire those before merging if automatic deployment is still enabled. Historical changelog entries remain historical.

@@ -39,6 +39,7 @@ class ConfigurationTests(unittest.TestCase):
             installer.finish(c)
             saved = installer.load()
             self.assertNotIn('password', saved['person'])
+            self.assertIs(saved['complete'], True)
             self.assertEqual(saved['person']['username'], 'admin')
             self.assertTrue((self.state / 'complete').exists())
             installer.finish(saved)
@@ -62,6 +63,22 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(installer.load(), original)
         self.assertTrue((self.state / 'RESULTS.txt').exists())
         self.assertFalse((self.state / 'complete').exists())
+
+    def test_finish_marker_failure_still_persists_completion_without_password(self):
+        c = self.finish_config()
+        installer.save(c)
+        with patch.object(installer.subprocess, 'check_output', return_value='versions'), patch.object(Path, 'touch', side_effect=OSError('marker failed')):
+            with self.assertRaises(OSError): installer.finish(c)
+        self.assertIs(installer.load()['complete'], True)
+        self.assertNotIn('password', installer.load()['person'])
+
+    def test_upload_size_rejects_unicode_digit_and_reprompts(self):
+        for value in ['²', '0', '251', '-1', '1.5', 'abc']:
+            self.assertFalse(installer.upload_size_valid(value))
+        for value in ['1', '50', '250']:
+            self.assertTrue(installer.upload_size_valid(value))
+        with patch('builtins.input', side_effect=['²', '50']), patch('builtins.print'):
+            self.assertEqual(installer.ask('Size', valid=installer.upload_size_valid), '50')
 
     def test_hostname_rejects_config_injection(self):
         for name in ['https://example.org', 'x\nServerName evil', '-x.example', 'x..org', 'x.org/anything', '*.example.org', 'x;id']:
@@ -137,8 +154,17 @@ class ConfigurationTests(unittest.TestCase):
         target = self.root / 'secret'
         target.write_text('keep')
         target.with_name('secret.docman-new').write_text('interrupted')
-        with self.assertRaises(FileExistsError): installer.atom(target, 'replacement')
+        installer.atom(target, 'replacement')
+        self.assertEqual(target.read_text(), 'replacement')
+        self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+
+    def test_failed_atomic_replace_preserves_original_and_cleans_attempt(self):
+        target = self.root / 'secret'
+        target.write_text('keep')
+        with patch.object(installer.os, 'replace', side_effect=OSError('replace failed')):
+            with self.assertRaises(OSError): installer.atom(target, 'replacement')
         self.assertEqual(target.read_text(), 'keep')
+        self.assertEqual(list(self.root.glob('secret.docman-*')), [])
 
     def test_application_config_contains_no_raw_credentials(self):
         pwd = ' @#$%()' + secrets.token_hex(12)
@@ -165,9 +191,16 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_backup_on_root_filesystem_is_rejected(self):
         c = {'backup_repository': str(self.root), 'restic_new': True}
-        with patch.object(installer, 'run') as run:
+        real_stat = Path.stat
+        def same_device(path, *args, **kwargs):
+            result = real_stat(path, *args, **kwargs)
+            values = list(result)
+            values[2] = 123
+            return os.stat_result(values)
+        with patch.object(Path, 'stat', same_device), patch.object(installer, 'run') as run, patch.object(installer.subprocess, 'run') as subprocess_run:
             with self.assertRaises(RuntimeError): installer.restic_init(c)
             run.assert_not_called()
+            subprocess_run.assert_not_called()
 
     def test_failed_https_check_never_reports_success(self):
         with patch.object(installer.subprocess, 'check_output', return_value='503'):

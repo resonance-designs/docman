@@ -30,6 +30,7 @@ export async function resendInvitation(req, res) {
     } catch { res.status(502).json({ message: 'Invitation could not be sent. Check outgoing email settings and retry.' }); }
 }
 export async function acceptInvitation(req, res) {
+    let activated = false;
     try {
         const { token, password } = req.body;
         if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({ message: 'Invalid or expired invitation.' });
@@ -42,7 +43,11 @@ export async function acceptInvitation(req, res) {
             $unset: { invitationTokenHash: '', invitationExpires: '', resetPasswordToken: '', resetPasswordExpires: '', refreshTokenHash: '' }, $inc: { sessionVersion: 1, __v: 1 },
         }, { new: true });
         if (!user) return res.status(400).json({ message: 'Invalid or expired invitation.' });
+        activated = true;
         await record(req, { actorUser: user, action: AUDIT_ACTIONS.USER_UPDATE, resourceType: 'user', resourceId: user._id, summary: 'Accepted account invitation' });
         res.json({ message: 'Account activated. You can now sign in.' });
-    } catch { res.status(503).json({ message: 'Could not activate account. Try again or request a new invitation.' }); }
+    } catch {
+        if (activated) return res.status(200).json({ activated: true, auditRecorded: false, message: 'Account activated, but the audit entry failed. Sign in with your new password; do not reuse this invitation. Contact an administrator about the audit failure.' });
+        res.status(503).json({ message: 'Could not activate account. Try again or request a new invitation.' });
+    }
 }

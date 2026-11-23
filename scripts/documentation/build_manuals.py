@@ -9,6 +9,7 @@ import csv
 import html
 import re
 import sys
+from manual_support import clean, release_metadata
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tmp/pdf-deps'))
@@ -51,9 +52,6 @@ styles.add(ParagraphStyle(name='SmallText', fontName=FONT, fontSize=8.3, leading
 styles.add(ParagraphStyle(name='ListText', parent=styles['Body'], leftIndent=15, firstLineIndent=-11, spaceAfter=7))
 styles.add(ParagraphStyle(name='CoverTitle', fontName=BOLD, fontSize=34, leading=41, textColor=NAVY, spaceAfter=24))
 styles.add(ParagraphStyle(name='Deck', fontName=FONT, fontSize=15, leading=23, textColor=MUTED, spaceAfter=22))
-
-def clean(s):
-    return s.replace('\u2011','-').replace('\u2013','-').replace('\u2014',' - ').replace('\u2192',' > ').replace('\u2019', "'")
 
 def markup(s):
     s = html.escape(clean(s))
@@ -128,7 +126,7 @@ class ManualDoc(BaseDocTemplate):
         c.drawString(54,30,'DOCMAN  /  '+self.label.upper())
         c.drawRightString(558,30,str(doc.page))
         if doc.page>1:
-            c.setFont(BOLD,8);c.setFillColor(TEAL);c.drawString(54,754,'REFERENCE EDITION  |  20 NOVEMBER 2026')
+            c.setFont(BOLD,8);c.setFillColor(TEAL);c.drawString(54,754,'REFERENCE EDITION  |  '+self.edition)
         c.restoreState()
     def afterFlowable(self,flow):
         if isinstance(flow,Paragraph) and flow.style.name=='Section' and flow.getPlainText() != 'Contents':
@@ -216,10 +214,12 @@ def story_from_md(text):
     if case: grouped.append(KeepTogether(case))
     return grouped
 
-def build(name,title,subtitle,source,extra=''):
+def build(name,title,subtitle,source,extra='',metadata=None):
+    metadata = metadata or release_metadata(ROOT)
     doc=ManualDoc(OUT/name,title)
+    doc.edition=metadata['date'].upper()
     story=[Spacer(1,80),para('DOCMAN  /  PRACTICAL GUIDES','Case'),Spacer(1,18),para(title,'CoverTitle'),para(subtitle,'Deck'),Spacer(1,20)]
-    story += [para('DocMan 3.0.0 - Vue interface','Case'),para('20 November 2026','Body'),para('Current source snapshot: 6d864ef plus working-tree changes. Confirm deployment before use.','Body'),Spacer(1,24),para('Illustrated with labeled vector diagrams. No simulated screenshot is presented as a real application capture.','SmallText'),PageBreak(),para('Contents','Section')]
+    story += [para(f"DocMan {metadata['version']} - Vue interface",'Case'),para(metadata['date'],'Body'),para(f"Current source snapshot: {metadata['revision']}. Confirm deployment before use.",'Body'),Spacer(1,24),para('Illustrated with labeled vector diagrams. No simulated screenshot is presented as a real application capture.','SmallText'),PageBreak(),para('Contents','Section')]
     toc=TableOfContents();toc.levelStyles=[ParagraphStyle(name='TOC',fontName=FONT,fontSize=10,leading=15,spaceBefore=5,leftIndent=0,rightIndent=18)]
     story.append(toc)
     text=source.read_text(encoding='utf-8')+extra

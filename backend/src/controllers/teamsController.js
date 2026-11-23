@@ -499,7 +499,11 @@ export async function acceptInvitation(req, res) {
         }, { $push: { members: { user: user._id, role: invitation.role, joinedAt: new Date() } },
              $set: { 'invitations.$.status': 'accepted', lastUpdatedBy: user._id } }, { new: true, runValidators: true });
         if (!accepted) return res.status(409).json({ message: 'Invitation is no longer available.' });
-        await Notification.updateMany({ recipient: user._id, invitationToken: token }, { $unset: { invitationToken: 1 }, $set: { isRead: true, readAt: new Date() } });
+        try {
+            await Notification.updateMany({ recipient: user._id, invitationToken: token }, { $unset: { invitationToken: 1 }, $set: { isRead: true, readAt: new Date() } });
+        } catch {
+            console.error('Team invitation accepted; notification cleanup failed. Membership is committed.');
+        }
         res.status(200).json({ message: 'Invitation accepted successfully', teamId: team._id });
     } catch (error) {
         console.error("Error accepting invitation:", error);
@@ -1106,7 +1110,7 @@ export async function addProjectsToTeam(req, res) {
             if (team.addProject(projectId)) {
                 addedCount++;
                 // Also add team to project
-                const project = projects.find(p => p._id.toString() === projectId);
+                const project = projects.find(p => p._id.toString() === projectId.toLowerCase());
                 if (project) {
                     project.addTeam(teamId);
                     await project.save();

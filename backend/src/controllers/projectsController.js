@@ -398,7 +398,8 @@ export async function updateProject(req, res) {
             });
         }
 
-        // Handle team updates if provided
+        // Validate relationships before changing either side.
+        let selectedTeams = null;
         if (teamIds !== undefined) {
             // Check if teams exist and user has access to at least one
             const teams = await Team.find({ _id: { $in: teamIds } });
@@ -417,22 +418,7 @@ export async function updateProject(req, res) {
             if (!hasAccess) {
                 return res.status(403).json({ message: "Access denied - must have access to every selected team" });
             }
-
-            // Remove project from old teams
-            const oldTeams = await Team.find({ projects: projectId });
-            for (const oldTeam of oldTeams) {
-                oldTeam.removeProject(projectId);
-                await oldTeam.save();
-            }
-
-            // Add project to new teams
-            for (const teamId of teamIds) {
-                const team = await Team.findById(teamId);
-                if (team) {
-                    team.addProject(projectId);
-                    await team.save();
-                }
-            }
+            selectedTeams = teams;
         }
 
         // Update fields
@@ -453,14 +439,37 @@ export async function updateProject(req, res) {
         }
         if (settings) updateData.settings = { ...project.settings, ...settings };
 
-        const updatedProject = await Project.findByIdAndUpdate(
-            projectId,
-            updateData,
-            { new: true, runValidators: true }
-        )
-        .populate('teams', 'name')
-        .populate('owner', 'firstname lastname email')
-        .populate('collaborators.user', 'firstname lastname email');
+        let updatedProject;
+        let dateBaseline = project;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const changesDates = startDate !== undefined || endDate !== undefined;
+            const query = changesDates
+                ? Project.findOneAndUpdate({ _id: projectId, startDate: dateBaseline.startDate ?? null, endDate: dateBaseline.endDate ?? null }, updateData, { new: true, runValidators: true })
+                : Project.findByIdAndUpdate(projectId, updateData, { new: true, runValidators: true });
+            updatedProject = await query.populate('teams', 'name').populate('owner', 'firstname lastname email').populate('collaborators.user', 'firstname lastname email');
+            if (updatedProject || !changesDates) break;
+            dateBaseline = await Project.findById(projectId);
+            if (!dateBaseline) return res.status(404).json({ message: 'Project not found' });
+            const changedError = projectInputError(req.body, dateBaseline);
+            if (changedError) return res.status(400).json({ message: changedError });
+        }
+        if (!updatedProject) return res.status(409).json({ message: 'Project changed concurrently. Reload and retry.' });
+
+        // A failed date compare-and-set must not leave reciprocal team mutations.
+        if (selectedTeams) {
+            const oldTeams = await Team.find({ projects: projectId });
+            for (const oldTeam of oldTeams) {
+                oldTeam.removeProject(projectId);
+                await oldTeam.save();
+            }
+            for (const selectedTeam of selectedTeams) {
+                const team = await Team.findById(selectedTeam._id);
+                if (team) {
+                    team.addProject(projectId);
+                    await team.save();
+                }
+            }
+        }
 
         res.status(200).json({
             message: "Project updated successfully",

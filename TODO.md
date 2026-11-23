@@ -1,5 +1,11 @@
 # DocMan
 
+## 3.0.2 — CodeRabbit fixes from PR #50
+
+- [x] Verify and implement fixes for the [42 published PR #50 findings](docs/reviews/pr-50-coderabbit-3.0.2.md): 16 inline, 2 outside-diff, and 24 minor findings. The review record contains individual dispositions and local validation evidence; changes await commit and deployment.
+- [ ] Complete isolated fresh-Ubuntu/systemd/restic restore acceptance, apply the safe Apache log format on existing deployments, and run the deployed multi-user/browser/SMTP checks. Record the final fixing commit and refresh the review snapshot for any new CodeRabbit rounds before release.
+- [ ] Repair the pre-existing legacy `services/documentService.test.js` expectations/mocks and `docs.test.js` ESM harness. Their failures reproduce on pristine HEAD; 207 targeted backend tests pass for the PR #50 fixes, but the full legacy suite is not green.
+
 - [x] Fix shared mobile header at 375px: compact labeled account actions, verified with a browser fixture.
 - [ ] Run live multi-user acceptance for Categories, Books, Teams and Projects using `docs/resource-management.md`; local fixture review does not verify database writes or mail delivery.
 

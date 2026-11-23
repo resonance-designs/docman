@@ -118,6 +118,8 @@ const dateLabel = value => dateInput(value) || 'Not set';
 const personOption = person => `${personName(person)}${person.email ? ` (${person.email})` : ''}`;
 const statusColor = status => ({active:'success',completed:'primary','on-hold':'warning',archived:'grey'}[status] || 'primary');
 let detailGeneration = 0;
+let editorGeneration = 0, originalTeamIds = [];
+watch(editorOpen, value => { if (!value) editorGeneration++; }, { flush: 'sync' });
 watch(confirmAction,()=>{ actionError.value=''; });
 watch(detailOpen, value => { if (!value) detailGeneration++; });
 async function load() {
@@ -156,19 +158,22 @@ async function loadSections(id,generation) {
  });
 }
 async function openEditor(project=null) {
+ const generation=++editorGeneration;
+ originalTeamIds=(project?.teams || []).map(entityId);
  editingId.value=project?._id || null;formError.value='';editorOpen.value=true;choicesFailed.value=false;
  Object.assign(form,{name:project?.name || '',description:project?.description || '',teamIds:(project?.teams || []).map(entityId),status:project?.status || 'active',priority:project?.priority || 'medium',startDate:dateInput(project?.startDate),endDate:dateInput(project?.endDate),tagsText:(project?.tags || []).join(', ')});
  choicesLoading.value=true;
  try {
   const response=await api.get(['admin','superadmin'].includes(state.user?.role)?'/teams':'/teams/my-teams');
+  if(generation!==editorGeneration)return;
   const options=arrayOf(response.data,'teams');
   teamOptions.value=[...new Map([...options,...(project?.teams || []).filter(team=>team?._id)].map(team=>[entityId(team),team])).values()];
- }catch(e){choicesFailed.value=true;formError.value=describeError(e,'Could not load teams. Close this dialog and retry.');}
- finally{choicesLoading.value=false;}
+ }catch(e){if(generation===editorGeneration){choicesFailed.value=true;formError.value=describeError(e,'Could not load teams. Close this dialog and retry.');}}
+ finally{if(generation===editorGeneration)choicesLoading.value=false;}
 }
 async function saveProject() {
  formError.value='';let payload;
- try {payload=projectPayload(form);}catch(e){formError.value=e.message;return;}
+ try {payload=projectPayload(form,editingId.value?originalTeamIds:null);}catch(e){formError.value=e.message;return;}
  saving.value=true;
  try {
   const response=editingId.value?await api.put(`/projects/${editingId.value}`,payload):await api.post('/projects',payload);

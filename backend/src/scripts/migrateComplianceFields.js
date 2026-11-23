@@ -16,7 +16,7 @@
  */
 import dotenv from "dotenv";
 import path from "path";
-import fs from "fs";
+import { inspectMigrationStorage } from '../lib/migrationStorage.js';
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 
@@ -40,7 +40,6 @@ export async function migrateComplianceFields({ dryRun = DRY_RUN, log = console.
     const { default: SystemSetting } = await import("../models/SystemSetting.js");
     const { recordRevision } = await import("../services/revisionService.js");
     const { record, AUDIT_ACTIONS } = await import("../services/auditService.js");
-    const { sha256File, resolveStoredFile } = await import("../lib/fileIntegrity.js");
 
     const summary = {
         dryRun,
@@ -87,17 +86,7 @@ export async function migrateComplianceFields({ dryRun = DRY_RUN, log = console.
     log(`File versions marked approved: ${summary.filesMarkedApproved}`);
 
     // 2. Checksums
-    const withoutChecksum = await File.find({ $or: [{ sha256: { $exists: false } }, { sha256: null }] });
-    for (const file of withoutChecksum) {
-        const absolutePath = resolveStoredFile(file.filename);
-        if (!absolutePath || !fs.existsSync(absolutePath)) {
-            summary.missingFiles.push({ fileId: String(file._id), documentId: String(file.documentId), filename: file.filename });
-            continue;
-        }
-        const sha256 = await sha256File(absolutePath);
-        if (!dryRun) await File.updateOne({ _id: file._id }, { $set: { sha256 } });
-        summary.checksumsRecorded += 1;
-    }
+    Object.assign(summary, await inspectMigrationStorage(File, { dryRun }));
     log(`Checksums recorded: ${summary.checksumsRecorded}; missing stored files: ${summary.missingFiles.length}`);
 
     // 3 + 4. Documents

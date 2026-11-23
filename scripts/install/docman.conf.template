@@ -1,3 +1,5 @@
+# Do not record URLs, query strings or Referer: public links carry bearer credentials.
+LogFormat "%h %l %u %t \"%m %H\" %>s %b" docman_safe
 <VirtualHost *:80>
     ServerName @@HOST@@
     DocumentRoot /var/www/letsencrypt
@@ -9,6 +11,7 @@
     RewriteEngine On
     RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
     RewriteRule ^ https://@@HOST@@%{REQUEST_URI} [R=301,L]
+    CustomLog ${APACHE_LOG_DIR}/docman-access.log docman_safe
 </VirtualHost>
 
 <VirtualHost *:443>
@@ -45,5 +48,5 @@
         Require all denied
     </FilesMatch>
     ErrorLog ${APACHE_LOG_DIR}/docman-error.log
-    CustomLog ${APACHE_LOG_DIR}/docman-access.log combined
+    CustomLog ${APACHE_LOG_DIR}/docman-access.log docman_safe
 </VirtualHost>

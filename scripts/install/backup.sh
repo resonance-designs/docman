@@ -36,7 +36,8 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
-if systemctl is-active --quiet docman-backend; then
+backend_state=$(systemctl show docman-backend --property=ActiveState --value)
+if [[ "$backend_state" == active || "$backend_state" == activating || "$backend_state" == reloading || "$backend_state" == deactivating ]]; then
     restart_backend=true
     systemctl stop docman-backend
 fi
@@ -44,7 +45,11 @@ fi
 mongodump --config=/etc/docman/mongodump.yml --db=docman --archive="$STAGING/database.archive" --gzip
 git -c safe.directory=/var/www/docman -C /var/www/docman rev-parse HEAD > "$STAGING/source-commit.txt"
 git -c safe.directory=/var/www/docman -C /var/www/docman bundle create "$STAGING/source.bundle" HEAD
-restic "${RESTIC_OPTIONS[@]}" backup --tag docman "$STAGING" /var/lib/docman/uploads /etc/apache2/sites-available/docman.conf /etc/systemd/system/docman-backend.service
+pending_tag="docman-pending-$(cat /proc/sys/kernel/random/uuid)"
+restic "${RESTIC_OPTIONS[@]}" backup --tag "$pending_tag" "$STAGING" /var/lib/docman/uploads /etc/apache2/sites-available/docman.conf /etc/systemd/system/docman-backend.service
+# Only a successful capture becomes eligible for retention. Failed partial snapshots
+# retain their unique pending tag and cannot displace a complete daily snapshot.
+restic "${RESTIC_OPTIONS[@]}" tag --tag "$pending_tag" --add docman --remove "$pending_tag"
 if [[ "$restart_backend" == true ]]; then
     systemctl start docman-backend
     restart_backend=false

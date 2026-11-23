@@ -13,12 +13,24 @@ import subprocess
 import tempfile
 import time
 from unittest.mock import patch
+from urllib.parse import quote
 
 spec=importlib.util.spec_from_file_location('update_runner',Path(__file__).with_name('runner.py'))
 runner=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
 
 def run(args,**kw): return subprocess.run(args,check=True,capture_output=True,text=True,**kw)
+
+def wait_for_mongo(mongo, uri):
+    for attempt in range(30):
+        if mongo.poll() is not None: raise RuntimeError('Disposable MongoDB exited before readiness')
+        ready=subprocess.run(['mongosh','--quiet',uri,'--eval','print(db.serverStatus().pid.toString())'],capture_output=True,text=True,timeout=10)
+        if ready.returncode==0:
+            if mongo.poll() is not None or ready.stdout.strip()!=str(mongo.pid):
+                raise RuntimeError('MongoDB endpoint is not owned by the fixture child')
+            return
+        if attempt==29: raise RuntimeError('Disposable MongoDB did not start')
+        time.sleep(.2)
 
 def main():
     for tool in ('mongod','mongosh','mongodump','mongorestore','restic','git','rsync'):
@@ -37,14 +49,12 @@ def main():
         dbpath=root/'database'; dbpath.mkdir()
         with socket.socket() as probe:
             probe.bind(('127.0.0.1',0)); port=probe.getsockname()[1]
-        mongo=subprocess.Popen(['mongod','--dbpath',str(dbpath),'--bind_ip','127.0.0.1','--port',str(port),'--logpath',str(root/'mongo.log')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        uri=f'mongodb://127.0.0.1:{port}/docman?serverSelectionTimeoutMS=500'
+        mongo=subprocess.Popen(['mongod','--dbpath',str(dbpath),'--unixSocketPrefix',str(root),'--bind_ip','127.0.0.1','--port',str(port),'--logpath',str(root/'mongo.log')],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        # The private socket directory isolates this run even if its TCP port is stolen.
+        socket_path = root / f'mongodb-{port}.sock'
+        uri=f'mongodb://{quote(str(socket_path), safe="")}/docman?serverSelectionTimeoutMS=500'
         try:
-            for attempt in range(30):
-                ready=subprocess.run(['mongosh','--quiet',uri,'--eval','db.runCommand({ping:1})'],capture_output=True)
-                if ready.returncode==0: break
-                if attempt==29: raise RuntimeError('Disposable MongoDB did not start')
-                time.sleep(.2)
+            wait_for_mongo(mongo, uri)
             run(['mongosh','--quiet',uri,'--eval','db.fixture.insertOne({marker:"before-update",version:1})'])
             job=root/'state'; job.mkdir(mode=0o700)
             runner.private_write(job/'restic-password',secrets.token_hex(24)+'\n')
@@ -70,7 +80,7 @@ def main():
             clone=root/'restored-code'
             run(['git','clone','-q',str(recovered_snapshot/'source.bundle'),str(clone)])
             assert run(['git','-C',str(clone),'rev-parse','HEAD']).stdout.strip()==commit
-            run(['mongorestore','--host','127.0.0.1','--port',str(port),'--archive='+str(recovered_snapshot/'database.archive'),'--gzip','--nsFrom=docman.*','--nsTo=restored.*','--stopOnError'])
+            run(['mongorestore','--uri='+uri.replace('/docman?', '/?'),'--archive='+str(recovered_snapshot/'database.archive'),'--gzip','--nsFrom=docman.*','--nsTo=restored.*','--stopOnError'])
             result=run(['mongosh','--quiet',uri,'--eval','print(JSON.stringify(db.getSiblingDB("restored").fixture.findOne({marker:"before-update"})))'])
             assert json.loads(result.stdout)['version']==1
             print('PASS: real encrypted snapshot and restore recovered MongoDB data, upload bytes, frontend and source commit; secret files excluded.')

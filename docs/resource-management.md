@@ -10,18 +10,20 @@ Admins and superadmins can create, edit and delete categories. Choose **Document
 
 Editors and higher roles can create books. Editor/admin owners and superadmins can manage an existing book. Select a Book category and owners, then use the details screen to link or unlink accessible documents. Metadata saves preserve existing document associations. Removing a link does not delete a document; deleting a book removes its team/project links.
 
-Book creation/editing and category deletion/type changes share the database guard `locks.category-book-references`. A concurrent request returns HTTP 409; retry after the other request finishes. The guard does not expire while a slow write is running. If its process crashes or releasing the guard fails, these operations stay blocked rather than risk invalid category references.
+Book creation/editing, document creation/category reassignment, and category deletion/type changes share the database guard `locks.category-book-references`. A concurrent request returns HTTP 409; retry after the other request finishes. The guard does not expire while a slow write is running. Release retries transient failures while matching its own holder. If its process crashes or release retries are exhausted, a server diagnostic identifies the retained guard and these operations stay blocked rather than risk invalid category references.
 
-For a persistent conflict after a crash, an administrator must stop **all application processes and other writers using this database**, confirm their in-flight writes have ended, and inspect affected books/categories before recovery. In an authenticated MongoDB shell with `docman` selected, clear only this guard:
+For a persistent conflict after a crash or release failure, an administrator must stop **all application processes and other writers using this database**, confirm their in-flight writes have ended, and inspect affected documents/books/categories before recovery. In an authenticated MongoDB shell with `docman` selected, read the guard and clear only the holder inspected:
 
 ```javascript
+const guard = db.systemsettings.findOne({ key: "locks.category-book-references" });
+if (!guard?.value?.holder) throw new Error("STOP: no retained holder found; investigate instead of clearing blindly.");
 db.systemsettings.updateOne(
-  { key: "locks.category-book-references" },
+  { key: guard.key, "value.holder": guard.value.holder },
   { $set: { value: {} } }
 )
 ```
 
-Expected: `acknowledged: true` and `matchedCount: 1` when the guard exists. Restart the stopped writers and retry the operation. Never clear it while another writer could still be active. This coordination covers the book/category API paths; it does not serialize direct database edits or unrelated document writers.
+Expected: `acknowledged: true` and `matchedCount: 1`. If the holder changed or the operation fails, keep writers stopped and investigate. Restart the stopped writers only after successful recovery, then retry the operation. Never clear it while another writer could still be active. This coordination covers book/category APIs and document API writes that set or change a category; it does not serialize direct database edits.
 
 ## Teams
 
