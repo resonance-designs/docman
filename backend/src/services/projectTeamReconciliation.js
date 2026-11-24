@@ -59,9 +59,18 @@ export async function tryReconcileProjectTeams(projectId) {
     }
 }
 
-export async function reconcilePendingProjectTeams() {
-    const pending = Project.collection.find({ teamSyncPending: true }, { projection: { _id: 1 } }).sort({ updatedAt: 1 }).limit(100);
-    for await (const project of pending) await tryReconcileProjectTeams(project._id);
+const scanPosition = { after: null };
+export async function reconcilePendingProjectTeams(position = scanPosition) {
+    const filter = { teamSyncPending: true, ...(position.after ? { _id: { $gt: position.after } } : {}) };
+    const pending = Project.collection.find(filter, { projection: { _id: 1 } }).sort({ _id: 1 }).limit(100);
+    let processed = 0;
+    for await (const project of pending) {
+        // Advance even on failure; wrap after reaching the end to retry older work.
+        position.after = project._id;
+        processed++;
+        await tryReconcileProjectTeams(project._id);
+    }
+    if (processed < 100) position.after = null;
 }
 
 export function startProjectTeamReconciliationWorker() {

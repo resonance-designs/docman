@@ -15,7 +15,11 @@ async function applyTeams(filter, update) {
     const [fence,revision]=Object.entries(update.$set)[0];
     for(const id of [filter._id]){
         const row=teams.get(String(id)); if(!row)continue;
-        if(row[fence]!==undefined && row[fence]>revision)continue;
+        if(filter.$or && !filter.$or.some(condition => Object.entries(condition).every(([key, predicate]) => {
+            if ('$exists' in predicate) return (row[key] !== undefined) === predicate.$exists;
+            if ('$lte' in predicate) return row[key] !== undefined && row[key] <= predicate.$lte;
+            throw new Error('Unsupported fixture predicate');
+        })))continue;
         row[fence]=revision;
         row.projects=row.projects.filter(id=>String(id)!==String(pid));
         if(update.$addToSet)row.projects.push(pid);
@@ -44,6 +48,35 @@ test('canonical mutation carries revision, pending state and historical destinat
     expect(update.$set).toEqual({teams:[b],teamSyncPending:true});
     expect(update.$inc.teamSyncRevision).toBe(1);
     expect(update.$addToSet.teamSyncCandidates.$each).toEqual([String(a),String(b)]);
+});
+
+test('fixture honors supplied predicates rather than providing an independent revision fence',async()=>{
+ const fence=`projectSyncRevisions.${pid}`,row=teams.get(String(a));row[fence]=2;
+ await applyTeams({_id:a},{$set:{[fence]:1},$pull:{projects:pid}});
+ expect(linked(a)).toBe(false); // A missing production predicate must permit the stale write.
+});
+
+test('scan passes 100 persistent failures, reaches later work, and wraps to retry',async()=>{
+ const rows=Array.from({length:101},(_,i)=>({_id:oid(i+100)}));
+ const position={after:null};const attempted=[];
+ Project.collection.find.mockImplementation(filter=>({
+  sort(order){expect(order).toEqual({_id:1});return this;},
+  limit(n){expect(n).toBe(100);this.rows=rows.filter(row=>!filter._id || String(row._id)>String(filter._id.$gt)).slice(0,n);return this;},
+  async *[Symbol.asyncIterator](){yield* this.rows;}
+ }));
+ Project.collection.findOne.mockImplementation(async({_id})=>{
+  attempted.push(String(_id));
+  if(String(_id)!==String(rows[100]._id))throw new Error('persistent failure');
+  return null;
+ });
+ const log=jest.spyOn(console,'error').mockImplementation(()=>{});
+ try {
+  await reconcilePendingProjectTeams(position);expect(attempted).toHaveLength(100);
+  await reconcilePendingProjectTeams(position);expect(attempted[100]).toBe(String(rows[100]._id));
+  expect(position.after).toBeNull();
+  await reconcilePendingProjectTeams(position);expect(attempted[101]).toBe(String(rows[0]._id));
+  expect(Project.collection.find.mock.calls.every(([filter])=>filter.teamSyncPending===true)).toBe(true);
+ }finally{log.mockRestore();}
 });
 test.each([0,1])('failure after %i reciprocal writes retains durable work and a later scan repairs it',async successfulWrites=>{
     if(successfulWrites)Team.updateOne.mockImplementationOnce(applyTeams);

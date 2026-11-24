@@ -454,7 +454,7 @@ export async function updateProject(req, res) {
             const query = changesDates
                 ? Project.findOneAndUpdate({ _id: projectId, startDate: dateBaseline.startDate ?? null, endDate: dateBaseline.endDate ?? null }, persistenceUpdate, { new: true, runValidators: true })
                 : Project.findByIdAndUpdate(projectId, persistenceUpdate, { new: true, runValidators: true });
-            updatedProject = await query;
+            updatedProject = await query.select('+teamSyncPending');
             if (updatedProject || !changesDates) break;
             dateBaseline = await Project.findById(projectId);
             if (!dateBaseline) return res.status(404).json({ message: 'Project not found' });
@@ -465,7 +465,7 @@ export async function updateProject(req, res) {
 
         // The Project write committed its durable retry marker. Failed reciprocal
         // writes do not turn this into a false 500 or require users to resubmit.
-        const relationshipsPending = selectedTeams ? !await tryReconcileProjectTeams(projectId) : false;
+        const relationshipsPending = selectedTeams ? !await tryReconcileProjectTeams(projectId) : Boolean(updatedProject.teamSyncPending);
         try {
             if (typeof updatedProject.populate === 'function') {
                 await updatedProject.populate([
@@ -478,9 +478,11 @@ export async function updateProject(req, res) {
             console.error('Project update committed; response population failed. Reload project details.');
         }
 
+        const projectPayload = typeof updatedProject.toObject === 'function' ? updatedProject.toObject() : { ...updatedProject };
+        delete projectPayload.teamSyncPending;
         res.status(200).json({
             message: relationshipsPending ? "Project saved. Team links are pending automatic reconciliation." : "Project updated successfully",
-            project: updatedProject,
+            project: projectPayload,
             relationshipsPending
         });
     } catch (error) {

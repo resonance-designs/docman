@@ -35,7 +35,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const requestToken = error.config?.docmanSessionToken;
-    if (error.response?.status === 401 && requestToken && requestToken === localStorage.getItem(getStorageKey('token'))) {
+    if (error.response?.status === 401 && requestToken === localStorage.getItem(getStorageKey('token'))) {
       localStorage.removeItem(getStorageKey('token'));
       localStorage.removeItem(getStorageKey('user'));
       window.dispatchEvent(new Event('docman:session-expired'));

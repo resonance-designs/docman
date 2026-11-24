@@ -27,3 +27,19 @@ The optional cursor optimization in `migrationStorage.js` is explicitly deferred
 The standalone check ran in WSL on Node **18.19.1** from `backend` with `NODE_ENV=test AUDIT_STDOUT=false node src/scripts/verifyProjectTeamReconciliation.js`; this is not production Node 22 validation. The legacy `projects.test.js` and `teams.test.js` suites import the full application server and were not run against the normal environment/database. The full legacy suite is not claimed green.
 
 Local tests do not replace the outstanding fresh-Ubuntu/systemd/restic restore exercise or deployed multi-user/browser/SMTP acceptance. No commit, push, or deployment was performed as part of this follow-up.
+
+## Second round — November 24, 2026
+
+The first follow-up was subsequently committed as `55fcf35`. All five new findings were verified against that commit and fixed locally:
+
+| Finding | Correction |
+| --- | --- |
+| [Concurrency fixture](https://github.com/resonance-designs/docman/pull/52#discussion_r4684247232) | Evaluate the supplied `$or` predicate, rather than supplying independent revision protection. Missing predicates permit stale writes in the mock, just as they would in MongoDB. |
+| [Pending metadata status](https://github.com/resonance-designs/docman/pull/52#discussion_r4684247261) | Select committed pending state for metadata-only edits and omit the internal field from the serialized project. |
+| [No-op relationship repair](https://github.com/resonance-designs/docman/pull/52#discussion_r4684247284) | Mark unmatched membership writes for repair with a new revision and candidate team, without changing canonical membership or reviving deleting projects. |
+| [Scan starvation](https://github.com/resonance-designs/docman/pull/52#discussion_r4684247296) | Advance a rotating ID position across ticks, retaining the pending filter and 100-record limit; revisit earlier failures after reaching the end. |
+| [Tokenless 401](https://github.com/resonance-designs/docman/pull/52#discussion_r4684247308) | Allow matching null request/stored tokens to clear stale reactive state; retain protection for newer sessions. |
+
+Validation: **65 backend tests** across reconciliation, management boundaries and catalog suites; **9 frontend review regressions**; Vue production build (existing size advisory only); and the disposable standalone MongoDB script all passed. The MongoDB check now exercises actual no-op add/remove repair and metadata pending-state serialization as well as prior recovery/fencing checks. Tests cover 100 persistent failures followed by reachable later work and wraparound, pending true/false/absent states, matched versus unmatched writes, and cross-tab logout with and without a subsequent login. `git diff --check` passed.
+
+These second-round changes remain uncommitted and undeployed. The optional migration cursor change and previously documented full deployment/legacy-suite acceptance remain outside this pass.

@@ -1117,6 +1117,7 @@ export async function addProjectsToTeam(req, res) {
                 $inc: { teamSyncRevision: 1 }, $set: { teamSyncPending: true, teamSyncActor: currentUserId },
             });
             addedCount += result.modifiedCount;
+            if (result.matchedCount === 0) await scheduleTeamLinkRepair(projectId, teamId, currentUserId);
             if (!await tryReconcileProjectTeams(projectId)) relationshipsPending = true;
         }
 
@@ -1170,6 +1171,7 @@ export async function removeProjectsFromTeam(req, res) {
                 $inc: { teamSyncRevision: 1 }, $set: { teamSyncPending: true, teamSyncActor: currentUserId },
             });
             removedCount += result.modifiedCount;
+            if (result.matchedCount === 0) await scheduleTeamLinkRepair(projectId, teamId, currentUserId);
             if (!await tryReconcileProjectTeams(projectId)) relationshipsPending = true;
         }
 
@@ -1183,6 +1185,15 @@ export async function removeProjectsFromTeam(req, res) {
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
+async function scheduleTeamLinkRepair(projectId, teamId, actor) {
+    // Repair existing mismatches without changing canonical membership or reviving deletions.
+    await Project.updateOne({ _id: projectId.toLowerCase(), teamSyncDeleting: { $ne: true } }, {
+        $set: { teamSyncPending: true, teamSyncActor: actor },
+        $inc: { teamSyncRevision: 1 },
+        $addToSet: { teamSyncCandidates: teamId },
+    });
+}
+
 function projectManagementFilter(user) {
     if (user.role === 'superadmin') return {};
     const actor = user._id || user.id;

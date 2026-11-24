@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Repair existing project/team mismatches on no-op add/remove requests, retain pending-sync status during metadata edits, and rotate bounded recovery scans so failing projects cannot starve later work. Make concurrency mocks evaluate the actual revision predicate.
+- Clear stale in-memory login state on tokenless HTTP 401 responses after cross-tab logout, while preserving subsequent logins.
 - Persist project/team reconciliation with relationship changes; retry partial reciprocal writes with revision fences, coordinate team-side writers and project deletion, and report committed changes while cleanup is pending.
 - Treat fail-open audit `null` results as audit failures after committed invitation activation, notification settings saves, and email retry requests, preserving successful mutation results and accurate warnings.
 - Preserve a newer login when an older session hydration request fails or returns HTTP 401.

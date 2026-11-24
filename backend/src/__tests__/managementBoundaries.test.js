@@ -3,7 +3,7 @@ import Project from '../models/Project.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { sendTeamInvitationNotification } from '../controllers/notificationsController.js';
-import { inviteToTeam, acceptInvitation, addDocumentsToTeam, getTeamBooks, getAllTeams, addProjectsToTeam } from '../controllers/teamsController.js';
+import { inviteToTeam, acceptInvitation, addDocumentsToTeam, getTeamBooks, getAllTeams, addProjectsToTeam, removeProjectsFromTeam } from '../controllers/teamsController.js';
 import { addDocumentsToProject, updateProject } from '../controllers/projectsController.js';
 import { tryReconcileProjectTeams } from '../services/projectTeamReconciliation.js';
 jest.mock('../services/projectTeamReconciliation.js',()=>({...jest.requireActual('../services/projectTeamReconciliation.js'),tryReconcileProjectTeams:jest.fn(async()=>true)}));
@@ -56,7 +56,40 @@ test('uppercase project IDs update both sides of the team relationship',async()=
  expect(team.save).not.toHaveBeenCalled();
 });
 
-function populated(value){const q={populate:()=>q,then:resolve=>resolve(value)};return q;}
+function populated(value){const q={select:jest.fn(()=>q),populate:()=>q,then:resolve=>resolve(value)};return q;}
+test.each([true,false,undefined])('metadata edit preserves pending status %s without exposing internal field',async pending=>{
+ const project={_id:teamId,owner,teams:[],teamSyncPending:pending};
+ Project.findById.mockResolvedValueOnce(project);
+ const query=populated(project);Project.findByIdAndUpdate.mockReturnValueOnce(query);
+ const r=response();await updateProject(req({description:'Changed'}),r);
+ expect(r.status).toHaveBeenCalledWith(200);
+ expect(query.select).toHaveBeenCalledWith('+teamSyncPending');
+ expect(r.json.mock.calls[0][0].relationshipsPending).toBe(Boolean(pending));
+ expect(r.json.mock.calls[0][0].project).not.toHaveProperty('teamSyncPending');
+ expect(tryReconcileProjectTeams).not.toHaveBeenCalled();
+});
+
+test.each([addProjectsToTeam,removeProjectsFromTeam])('no-op canonical membership schedules reciprocal repair for %p',async handler=>{
+ Project.find.mockResolvedValue([{_id:recipient}]);
+ Project.updateOne.mockResolvedValueOnce({matchedCount:0,modifiedCount:0}).mockResolvedValueOnce({matchedCount:1,modifiedCount:1});
+ tryReconcileProjectTeams.mockResolvedValueOnce(false);
+ const r=response();await handler(req({projectIds:[recipient]}),r);
+ expect(Project.updateOne).toHaveBeenNthCalledWith(2,{_id:recipient,teamSyncDeleting:{$ne:true}}, {
+  $set:{teamSyncPending:true,teamSyncActor:owner},$inc:{teamSyncRevision:1},$addToSet:{teamSyncCandidates:teamId}
+ });
+ expect(r.status).toHaveBeenCalledWith(200);
+ expect(r.json.mock.calls[0][0]).toMatchObject({relationshipsPending:true,[handler===addProjectsToTeam?'addedCount':'removedCount']:0});
+ expect(tryReconcileProjectTeams).toHaveBeenCalledWith(recipient);
+});
+
+test.each([addProjectsToTeam,removeProjectsFromTeam])('matching canonical write does not schedule a second revision for %p',async handler=>{
+ Project.find.mockResolvedValue([{_id:recipient}]);
+ Project.updateOne.mockResolvedValueOnce({matchedCount:1,modifiedCount:1});
+ tryReconcileProjectTeams.mockResolvedValueOnce(true);
+ const r=response();await handler(req({projectIds:[recipient]}),r);
+ expect(Project.updateOne).toHaveBeenCalledTimes(1);
+ expect(r.json.mock.calls[0][0].relationshipsPending).toBe(false);
+});
 test.each([['2026-11-15',400],['2026-11-25',200]])('date CAS revalidates against concurrently changed end date %s',async(endDate,status)=>{
  Project.findOneAndUpdate.mockReset();Project.findById.mockReset();
  const project={_id:teamId,owner,startDate:new Date('2026-11-10'),endDate:new Date('2026-11-20')};
@@ -99,7 +132,7 @@ test('post-commit population failure does not report the project save as failed'
  Project.findById.mockReset();Project.findByIdAndUpdate.mockReset();
  const project={_id:teamId,owner,teams:[],populate:jest.fn(async()=>{throw new Error('read unavailable');})};
  Project.findById.mockResolvedValueOnce(project);
- Project.findByIdAndUpdate.mockResolvedValueOnce(project);
+ Project.findByIdAndUpdate.mockReturnValueOnce(populated(project));
  const r=response();await updateProject(req({description:'Saved'}),r);
  expect(r.status).toHaveBeenCalledWith(200);
  expect(r.json).toHaveBeenCalledWith(expect.objectContaining({project}));

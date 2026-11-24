@@ -41,6 +41,8 @@ Project/team links use `Project.teams` as their source of truth. Each relationsh
 
 Project deletion is hidden from normal project queries once accepted; reference cleanup retries before physical removal. Revision fences prevent an older worker from restoring a link removed by a newer reconciliation. Keep the revision fields and historical candidate IDs intact; do not manually clear pending flags to hide failures.
 
+Each retry tick processes at most 100 pending projects in ID order and advances past failures, then wraps to retry earlier work. Restarting the backend resets the scan position, not the durable pending work. Editing only project metadata preserves the pending status. Repeating a team-side add/remove also schedules repair when canonical membership is already correct but reciprocal links are inconsistent.
+
 If links remain pending, check backend logs for `Project team reconciliation pending` or `Project team reconciliation scan failed`, restore database availability/write permissions, and keep the backend running so it can retry. An administrator can inspect pending work in an authenticated MongoDB shell using `db.projects.find({teamSyncPending:true}, {_id:1, teamSyncRevision:1, teamSyncDeleting:1})`. Recovery is confirmed when the affected record is no longer pending (or has been removed after deletion) and both project/team views agree. No new environment setting is required.
 
 ## Acceptance checks after deployment

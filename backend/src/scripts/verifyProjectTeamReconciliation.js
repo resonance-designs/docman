@@ -13,6 +13,7 @@ import Team from '../models/Team.js';
 import Notification from '../models/Notification.js';
 import { projectTeamUpdate, reconcileProjectTeams, reconcilePendingProjectTeams } from '../services/projectTeamReconciliation.js';
 import { updateProject } from '../controllers/projectsController.js';
+import { addProjectsToTeam, removeProjectsFromTeam } from '../controllers/teamsController.js';
 
 mongoose.set('autoCreate', false);
 mongoose.set('autoIndex', false);
@@ -47,12 +48,25 @@ try {
     await updateProject({ params: { id: String(pid) }, user: { _id: actor, role: 'superadmin' }, body: { teamIds: [String(b)] } }, res);
     assert.equal(res.code, 200); assert.equal(response.relationshipsPending, true);
     assert.equal((await Project.collection.findOne({ _id: pid })).teamSyncPending, true);
+    await updateProject({ params: { id: String(pid) }, user: { _id: actor, role: 'superadmin' }, body: { description: 'Still pending' } }, res);
+    assert.equal(response.relationshipsPending, true);
+    assert.equal(Object.hasOwn(response.project, 'teamSyncPending'), false);
     Team.updateOne = realUpdate;
     await reconcilePendingProjectTeams();
     const linked = async id => (await Team.collection.findOne({ _id: id })).projects.some(value => String(value) === String(pid));
     assert.equal(await linked(a), false); assert.equal(await linked(b), true);
     assert.ok(await Notification.countDocuments({ relatedTeam: b, title: 'Team updated' }) > 0);
     assert.ok(await Notification.countDocuments({ relatedProject: pid, title: 'Project updated' }) > 0);
+
+    // Legacy mismatches without a pending marker must be repairable through either endpoint.
+    await Team.collection.updateOne({ _id: b }, { $pull: { projects: pid } });
+    await addProjectsToTeam({ params: { id: String(b) }, user: { _id: actor, role: 'superadmin' }, body: { projectIds: [String(pid)] } }, res);
+    assert.equal(response.addedCount, 0); assert.equal(response.relationshipsPending, false);
+    assert.equal(await linked(b), true);
+    await Team.collection.updateOne({ _id: a }, { $addToSet: { projects: pid } });
+    await removeProjectsFromTeam({ params: { id: String(a) }, user: { _id: actor, role: 'superadmin' }, body: { projectIds: [String(pid)] } }, res);
+    assert.equal(response.removedCount, 0); assert.equal(response.relationshipsPending, false);
+    assert.equal(await linked(a), false);
 
     await Project.findByIdAndUpdate(pid, projectTeamUpdate([a], [a, b]));
     let release, entered;

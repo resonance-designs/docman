@@ -17,6 +17,26 @@ function evaluate(relative, bindings, result) {
   return new Function(...Object.keys(bindings), source + '\nreturn ' + result)(...Object.values(bindings));
 }
 
+test('tokenless 401 clears cross-tab stale state but preserves a subsequent login', async () => {
+  for (const newerSession of [false,true]) {
+    const storage=new Map([['token','old'],['user','{"id":"old"}']]);
+    const localStorage={getItem:key=>storage.get(key) ?? null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)};
+    let onRequest,onFailure,expired;
+    const window={addEventListener:(_name,fn)=>{expired=fn;},dispatchEvent:()=>expired()};
+    const api={interceptors:{request:{use:fn=>{onRequest=fn;}},response:{use:(_success,fn)=>{onFailure=fn;}}}};
+    evaluate('./services/api.js',{axios:{create:()=>api},localStorage,window,getStorageKey:key=>key,getRuntimeConfig:()=>({apiBaseUrl:'/api'})},'api');
+    const auth=evaluate('./composables/useAuth.js',{computed,reactive,api,localStorage,window,getStorageKey:key=>key},'({state,persistSession})');
+    storage.clear(); // Another tab signed out; this tab still has the old reactive state.
+    const config=onRequest({headers:{}});
+    assert.equal(config.docmanSessionToken,null);
+    if(newerSession)auth.persistSession('new',{id:'new'});
+    await assert.rejects(onFailure(Object.assign(new Error('Unauthorized'),{config,response:{status:401}})));
+    assert.equal(auth.state.token,newerSession?'new':null);
+    assert.equal(auth.state.user?.id,newerSession?'new':undefined);
+    assert.equal(storage.get('token'),newerSession?'new':undefined);
+  }
+});
+
 test('late session hydration cannot overwrite logout or another login', async () => {
   for (const nextToken of [null, 'user-b-token']) {
     const request = deferred(), storage = new Map([['token', 'user-a-token'], ['user', '{"id":"a"}']]);
