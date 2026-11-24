@@ -8,6 +8,8 @@ export function updaterRequest(payload) {
             headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, timeout: 60000 }, response => {
             let data = '';
             response.setEncoding('utf8');
+            response.on('aborted', () => reject(new Error('Updater response aborted')));
+            response.on('error', reject);
             response.on('data', chunk => {
                 data += chunk;
                 if (data.length > 2_000_000) request.destroy(new Error('Updater response too large'));

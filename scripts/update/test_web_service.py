@@ -17,8 +17,41 @@ class BrokerTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.state=patch.object(web,'STATE',Path(self.temp.name));self.state.start()
+        self.install_lock=patch.object(web,'INSTALL_LOCK',Path(self.temp.name)/'install.lock');self.install_lock.start()
         self.broker=web.Broker()
-    def tearDown(self):self.state.stop();self.temp.cleanup()
+    def tearDown(self):self.install_lock.stop();self.state.stop();self.temp.cleanup()
+    def test_install_lock_blocks_start_before_release_lookup_or_spawn(self):
+        with web.INSTALL_LOCK.open('a') as lock:
+            web.fcntl.flock(lock,web.fcntl.LOCK_EX|web.fcntl.LOCK_NB)
+            with patch.object(web,'releases') as releases,patch.object(web.subprocess,'Popen') as spawn:
+                with self.assertRaisesRegex(ValueError,'installation'):
+                    self.broker.control({'action':'start','tag':'v3.0.4','commit':'a'*40})
+                releases.assert_not_called();spawn.assert_not_called()
+        # Guard releases its lock after the start operation, including errors.
+        with self.assertRaises(ValueError):
+            with web.start_guard('start'): raise ValueError('fixture')
+        with web.start_guard('start'): pass
+    def test_published_release_metadata_filters_discovery_and_start(self):
+        root=Path(self.temp.name);(root/'package.json').write_text(json.dumps({'version':'3.0.3'}))
+        def release(tag,**extra):return dict(tag_name=tag,draft=False,prerelease=False,published_at='2026-11-24',**extra)
+        rows=[release('v3.0.4'),{**release('v3.0.5'),'prerelease':True},
+              {**release('v3.0.6'),'draft':True},{**release('v3.0.7'),'published_at':None}]
+        response=Mock();response.read.return_value=json.dumps(rows).encode()
+        context=Mock();context.__enter__=Mock(return_value=response);context.__exit__=Mock(return_value=False)
+        tags='\n'.join(f'{"a"*40} refs/tags/v3.0.{n}' for n in range(4,9))
+        with patch.object(web,'APP',root),patch.object(web,'urlopen',return_value=context),patch.object(web.subprocess,'run',return_value=Mock(stdout=tags)),patch.object(web.subprocess,'Popen') as spawn:
+            self.assertEqual(web.releases()['releases'],[{'tag':'v3.0.4','commit':'a'*40}])
+            for n in range(5,9):
+                with self.assertRaises(ValueError):self.broker.control({'action':'start','tag':f'v3.0.{n}','commit':'a'*40})
+            spawn.assert_not_called()
+    def test_release_metadata_pagination_and_network_failure(self):
+        from io import BytesIO
+        row={'tag_name':'v3.0.4','draft':False,'prerelease':False,'published_at':'2026-11-24'}
+        with patch.object(web,'urlopen',side_effect=[BytesIO(json.dumps([row]*100).encode()),BytesIO(json.dumps([{**row,'tag_name':'v3.0.5'}]).encode())]) as fetch:
+            self.assertEqual(web.published_tags(),{'v3.0.4','v3.0.5'})
+            self.assertIn('page=2',fetch.call_args.args[0].full_url)
+        with patch.object(web,'urlopen',side_effect=OSError('offline')):
+            with self.assertRaises(OSError):web.published_tags()
     def test_stable_tags_sorted_numerically_and_annotated_tags_peeled(self):
         a,b='a'*40,'b'*40
         rows='\n'.join(f'{a} refs/tags/{tag}' for tag in ['v3.0.2','v3.0.3','v3.0.10','v3.1.0-rc1','v03.1.0'])

@@ -13,6 +13,13 @@ All notable changes to this project will be documented in this file.
 
 - Document recovery for a missing GitHub Pages site and the separate Render dashboard actions required to disable automatic deployment and retire an existing service.
 
+### Fixed
+
+- Reject interrupted updater responses instead of leaving backend requests pending.
+- Serialize helper installation and broker starts, retaining the CLI update lock through helper restart to protect existing installations too.
+- Offer and revalidate only published, non-draft, non-prerelease GitHub releases with newer stable version tags and pinned commits.
+- Correct the deployment record: feature commit `e0da7c3` and helper setup passed NMDOH development checks; full UI update and restore acceptance remain pending. PR #54 follow-up validation passed 46 Linux updater tests, 15 backend tests, and Bash syntax checks.
+
 ## [3.0.2] - 2026-11-24
 
 ### Documentation

@@ -8,6 +8,12 @@ test -f "$SOURCE/runner.py"
 test -f /etc/apache2/sites-available/docman.conf
 id docman >/dev/null
 id www-data >/dev/null
+# Serialize broker starts and protect older helpers via the existing CLI lock.
+# Hold both descriptors until installation and service restart finish.
+exec 8>/run/lock/docman-web-updater-install.lock
+flock -n 8 || { echo 'STOP: updater setup or start is in progress.'; exit 1; }
+exec 9>/run/lock/docman-update.lock
+flock -n 9 || { echo 'STOP: another update is running.'; exit 1; }
 python3 - <<'PY'
 import json
 from pathlib import Path

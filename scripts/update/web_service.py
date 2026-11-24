@@ -4,7 +4,8 @@ Install with enable-web-updater.sh; never run from a web-writable checkout as ro
 The application can select only newer stable tags from the fixed upstream repository.
 """
 import hashlib
-from contextlib import redirect_stdout, redirect_stderr
+import fcntl
+from contextlib import redirect_stdout, redirect_stderr, contextmanager
 import hmac
 import http.server
 import json
@@ -21,6 +22,7 @@ import subprocess
 import sys
 import threading
 import time
+from urllib.request import Request, urlopen
 from pathlib import Path
 
 REPO = 'https://github.com/resonance-designs/docman.git'
@@ -30,6 +32,35 @@ RUNTIME = Path('/run/docman-web-updater')
 LOCAL_BACKUP = '/var/backups/docman-update-restic'
 TAG = re.compile(r'^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')
 ACTIVE = {'starting', 'running', 'waiting'}
+INSTALL_LOCK = Path('/run/lock/docman-web-updater-install.lock')
+
+@contextmanager
+def start_guard(action):
+    if action != 'start':
+        yield
+        return
+    with INSTALL_LOCK.open('a') as lock:
+        try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError: raise ValueError('Updater helper installation is in progress; try again later') from None
+        yield
+
+def published_tags():
+    tags = set()
+    # Bound network work; fail closed rather than offer a partial release list.
+    for page in range(1, 11):
+        request = Request(f'https://api.github.com/repos/resonance-designs/docman/releases?per_page=100&page={page}',
+            headers={'Accept':'application/vnd.github+json', 'User-Agent':'DocMan-Updater'})
+        with urlopen(request, timeout=10) as response:
+            raw = response.read(2_000_001)
+        if len(raw)>2_000_000: raise ValueError('GitHub release response too large')
+        rows = json.loads(raw)
+        if not isinstance(rows,list): raise ValueError('Invalid GitHub release response')
+        for row in rows:
+            if (isinstance(row,dict) and row.get('draft') is False and row.get('prerelease') is False
+                    and row.get('published_at') and version(row.get('tag_name')) is not None):
+                tags.add(row['tag_name'])
+        if len(rows)<100: return tags
+    raise ValueError('Too many release pages; operator assistance required')
 
 def version(tag):
     if not isinstance(tag,str) or len(tag)>64: return None
@@ -56,7 +87,8 @@ def releases():
     result = subprocess.run(['/usr/bin/git', '-c', 'credential.helper=', 'ls-remote', '--tags', REPO],
         cwd='/', env={'PATH':'/usr/bin:/bin', 'HOME':'/nonexistent', 'GIT_CONFIG_NOSYSTEM':'1', 'GIT_TERMINAL_PROMPT':'0'},
         capture_output=True, text=True, timeout=45, check=True)
-    return {'installedVersion': installed, 'releases': parse_tags(result.stdout, current)}
+    published = published_tags()
+    return {'installedVersion': installed, 'releases': [item for item in parse_tags(result.stdout, current) if item['tag'] in published]}
 
 def atomic_state(data):
     temporary = STATE/'status.tmp'
@@ -86,7 +118,7 @@ class Broker:
     def control(self, body):
         action = body.get('action')
         if action == 'releases': return releases()
-        with self.lock:
+        with self.lock, start_guard(action):
             if action == 'status':
                 # Authenticated superadmins may resume observation after a page refresh.
                 ticket = self.state.get('ticket') or secrets.token_urlsafe(32)

@@ -1,6 +1,6 @@
 # Update DocMan from System settings
 
-Superadmins can open **System settings → Software updates** to list newer stable GitHub tags and run the existing updater interactively. Other roles cannot use its API or UI. Tags such as `v3.1.0-rc1`, older versions, and the installed version are excluded. The selected tag is pinned to its commit and checked again before deployment; a moved tag requires a fresh selection. The source is fixed to `https://github.com/resonance-designs/docman.git`.
+Superadmins can open **System settings → Software updates** to list newer published stable GitHub releases and run the existing updater interactively. Other roles cannot use its API or UI. A numeric tag alone is insufficient: its GitHub release must be published, not a draft, and not marked prerelease. Tags such as `v3.1.0-rc1`, older versions, and the installed version are excluded. Discovery and update start both check release eligibility. The selected tag is pinned to its commit and checked again before deployment; a moved tag requires a fresh selection. The source is fixed to `https://github.com/resonance-designs/docman.git`.
 
 This is an optional frontend for the [existing updater](automated-updates.md), with the same supported Ubuntu/native-service layout, Node 22 requirements, encrypted backup, migration checks, maintenance lock, and failure recovery. It does not add an automatic database rollback or upgrade the OS. Tags must come from trusted repository maintainers; version checks do not constitute code-signature verification.
 
@@ -29,6 +29,8 @@ Replace `YOUR-DOCMAN-HOST` with the application's existing HTTPS hostname. Expec
 
 Helper code is deliberately outside the application checkout and is not replaced by web updates. If a later release requires a helper upgrade, the server operator must rerun this setup from that reviewed release while no update/recovery is active. The ordinary app remains unprivileged; the installed helper is privileged and should be treated as deployment infrastructure.
 
+Setup holds `/run/lock/docman-web-updater-install.lock` and the CLI's `/run/lock/docman-update.lock` until restart finishes. A start during setup is rejected; an already-running update prevents setup. This also protects installation over the original helper, whose workers already honor the CLI lock. Do not remove lock files to bypass contention. The PR #54 helper fixes require rerunning setup after deploying the corrected code.
+
 ## Interactive update
 
 1. Sign in as a superadmin and open **System settings → Software updates**. Click **Check for updates**.
@@ -46,7 +48,7 @@ Cancel is available only while the updater is waiting for a pre-deployment answe
 ## Failure and operator recovery
 
 - Missing helper/socket: install or repair the one-time setup; no update begins.
-- Cannot list releases: check outbound HTTPS/DNS access to GitHub from the server. This is separate from SMTP connectivity.
+- Cannot list releases: check outbound HTTPS/DNS access to both `github.com` and `api.github.com` from the server. API failures or rate limits fail the check rather than falling back to unchecked tags. Publish the test tag as a non-prerelease GitHub release for it to appear. This is separate from SMTP connectivity.
 - Changed tag, concurrent update, or invalid prompt: refresh status; do not resubmit blindly. Another superadmin may already have answered the prompt.
 - Failed before deployment: the report distinguishes an untouched deployment from an original service restored after a failed pre-mutation backup. Review the private report before retrying.
 - Recovery required: the backend may intentionally remain stopped to prevent writes against a partially migrated database. Follow the matching snapshot/source/environment recovery in the CLI guide. Do not switch Git back without restoring the corresponding data.
@@ -57,6 +59,8 @@ If the helper itself restarts during a job, it marks the job interrupted and ref
 
 ## Validation boundary
 
-Local tests cover superadmin API authorization, fixed tag/commit input, audit failure, secret-answer handling, stable numeric version ordering, tag changes, prompt replay, read-only Unix progress access, worker prompt/completion pipes, interrupted-job blocking, frontend progress/secret behavior, and the existing CLI safety suite. Vue builds successfully. A full Ubuntu/systemd/Apache update and restore drill through this UI remains required before claiming deployment acceptance. No NMDOH deployment has been performed by these source changes.
+Local tests cover superadmin API authorization, fixed tag/commit input, audit failure, secret-answer handling, stable numeric version ordering, tag changes, prompt replay, read-only Unix progress access, worker prompt/completion pipes, interrupted-job blocking, frontend progress/secret behavior, and the existing CLI safety suite. Vue builds successfully. On November 24, the operator deployed `e0da7c3` on the NMDOH development server: migration reported no missing files, all 158 audit entries verified, website/API checks passed, helper socket permissions and unauthenticated progress rejection passed, and the superadmin panel displayed 3.0.3 with no newer releases. A full Ubuntu/systemd/Apache update and restore drill through this UI remains required. These deployment results precede the PR #54 review fixes.
+
+PR #54 follow-up: 46 Linux updater tests and 15 backend tests passed, including installer exclusion, published-release filtering/pagination, and interrupted helper responses. Bash syntax passed. No live update or helper reinstall was performed during that fix pass.
 
 November 24 local results: 33 existing CLI safety tests, 10 broker/Unix-socket/worker tests, 12 backend API tests, and 13 frontend update/review regressions passed (68 total). The Vue production build and Bash syntax checks passed; the existing bundle-size advisory remains. These fixtures do not run a real systemd/Apache deployment or restore.
