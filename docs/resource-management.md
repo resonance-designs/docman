@@ -37,6 +37,12 @@ Editors and higher roles can create projects using accessible teams. Owners, pro
 
 Status, priority, tags and optional dates can be edited. Clearing an optional date removes it. An end date cannot precede a start date. Book/document links organize resources without changing document assignments or approval policies.
 
+Project/team links use `Project.teams` as their source of truth. Each relationship change stores a pending marker and revision in the same project write. The backend tries the reciprocal team updates immediately and retries pending work on startup and every 15 seconds. This supports standalone MongoDB; it does not require replica-set transactions. Team-side links can briefly lag behind a saved project. If the response says reconciliation is pending, the change was saved: refresh after recovery rather than resubmitting it.
+
+Project deletion is hidden from normal project queries once accepted; reference cleanup retries before physical removal. Revision fences prevent an older worker from restoring a link removed by a newer reconciliation. Keep the revision fields and historical candidate IDs intact; do not manually clear pending flags to hide failures.
+
+If links remain pending, check backend logs for `Project team reconciliation pending` or `Project team reconciliation scan failed`, restore database availability/write permissions, and keep the backend running so it can retry. An administrator can inspect pending work in an authenticated MongoDB shell using `db.projects.find({teamSyncPending:true}, {_id:1, teamSyncRevision:1, teamSyncDeleting:1})`. Recovery is confirmed when the affected record is no longer pending (or has been removed after deletion) and both project/team views agree. No new environment setting is required.
+
 ## Acceptance checks after deployment
 
 Use synthetic records and at least an owner/editor, another editor and an unrelated viewer. Record each result; this checklist is not evidence of a live pass.
@@ -47,7 +53,7 @@ Use synthetic records and at least an owner/editor, another editor and an unrela
 4. Verify team admins can manage members, ordinary members cannot promote themselves, and the owner cannot be removed. Test leaving and deleting with confirmation.
 5. Create a project, select its teams, add a qualifying collaborator, change their role, and clear optional dates. Verify invalid date ordering is rejected.
 6. Link/unlink books and documents on teams/projects. Verify private documents remain unavailable to unauthorized users, including guessed IDs. Verify unrelated users cannot list/open private teams or projects.
-7. Delete test books/teams/projects and check surviving resource links. Deletion and association cleanup use separate writes; investigate partial failures before retrying.
+7. Delete test books/teams/projects and check surviving resource links. Project relationship cleanup retries durably; investigate persistent pending work rather than resubmitting a committed change. Other resource deletion paths still need partial-failure checks.
 8. Check empty states, retry after failed requests, duplicate names, cancelled deletion, keyboard operation and narrow-screen forms.
 
 Local unit/build/browser-fixture checks do not establish real database, SMTP or multi-user deployment acceptance. Full live acceptance remains pending. The PDF manuals include these screens and their acceptance procedures.

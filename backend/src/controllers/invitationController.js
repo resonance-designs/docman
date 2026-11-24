@@ -44,7 +44,8 @@ export async function acceptInvitation(req, res) {
         }, { new: true });
         if (!user) return res.status(400).json({ message: 'Invalid or expired invitation.' });
         activated = true;
-        await record(req, { actorUser: user, action: AUDIT_ACTIONS.USER_UPDATE, resourceType: 'user', resourceId: user._id, summary: 'Accepted account invitation' });
+        const auditEntry = await record(req, { actorUser: user, action: AUDIT_ACTIONS.USER_UPDATE, resourceType: 'user', resourceId: user._id, summary: 'Accepted account invitation' });
+        if (auditEntry === null) throw new Error('Audit append failed after activation.');
         res.json({ message: 'Account activated. You can now sign in.' });
     } catch {
         if (activated) return res.status(200).json({ activated: true, auditRecorded: false, message: 'Account activated, but the audit entry failed. Sign in with your new password; do not reuse this invitation. Contact an administrator about the audit failure.' });

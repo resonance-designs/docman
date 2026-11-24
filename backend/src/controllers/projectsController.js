@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { projectTeamUpdate, tryReconcileProjectTeams } from '../services/projectTeamReconciliation.js';
 /*
  * @author Richard Bakos
  * @version 3.0.0
@@ -323,26 +324,29 @@ export async function createProject(req, res) {
         }
 
         const newProject = new Project(projectData);
+        newProject.teamSyncRevision = 1;
+        newProject.teamSyncPending = true;
+        newProject.teamSyncCandidates = teamIds;
+        newProject.teamSyncActor = userId;
         await newProject.save();
 
-        // Add project to teams
-        for (const teamId of teamIds) {
-            const team = await Team.findById(teamId);
-            if (team) {
-                team.addProject(newProject._id);
-                await team.save();
-            }
-        }
+        const relationshipsPending = !await tryReconcileProjectTeams(newProject._id);
 
         // Populate the response
-        const populatedProject = await Project.findById(newProject._id)
-            .populate('teams', 'name')
-            .populate('owner', 'firstname lastname email')
-            .populate('collaborators.user', 'firstname lastname email');
+        let populatedProject = { _id: newProject._id, ...projectData };
+        try {
+            populatedProject = await Project.findById(newProject._id)
+                .populate('teams', 'name')
+                .populate('owner', 'firstname lastname email')
+                .populate('collaborators.user', 'firstname lastname email') || populatedProject;
+        } catch {
+            console.error('Project creation committed; response population failed. Reload project details.');
+        }
 
         res.status(201).json({
             message: "Project created successfully",
-            project: populatedProject
+            project: populatedProject,
+            relationshipsPending
         });
     } catch (error) {
         console.error("Error creating project:", error);
@@ -441,12 +445,16 @@ export async function updateProject(req, res) {
 
         let updatedProject;
         let dateBaseline = project;
+        const persistenceUpdate = selectedTeams ? {
+            ...projectTeamUpdate(teamIds, project.teams || []),
+            $set: { ...updateData, teamSyncPending: true, teamSyncActor: userId },
+        } : updateData;
         for (let attempt = 0; attempt < 3; attempt++) {
             const changesDates = startDate !== undefined || endDate !== undefined;
             const query = changesDates
-                ? Project.findOneAndUpdate({ _id: projectId, startDate: dateBaseline.startDate ?? null, endDate: dateBaseline.endDate ?? null }, updateData, { new: true, runValidators: true })
-                : Project.findByIdAndUpdate(projectId, updateData, { new: true, runValidators: true });
-            updatedProject = await query.populate('teams', 'name').populate('owner', 'firstname lastname email').populate('collaborators.user', 'firstname lastname email');
+                ? Project.findOneAndUpdate({ _id: projectId, startDate: dateBaseline.startDate ?? null, endDate: dateBaseline.endDate ?? null }, persistenceUpdate, { new: true, runValidators: true })
+                : Project.findByIdAndUpdate(projectId, persistenceUpdate, { new: true, runValidators: true });
+            updatedProject = await query;
             if (updatedProject || !changesDates) break;
             dateBaseline = await Project.findById(projectId);
             if (!dateBaseline) return res.status(404).json({ message: 'Project not found' });
@@ -455,25 +463,25 @@ export async function updateProject(req, res) {
         }
         if (!updatedProject) return res.status(409).json({ message: 'Project changed concurrently. Reload and retry.' });
 
-        // A failed date compare-and-set must not leave reciprocal team mutations.
-        if (selectedTeams) {
-            const oldTeams = await Team.find({ projects: projectId });
-            for (const oldTeam of oldTeams) {
-                oldTeam.removeProject(projectId);
-                await oldTeam.save();
+        // The Project write committed its durable retry marker. Failed reciprocal
+        // writes do not turn this into a false 500 or require users to resubmit.
+        const relationshipsPending = selectedTeams ? !await tryReconcileProjectTeams(projectId) : false;
+        try {
+            if (typeof updatedProject.populate === 'function') {
+                await updatedProject.populate([
+                    { path: 'teams', select: 'name' },
+                    { path: 'owner', select: 'firstname lastname email' },
+                    { path: 'collaborators.user', select: 'firstname lastname email' },
+                ]);
             }
-            for (const selectedTeam of selectedTeams) {
-                const team = await Team.findById(selectedTeam._id);
-                if (team) {
-                    team.addProject(projectId);
-                    await team.save();
-                }
-            }
+        } catch {
+            console.error('Project update committed; response population failed. Reload project details.');
         }
 
         res.status(200).json({
-            message: "Project updated successfully",
-            project: updatedProject
+            message: relationshipsPending ? "Project saved. Team links are pending automatic reconciliation." : "Project updated successfully",
+            project: updatedProject,
+            relationshipsPending
         });
     } catch (error) {
         console.error("Error updating project:", error);
@@ -502,16 +510,13 @@ export async function deleteProject(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
-        // Remove project references from documents
-        await Doc.updateMany(
-            { projects: projectId },
-            { $pull: { projects: projectId } }
-        );
-
-        await Team.updateMany({ projects: projectId }, { $pull: { projects: projectId } });
-        await Project.findByIdAndDelete(projectId);
-
-        res.status(200).json({ message: "Project deleted successfully" });
+        const deletion = projectTeamUpdate([], project.teams || []);
+        deletion.$set.teamSyncDeleting = true;
+        deletion.$set.teamSyncActor = userId;
+        const accepted = await Project.findByIdAndUpdate(projectId, deletion, { new: true });
+        if (!accepted) return res.status(409).json({ message: 'Project changed. Reload and retry.' });
+        const relationshipsPending = !await tryReconcileProjectTeams(projectId);
+        res.status(200).json({ message: relationshipsPending ? 'Project deleted. Reference cleanup is pending automatic reconciliation.' : 'Project deleted successfully', relationshipsPending });
     } catch (error) {
         console.error("Error deleting project:", error);
         res.status(500).json({ message: "Internal Server Error" });

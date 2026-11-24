@@ -2,7 +2,9 @@
 
 ## PR #50 fixes for 3.0.2 — November 22, 2026
 
-All 42 captured CodeRabbit findings were verified and addressed on `bugs/3.0.1-fixes`; see [individual dispositions and validation](docs/reviews/pr-50-coderabbit-3.0.2.md). Changes are local and uncommitted, with no deployment. Preserve the existing 3.0.1 release tag; do not claim that server installations have these fixes. Package versions remain unchanged until the next release is cut.
+PR #52 follow-up (November 23): the eight functional findings are covered in the [follow-up record](docs/reviews/pr-52-coderabbit-3.0.2.md). Project/team relationship reconciliation runs with the backend; see [recovery and acceptance guidance](docs/resource-management.md). The optional migration cursor optimization is deferred. These follow-up changes require their own commit and deployment; do not conflate local checks with server acceptance.
+
+The initial 42 PR #50 fixes were committed on `bugs/3.0.1-fixes`; see [individual dispositions and validation](docs/reviews/pr-50-coderabbit-3.0.2.md). The root and application/documentation package manifests are now version **3.0.2** (PR #52 head `1b7dcbd`). No deployment is established by these source changes. Preserve the existing 3.0.1 release tag; do not claim that server installations have these fixes. Follow-up functional corrections from PR #52 are tracked separately and remain uncommitted until explicitly committed.
 
 Existing installations need the safe Apache access-log configuration applied separately: the updater intentionally preserves Apache configuration. Follow the updated installation/manual guide and address historical token-bearing logs separately. Complete fresh-Ubuntu/systemd/restic restore and live browser/SMTP acceptance before claiming deployment validation. The manual generator now records current metadata; previously generated PDFs retain their old metadata until rebuilt.
 

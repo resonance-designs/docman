@@ -4,7 +4,7 @@
       <div><div class="text-overline text-primary">Organize your work</div><h1 class="text-h4 font-weight-bold">Projects</h1><p class="text-body-1 text-medium-emphasis mt-2">Manage delivery work, collaborators, and linked resources.</p></div>
       <v-btn v-if="canCreate" color="primary" prepend-icon="mdi-plus" @click="openEditor()">Create project</v-btn>
     </div>
-    <v-alert v-if="message" type="success" class="mb-4" closable @click:close="message = ''">{{ message }}</v-alert>
+    <v-alert v-if="message" :type="relationshipsPending ? 'warning' : 'success'" class="mb-4" closable @click:close="message = ''">{{ message }}</v-alert>
     <v-alert v-if="error" type="error" class="mb-4">{{ error }} <v-btn variant="text" @click="load">Retry</v-btn></v-alert>
     <v-card>
       <v-card-text><v-row align="center"><v-col cols="12" md="6"><v-text-field v-model="search" label="Search projects" prepend-inner-icon="mdi-magnify" clearable hide-details /></v-col><v-col cols="6" md="3"><v-select v-model="statusFilter" :items="projectStatuses" label="Status" clearable hide-details /></v-col><v-col cols="6" md="3"><v-btn variant="text" prepend-icon="mdi-refresh" :loading="loading" @click="load">Refresh</v-btn></v-col></v-row></v-card-text>
@@ -94,12 +94,14 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { api } from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
 import { personName } from '@/lib/people';
+import { relationshipMessage } from '@/lib/relationshipMessage';
 import { entityId, projectPermissions, projectPayload, projectStatuses, projectPriorities, collaboratorRoles } from './projectManagement';
 const { state } = useAuth();
 const userId = computed(() => entityId(state.user));
 const canCreate = computed(() => projectPermissions(null, state.user).create);
 const permissions = computed(() => projectPermissions(selected.value, state.user));
 const projects = ref([]), loading = ref(false), error = ref(''), message = ref(''), search = ref(''), statusFilter = ref(null);
+const relationshipsPending = ref(false);
 const selectedId = ref(null);
 const selected = ref(null), detailOpen = ref(false), detailLoading = ref(false), detailError = ref(''), tab = ref('people'), busy = ref(false);
 const people = ref([]), availablePeople = ref([]), collaboratorId = ref(null), collaboratorRole = ref('contributor');
@@ -178,13 +180,13 @@ async function saveProject() {
  try {
   const response=editingId.value?await api.put(`/projects/${editingId.value}`,payload):await api.post('/projects',payload);
   const id=editingId.value || response.data.project?._id;
-  editorOpen.value=false;message.value=editingId.value?'Project updated.':'Project created.';await load();if(id)await openProject(id);
+  editorOpen.value=false;relationshipsPending.value=Boolean(response.data.relationshipsPending);message.value=relationshipMessage(response.data,editingId.value?'Project updated.':'Project created.');await load();if(id)await openProject(id);
  }catch(e){formError.value=describeError(e,'Could not save project.');}
  finally{saving.value=false;}
 }
 async function mutate(fn, success) {
  busy.value=true;detailError.value='';
- try{await fn();await refreshSelected();await load();message.value=success;return true;}
+ try{const response=await fn();await refreshSelected();await load();relationshipsPending.value=Boolean(response?.data?.relationshipsPending);message.value=relationshipMessage(response?.data,success);return true;}
  catch(e){detailError.value=describeError(e,'The change could not be saved.');return false;}
  finally{busy.value=false;}
 }
@@ -195,7 +197,8 @@ async function confirmMutation(){
  const action=confirmAction.value;if(!action)return;busy.value=true;actionError.value='';
  try{
   const id=selected.value._id;
-  if(action.kind==='project'){await api.delete(`/projects/${id}`);detailOpen.value=false;selected.value=null;message.value='Project deleted. Linked resources were retained.';}
+  relationshipsPending.value=false;
+  if(action.kind==='project'){const response=await api.delete(`/projects/${id}`);detailOpen.value=false;selected.value=null;relationshipsPending.value=Boolean(response.data.relationshipsPending);message.value=relationshipMessage(response.data,'Project deleted. Linked resources were retained.');}
   else if(action.kind==='person'){
    await api.delete(`/projects/${id}/collaborators/${entityId(action.item)}`);
    if(entityId(action.item)===userId.value){detailOpen.value=false;selected.value=null;}else await refreshSelected(id);

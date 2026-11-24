@@ -5,6 +5,8 @@ import hashlib
 import os
 import signal
 import sys
+import time
+from types import SimpleNamespace
 from pathlib import Path
 import secrets
 import subprocess
@@ -241,6 +243,61 @@ class UpdateSafetyTests(unittest.TestCase):
                     runner.run_command([sys.executable,'-c',script],text=True)
             finally: signal.signal(signal.SIGTERM,previous)
             with self.assertRaises(ProcessLookupError): os.kill(int(pid_file.read_text()),0)
+
+    def test_constructor_time_sigterm_waits_for_child_ownership_without_blocking_child(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state=Path(temp)/'child.json'; stopped=Path(temp)/'stopped'
+            script=('import os,signal,time,json; from pathlib import Path; '
+                    'signal.signal(signal.SIGTERM,lambda *_:(Path('+repr(str(stopped))+').write_text("terminated"),os._exit(0))); '
+                    'Path('+repr(str(state))+').write_text(json.dumps({"pid":os.getpid(),"blocked":signal.SIGTERM in signal.pthread_sigmask(signal.SIG_BLOCK,[])})); time.sleep(30)')
+            real_popen=subprocess.Popen
+            class SpawnThenCancel(real_popen):
+                def __init__(self,*args,**kwargs):
+                    super().__init__(*args,**kwargs)
+                    deadline=time.monotonic()+5
+                    while not state.exists() and time.monotonic()<deadline: time.sleep(.01)
+                    os.kill(os.getpid(),signal.SIGTERM)
+            previous=signal.signal(signal.SIGTERM,runner.cancel_update)
+            try:
+                with patch.object(runner.subprocess,'Popen',SpawnThenCancel):
+                    with self.assertRaises(runner.Cancelled): runner.run_command([sys.executable,'-c',script],text=True)
+            finally: signal.signal(signal.SIGTERM,previous)
+            child=json.loads(state.read_text())
+            self.assertFalse(child['blocked'])
+            self.assertEqual(stopped.read_text(),'terminated')
+            with self.assertRaises(ProcessLookupError): os.kill(child['pid'],0)
+
+    def test_failed_constructor_restores_signal_handlers(self):
+        before={sig:signal.getsignal(sig) for sig in (signal.SIGTERM,signal.SIGINT)}
+        with patch.object(runner.subprocess,'Popen',side_effect=FileNotFoundError()):
+            with self.assertRaises(FileNotFoundError): runner.run_command(['missing'],text=True)
+        self.assertEqual({sig:signal.getsignal(sig) for sig in before},before)
+
+    def test_saved_repository_normalization_preserves_password_reuse(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); saved=root/'saved'; saved.mkdir(); other=root/'other'; other.mkdir()
+            repo_file=root/'repository'; repo_file.write_text(str(saved)+'/\n')
+            password_file=root/'password'; password_file.write_text('existing-short\n')
+            real_stat=Path.stat
+            def stat(path,*args,**kwargs):
+                if path==password_file: return SimpleNamespace(st_uid=0,st_mode=0o100600)
+                return real_stat(path,*args,**kwargs)
+            for chosen,reuse in [('',True),(str(saved),True),(str(saved)+'/./',True),(str(other),False)]:
+                with self.subTest(chosen=chosen):
+                    job=root/('job'+str(len(list(root.glob('job*'))))); job.mkdir()
+                    updater=runner.Updater(); updater.run_dir=job
+                    prompts=[]
+                    def answer(prompt):
+                        prompts.append(prompt)
+                        if prompt.startswith('Restic repository'): return chosen
+                        if prompt.startswith('This backup'): return 'LOCAL-POC'
+                        if prompt.startswith('Use the existing'): return 'yes'
+                        raise AssertionError(prompt)
+                    with patch.object(runner,'RESTIC_REPOSITORY_FILE',repo_file),patch.object(runner,'RESTIC_PASSWORD_FILE',password_file),patch.object(Path,'stat',stat),patch('builtins.input',side_effect=answer),patch.object(runner.getpass,'getpass',return_value='new-input-password-value') as secret,patch.object(updater,'run',return_value=subprocess.CompletedProcess([],0,'[]','')):
+                        updater.configure_backup()
+                    self.assertEqual(secret.call_count,0 if reuse else 2)
+                    self.assertEqual(any(p.startswith('Use the existing') for p in prompts),reuse)
+                    self.assertEqual((job/'restic-password').read_text(),'existing-short\n' if reuse else 'new-input-password-value\n')
 
     def test_interrupt_after_active_write_can_restore_without_stopping_backend(self):
         updater=runner.Updater(); updater.report={'run_id':'fixture','old_commit':'old'}

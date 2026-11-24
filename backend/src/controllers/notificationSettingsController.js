@@ -14,7 +14,8 @@ export async function saveNotificationSettings(req, res) {
     try {
         await SystemSetting.findOneAndUpdate({ key: 'notifications.email' }, { $set: { value: { enabled: req.body.enabled }, updatedBy: req.user.id } }, { upsert: true });
         committed = true;
-        await record(req, { action: AUDIT_ACTIONS.SYSTEM_SETTING_CHANGE, resourceType: 'systemSetting', resourceId: 'notifications.email', summary: 'Changed activity email delivery', metadata: { enabled: req.body.enabled } });
+        const auditEntry = await record(req, { action: AUDIT_ACTIONS.SYSTEM_SETTING_CHANGE, resourceType: 'systemSetting', resourceId: 'notifications.email', summary: 'Changed activity email delivery', metadata: { enabled: req.body.enabled } });
+        if (auditEntry === null) throw new Error('Audit append failed after settings save.');
         res.json({ enabled: req.body.enabled });
     } catch {
         if (committed) return res.status(200).json({ enabled: req.body.enabled, committed: true, auditRecorded: false, message: 'Settings saved, but the audit entry failed. Contact an administrator; do not retry the change.' });
@@ -26,7 +27,8 @@ export async function retryNotifications(req, res) {
     try {
         const result = await Notification.updateMany({ emailStatus: 'failed' }, { $set: { emailStatus: 'pending', emailAttempts: 0, emailNextAttempt: new Date(), emailLastError: '' } });
         queuedCount = result.modifiedCount;
-        await record(req, { action: AUDIT_ACTIONS.SYSTEM_SETTING_CHANGE, resourceType: 'notifications', summary: 'Retried failed activity emails', metadata: { count: result.modifiedCount } });
+        const auditEntry = await record(req, { action: AUDIT_ACTIONS.SYSTEM_SETTING_CHANGE, resourceType: 'notifications', summary: 'Retried failed activity emails', metadata: { count: result.modifiedCount } });
+        if (auditEntry === null) throw new Error('Audit append failed after retry was queued.');
         res.json({ message: `${result.modifiedCount} failed emails queued for retry.` });
     } catch {
         if (queuedCount !== null) return res.status(200).json({ committed: true, auditRecorded: false, queuedCount, message: `${queuedCount} failed emails queued, but the audit entry failed. Contact an administrator; do not retry this operation.` });

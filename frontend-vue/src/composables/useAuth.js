@@ -55,12 +55,20 @@ function syncStateFromStorage() {
 
 async function hydrateCurrentSession() {
   const token = state.token;
-  const response = await api.get('/auth/me');
-  if (!token || state.token !== token) {
+  const assertCurrent = () => {
+    if (token && state.token === token) return;
     const error = new Error('Session changed while refreshing. Retry using the current account.');
     error.code = 'SESSION_SUPERSEDED';
     throw error;
+  };
+  let response;
+  try {
+    response = await api.get('/auth/me');
+  } catch (error) {
+    assertCurrent();
+    throw error;
   }
+  assertCurrent();
   const user = response.data?.user;
   if (!user) {
     throw new Error('Unable to resolve the current DocMan session.');
@@ -125,6 +133,7 @@ export function useAuth() {
   async function completeAuthentikLogin(code, returnedState) {
     state.loading = true;
     state.error = '';
+    let attemptedToken = state.token;
 
     try {
       const tokenSet = await exchangeAuthentikCode(code, returnedState);
@@ -133,6 +142,7 @@ export function useAuth() {
       }
 
       state.token = tokenSet.access_token;
+      attemptedToken = tokenSet.access_token;
       localStorage.setItem(getStorageKey('token'), tokenSet.access_token);
 
       const session = await hydrateCurrentSession();
@@ -143,7 +153,7 @@ export function useAuth() {
         redirectPath: consumePostLoginRedirect(),
       };
     } catch (error) {
-      if (error.code === 'SESSION_SUPERSEDED') throw error;
+      if (error.code === 'SESSION_SUPERSEDED' || (state.token && state.token !== attemptedToken)) throw error;
       clearSession();
       state.error = error.message || 'Authentik login failed.';
       throw error;

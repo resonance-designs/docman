@@ -2,7 +2,9 @@
 
 ## 3.0.2 — CodeRabbit fixes from PR #50
 
-- [x] Verify and implement fixes for the [42 published PR #50 findings](docs/reviews/pr-50-coderabbit-3.0.2.md): 16 inline, 2 outside-diff, and 24 minor findings. The review record contains individual dispositions and local validation evidence; changes await commit and deployment.
+- [x] Verify and implement fixes for the [42 published PR #50 findings](docs/reviews/pr-50-coderabbit-3.0.2.md): 16 inline, 2 outside-diff, and 24 minor findings. Committed in the history through `1b7dcbd`; deployment acceptance remains pending.
+- [x] Address the [eight functional PR #52 follow-ups](docs/reviews/pr-52-coderabbit-3.0.2.md), including durable project/team recovery, fail-open audit warnings, stale-session rejection, updater interruption and backup-path handling, and handoff status. Local changes and validation do not establish deployment acceptance.
+- [ ] Optional PR #52 migration optimization: use a cursor in `migrationStorage.js` rather than loading all file records at once. Deliberately excluded from the eight functional follow-up fixes.
 - [ ] Complete isolated fresh-Ubuntu/systemd/restic restore acceptance, apply the safe Apache log format on existing deployments, and run the deployed multi-user/browser/SMTP checks. Record the final fixing commit and refresh the review snapshot for any new CodeRabbit rounds before release.
 - [ ] Repair the pre-existing legacy `services/documentService.test.js` expectations/mocks and `docs.test.js` ESM harness. Their failures reproduce on pristine HEAD; 207 targeted backend tests pass for the PR #50 fixes, but the full legacy suite is not green.
 

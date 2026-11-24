@@ -6,10 +6,15 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
+- Record the eight PR #52 functional follow-up findings and validation; correct the handoff's committed/version status. Keep the optional migration cursor optimization deferred.
 - Track all 42 PR #50 CodeRabbit findings with individual 3.0.2 dispositions and validation evidence. Correct update/restore/email setup ordering, lock recovery, existing repository password guidance, and generated manual metadata/QA heading verification.
 
 ### Fixed
 
+- Persist project/team reconciliation with relationship changes; retry partial reciprocal writes with revision fences, coordinate team-side writers and project deletion, and report committed changes while cleanup is pending.
+- Treat fail-open audit `null` results as audit failures after committed invitation activation, notification settings saves, and email retry requests, preserving successful mutation results and accurate warnings.
+- Preserve a newer login when an older session hydration request fails or returns HTTP 401.
+- Defer updater cancellation during child-process construction until cleanup owns the child, without blocking signals in the child. Reuse protected backup credentials for equivalent normalized local repository paths.
 - Execute the installer from root-owned private state, persist completion and administrator-password removal atomically, and make interrupted configuration writes and invalid upload-size answers retryable.
 - Remove public bearer tokens from serialized audit paths and Apache access logs; document applying the safe log format to existing deployments.
 - Coordinate document category writes with book/category guards, retry holder-matched guard release, and prevent concurrent project date updates from creating invalid ranges.

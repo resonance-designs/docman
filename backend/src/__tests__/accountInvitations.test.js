@@ -16,12 +16,19 @@ jest.mock('../lib/secretToken.js', () => ({ createAccessToken: jest.fn() }));
 const response = () => { const res = { status: jest.fn(), json: jest.fn() }; res.status.mockReturnValue(res); return res; };
 const token = 'ab'.repeat(32);
 
-test('committed activation with failed audit directs recipient to sign in', async () => {
+test.each(['rejected', 'null'])('committed activation with %s audit result directs recipient to sign in', async failure => {
     User.findOneAndUpdate.mockResolvedValueOnce({ _id: 'user' });
-    record.mockRejectedValueOnce(new Error('audit unavailable'));
+    if (failure === 'null') record.mockResolvedValueOnce(null);
+    else record.mockRejectedValueOnce(new Error('audit unavailable'));
     const res = response(); await acceptInvitation({ body: { token, password: 'a'.repeat(18) } }, res);
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ activated: true, auditRecorded: false, message: expect.stringContaining('Sign in') }));
+});
+test('committed activation with an audit entry reports ordinary success', async () => {
+    User.findOneAndUpdate.mockResolvedValueOnce({ _id: 'user' });
+    record.mockResolvedValueOnce({ _id: 'audit-entry' });
+    const res = response(); await acceptInvitation({ body: { token, password: 'a'.repeat(18) } }, res);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Account activated. You can now sign in.' });
 });
 beforeEach(() => {
     process.env.APP_BASE_URL = 'https://docman.example.org';

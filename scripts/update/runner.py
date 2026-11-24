@@ -29,6 +29,8 @@ STATE = Path('/var/lib/docman-updates')
 BUILDS = Path('/var/www/docman-update-builds')
 TIMERS = ('docman-backup.timer', 'docman-audit-verify.timer')
 KEYS = ('DOCUMENT_ENCRYPTION_KEY', 'EMAIL_SETTINGS_KEY')
+RESTIC_REPOSITORY_FILE = Path('/etc/docman/restic-repository')
+RESTIC_PASSWORD_FILE = Path('/etc/docman/restic-password')
 
 class Stop(RuntimeError): pass
 
@@ -42,9 +44,30 @@ def cancel_update(signum, frame):
 def run_command(args, **kwargs):
     """Reap the command and terminate its process group before recovery can run."""
     input_value = kwargs.pop('input', None)
-    with subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE, start_new_session=True, **kwargs) as child:
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGINT)}
+    pending = []
+    def defer_cancel(signum, frame):
+        if previous[signum] != signal.SIG_IGN:
+            pending.append(signum)
+    def restore_handlers():
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+    try:
+        # Do not mask signals: a blocked mask would survive exec in the child.
+        # Python handlers reset on exec; defer only the parent's cancellation until
+        # Popen returns and cleanup owns the process, including its constructor gap.
+        for sig in previous:
+            signal.signal(sig, defer_cancel)
+        child = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, start_new_session=True, **kwargs)
+    except BaseException:
+        restore_handlers()
+        if pending: signal.raise_signal(pending[0])
+        raise
+    with child:
         try:
+            restore_handlers()
+            if pending: signal.raise_signal(pending[0])
             stdout, stderr = child.communicate(input_value)
         except BaseException:
             try: os.killpg(child.pid, signal.SIGTERM)
@@ -65,6 +88,11 @@ def validate_backup_destination(destination):
         require(not (destination.is_relative_to(tree) or tree.is_relative_to(destination)),
                 'Backup repository overlaps an application, staging, state or upload tree. Choose separate storage.')
     return destination
+
+def same_backup_repository(selected, saved):
+    if selected.startswith('/') and saved.startswith('/'):
+        return Path(selected).resolve() == Path(saved).resolve()
+    return selected == saved
 
 def require(condition, message):
     if not condition: raise Stop(message)
@@ -305,11 +333,12 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
 
     def configure_backup(self):
         self.say('Verify encrypted backup destination')
-        repo_file = Path('/etc/docman/restic-repository')
+        repo_file = RESTIC_REPOSITORY_FILE
         default = repo_file.read_text().strip() if repo_file.is_file() else ''
         repo = input('Restic repository (absolute mounted path or sftp:host:/path)' + (f' [{default}]' if default else '') + ': ').strip() or default
         require(repo.startswith('/') or re.fullmatch(r'sftp:(?:[A-Za-z0-9_][A-Za-z0-9_.-]*@)?[A-Za-z0-9][A-Za-z0-9.-]*:/[A-Za-z0-9_./-]+', repo), 'Unsupported repository address.')
         require(not any(ord(c)<32 or ord(c)==127 for c in repo), 'Invalid repository characters.')
+        reuse_saved_repository = same_backup_repository(repo, default)
         if repo.startswith('/'):
             destination = Path(repo)
             require(destination.is_dir() and not destination.is_symlink(), 'Local backup destination must already exist as a real directory; see guide.')
@@ -318,8 +347,8 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
             if destination.stat().st_dev == Path('/').stat().st_dev:
                 require(input('This backup is on the server root disk, not disaster recovery. For an internal POC only, type LOCAL-POC: ').strip() == 'LOCAL-POC', 'Choose separate backup storage.')
                 self.report['backup_scope'] = 'LOCAL POC ONLY'
-        existing_password = Path('/etc/docman/restic-password')
-        if repo == default and existing_password.is_file() and input('Use the existing protected restic password file? yes/no [yes]: ').strip() in ('','yes'):
+        existing_password = RESTIC_PASSWORD_FILE
+        if reuse_saved_repository and existing_password.is_file() and input('Use the existing protected restic password file? yes/no [yes]: ').strip() in ('','yes'):
             require(existing_password.stat().st_uid == 0 and existing_password.stat().st_mode & 0o077 == 0, 'Protect the restic password file: root ownership, mode 600.')
             password = existing_password.read_text().rstrip('\n')
         else:

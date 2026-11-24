@@ -5,8 +5,10 @@ import Notification from '../models/Notification.js';
 import { sendTeamInvitationNotification } from '../controllers/notificationsController.js';
 import { inviteToTeam, acceptInvitation, addDocumentsToTeam, getTeamBooks, getAllTeams, addProjectsToTeam } from '../controllers/teamsController.js';
 import { addDocumentsToProject, updateProject } from '../controllers/projectsController.js';
+import { tryReconcileProjectTeams } from '../services/projectTeamReconciliation.js';
+jest.mock('../services/projectTeamReconciliation.js',()=>({...jest.requireActual('../services/projectTeamReconciliation.js'),tryReconcileProjectTeams:jest.fn(async()=>true)}));
 jest.mock('../models/Team.js',()=>({__esModule:true,default:{findById:jest.fn(),findOne:jest.fn(),findOneAndUpdate:jest.fn(),updateOne:jest.fn(),find:jest.fn()}}));
-jest.mock('../models/Project.js',()=>({__esModule:true,default:{findById:jest.fn(),find:jest.fn(),findOneAndUpdate:jest.fn(),findByIdAndUpdate:jest.fn()}}));
+jest.mock('../models/Project.js',()=>({__esModule:true,default:{findById:jest.fn(),find:jest.fn(),updateOne:jest.fn(),findOneAndUpdate:jest.fn(),findByIdAndUpdate:jest.fn()}}));
 jest.mock('../models/User.js',()=>({__esModule:true,default:{findById:jest.fn(),findOne:jest.fn()}}));
 jest.mock('../models/Notification.js',()=>({__esModule:true,default:{updateMany:jest.fn()}}));
 jest.mock('../controllers/notificationsController.js',()=>({sendTeamInvitationNotification:jest.fn()}));
@@ -47,8 +49,11 @@ test('uppercase project IDs update both sides of the team relationship',async()=
  const projectId='ABCDEF77BCF86CD799439011';
  team.addProject=jest.fn(()=>true);team.save=jest.fn();
  const project={_id:projectId.toLowerCase(),addTeam:jest.fn(),save:jest.fn()};Project.find.mockResolvedValue([project]);
+ Project.updateOne.mockResolvedValueOnce({modifiedCount:1});
  const r=response();await addProjectsToTeam(req({projectIds:[projectId]}),r);
- expect(project.addTeam).toHaveBeenCalledWith(teamId);expect(project.save).toHaveBeenCalled();
+ expect(Project.updateOne).toHaveBeenCalledWith(expect.objectContaining({_id:projectId.toLowerCase()}),expect.objectContaining({$addToSet:{teams:teamId,teamSyncCandidates:teamId},$inc:{teamSyncRevision:1}}));
+ expect(tryReconcileProjectTeams).toHaveBeenCalledWith(projectId);
+ expect(team.save).not.toHaveBeenCalled();
 });
 
 function populated(value){const q={populate:()=>q,then:resolve=>resolve(value)};return q;}
@@ -74,6 +79,30 @@ test('rejected concurrent date update does not mutate reciprocal team links',asy
  const r=response();await updateProject(req({startDate:'2026-11-18',teamIds:[teamId]}),r);
  expect(r.status).toHaveBeenCalledWith(400);expect(related.save).not.toHaveBeenCalled();
  expect(related.removeProject).not.toHaveBeenCalled();expect(related.addProject).not.toHaveBeenCalled();
+ expect(tryReconcileProjectTeams).not.toHaveBeenCalled();
+});
+
+test('committed project team update reports pending automatic repair instead of false 500',async()=>{
+ Project.findById.mockReset();Project.findByIdAndUpdate.mockReset();
+ const project={_id:teamId,owner,teams:[recipient]};
+ Project.findById.mockResolvedValueOnce(project);
+ Project.findByIdAndUpdate.mockReturnValueOnce(populated({...project,teams:[teamId]}));
+ Team.find.mockResolvedValue([{_id:teamId,isMember:()=>true}]);
+ tryReconcileProjectTeams.mockResolvedValueOnce(false);
+ const r=response();await updateProject(req({teamIds:[teamId]}),r);
+ expect(r.status).toHaveBeenCalledWith(200);
+ expect(r.json).toHaveBeenCalledWith(expect.objectContaining({relationshipsPending:true}));
+ expect(Project.findByIdAndUpdate.mock.calls[0][1]).toMatchObject({$set:{teams:[teamId],teamSyncPending:true},$inc:{teamSyncRevision:1}});
+});
+
+test('post-commit population failure does not report the project save as failed',async()=>{
+ Project.findById.mockReset();Project.findByIdAndUpdate.mockReset();
+ const project={_id:teamId,owner,teams:[],populate:jest.fn(async()=>{throw new Error('read unavailable');})};
+ Project.findById.mockResolvedValueOnce(project);
+ Project.findByIdAndUpdate.mockResolvedValueOnce(project);
+ const r=response();await updateProject(req({description:'Saved'}),r);
+ expect(r.status).toHaveBeenCalledWith(200);
+ expect(r.json).toHaveBeenCalledWith(expect.objectContaining({project}));
 });
 test('concurrent replay cannot grant membership again',async()=>{team.invitations=[{token,email,role:'member',status:'pending',expiresAt:new Date(Date.now()+60000)}];Team.findOneAndUpdate.mockResolvedValue(null);const r=response();await acceptInvitation(req(),r);expect(r.status).toHaveBeenCalledWith(409);expect(Notification.updateMany).not.toHaveBeenCalled();});
 test.each([[],['bad'],[{$ne:null}],[teamId,teamId]].map(value=>[value]))('malformed document batch rejected %p',async values=>{for(const fn of [addDocumentsToTeam,addDocumentsToProject]){const r=response();await fn(req({documentIds:values}),r);expect(r.status).toHaveBeenCalledWith(400);}expect(Team.findById).not.toHaveBeenCalled();expect(Project.findById).not.toHaveBeenCalled();});

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { computed, reactive, ref, watch } from 'vue';
 import * as projectManagement from './views/projects/projectManagement.js';
+import { relationshipMessage } from './lib/relationshipMessage.js';
 
 const deferred = () => {
   let resolve, reject;
@@ -12,7 +13,7 @@ const deferred = () => {
 function evaluate(relative, bindings, result) {
   let source = readFileSync(new URL(relative, import.meta.url), 'utf8');
   if (relative.endsWith('.vue')) source = source.match(/<script setup>([\s\S]*?)<\/script>/)[1];
-  source = source.replace(/^import [\s\S]*?;\r?\n/gm, '').replace(/export function /g, 'function ');
+  source = source.replace(/^import [\s\S]*?;\r?\n/gm, '').replace(/export function /g, 'function ').replace(/export const /g, 'const ').replace(/import\.meta\.env\.DEV/g, 'false');
   return new Function(...Object.keys(bindings), source + '\nreturn ' + result)(...Object.values(bindings));
 }
 
@@ -31,6 +32,50 @@ test('late session hydration cannot overwrite logout or another login', async ()
     assert.equal(auth.state.token, nextToken);
     assert.equal(storage.get('token'), nextToken || undefined);
     assert.equal(auth.state.user?.id, nextToken ? 'b' : undefined);
+  }
+});
+
+test('stale hydration failures preserve a newer session; current failures still clear it', async () => {
+  for (const status of [undefined, 401]) {
+    for (const newerSession of [false, true]) {
+      const request = deferred(), started = deferred(), storage = new Map();
+      const localStorage = {getItem: key => storage.get(key) || null, setItem: (key,value) => storage.set(key,value), removeItem: key => storage.delete(key)};
+      let onRequest, onFailure, sessionExpired;
+      const window = {addEventListener: (_name, fn) => {sessionExpired=fn;}, dispatchEvent: () => sessionExpired()};
+      const api = {interceptors: {
+        request: {use: fn => {onRequest=fn;}}, response: {use: (_success, fn) => {onFailure=fn;}},
+      }};
+      evaluate('./services/api.js', {axios:{create:()=>api}, localStorage, window, getStorageKey:key=>key, getRuntimeConfig:()=>({apiBaseUrl:'/api'})}, 'api');
+      api.get = () => {
+        const config = onRequest({headers:{}});
+        started.resolve();
+        return request.promise.catch(error => onFailure(Object.assign(error,{config})));
+      };
+      const authModule = evaluate('./composables/useAuth.js', {
+        computed, reactive, api, localStorage, window, getStorageKey:key=>key,
+        isAuthentikEnabled:()=>true, hasAuthentikRegistration:()=>false,
+        exchangeAuthentikCode:async()=>({access_token:'token-a'}), consumePostLoginRedirect:()=>'/documents',
+      }, '({useAuth, persistSession})');
+      const auth = authModule.useAuth();
+      const pending = auth.completeAuthentikLogin('fixture-code','fixture-state');
+      await started.promise;
+      if (newerSession) authModule.persistSession('token-b',{id:'b'});
+      const failure = Object.assign(new Error('Hydration failed'), status ? {response:{status}} : {});
+      request.reject(failure);
+      await assert.rejects(pending);
+      if (newerSession) {
+        assert.equal(auth.state.token,'token-b');
+        assert.equal(auth.state.user.id,'b');
+        assert.equal(storage.get('token'),'token-b');
+        assert.equal(JSON.parse(storage.get('user')).id,'b');
+        assert.equal(auth.state.error,'');
+      } else {
+        assert.equal(auth.state.token,null);
+        assert.equal(auth.state.user,null);
+        assert.equal(storage.has('token'),false);
+        assert.equal(storage.has('user'),false);
+      }
+    }
   }
 });
 
@@ -97,4 +142,42 @@ test('activated invitation with failed audit still offers sign in and displays r
   assert.equal(view.auditWarning.value, true);
   assert.equal(view.message.value, message);
   assert.equal(view.password.value, '');
+});
+
+test('project create/edit/delete display pending relationship reconciliation', async () => {
+  const backendMessage = 'Project saved. Team links are pending automatic reconciliation.';
+  const response = {data:{relationshipsPending:true,message:backendMessage}};
+  const view = evaluate('./views/projects/ProjectsView.vue', {
+    computed, reactive, ref, watch, onMounted() {}, ...projectManagement, relationshipMessage,
+    api:{get:async()=>({data:[]}),put:async()=>response,post:async()=>response,delete:async()=>response},
+    useAuth:()=>({state:{user:{id:'a',role:'editor'}}}),personName:()=>'',
+  }, '({saveProject,confirmMutation,form,editingId,selected,confirmAction,message,relationshipsPending})');
+  Object.assign(view.form,{name:'Fixture',teamIds:['team'],status:'active',priority:'medium'});
+  for (const id of [null,'project']) {
+    view.editingId.value=id;
+    await view.saveProject();
+    assert.equal(view.message.value,backendMessage);
+    assert.equal(view.relationshipsPending.value,true);
+  }
+  view.selected.value={_id:'project'};
+  view.confirmAction.value={kind:'project'};
+  await view.confirmMutation();
+  assert.equal(view.message.value,backendMessage);
+  assert.equal(view.relationshipsPending.value,true);
+});
+
+test('team project link/unlink appends pending text when the backend message lacks it', async () => {
+  const view = evaluate('./views/teams/TeamResourceLinks.vue', {
+    computed,ref,watch,onMounted(){},relationshipMessage,defineProps:()=>({teamId:'team',kind:'projects',canManage:true}),
+    api:{get:async()=>({data:[]}),post:async()=>({data:{message:'Project added.',relationshipsPending:true}}),delete:async()=>({data:{message:'Project removed.',relationshipsPending:true}})},
+  }, '({add,remove,selected,removing,message,relationshipsPending})');
+  view.selected.value=['project'];
+  await view.add();
+  assert.equal(view.message.value,'Project added. Related links are pending automatic reconciliation.');
+  assert.equal(view.relationshipsPending.value,true);
+  view.removing.value={_id:'project'};
+  await view.remove();
+  assert.equal(view.message.value,'Project removed. Related links are pending automatic reconciliation.');
+  assert.equal(view.relationshipsPending.value,true);
+  assert.equal(relationshipMessage({relationshipsPending:false},'Project saved.'),'Project saved.');
 });
