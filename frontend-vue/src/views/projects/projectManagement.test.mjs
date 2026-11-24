@@ -16,3 +16,10 @@ test('payload retains deliberate date clearing and deduplicates relationships/ta
 test('invalid project state is rejected before mutation',()=>{
  for(const patch of [{teamIds:[]},{name:' '},{endDate:'2026-11-19'},{tagsText:'x'.repeat(51)},{priority:'urgent'}]) assert.throws(()=>projectPayload({...valid,...patch}));
 });
+test('metadata edits omit unchanged team membership but explicit changes retain validation',()=>{
+ const form={...valid,teamIds:['two','one','one']};
+ assert.equal(Object.hasOwn(projectPayload(form,['one','two']),'teamIds'),false);
+ assert.deepEqual(projectPayload(form,['one']).teamIds,['two','one']);
+ assert.deepEqual(projectPayload(form).teamIds,['two','one']);
+ assert.throws(()=>projectPayload({...form,teamIds:[]},['one','two']));
+});

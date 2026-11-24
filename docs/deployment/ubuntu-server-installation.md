@@ -1596,6 +1596,8 @@ SSLCertificateKeyFile /etc/ssl/docman/privkey.pem
 Those two lines replace the `/etc/letsencrypt/live/...` directives in the complete file below; they are not a separate file. For the public route, keep the Let's Encrypt paths but replace their hostname with yours. Save and exit nano after completing all replacements. Do not create an Apache alias for the actual uploads directory.
 
 ```apache
+# Omit URLs and Referer because public links contain bearer credentials.
+LogFormat "%h %l %u %t \"%m %H\" %>s %b" docman_safe
 <VirtualHost *:80>
     ServerName docs.example.org
     DocumentRoot /var/www/letsencrypt
@@ -1607,6 +1609,7 @@ Those two lines replace the `/etc/letsencrypt/live/...` directives in the comple
     RewriteEngine On
     RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
     RewriteRule ^ https://docs.example.org%{REQUEST_URI} [R=301,L]
+    CustomLog ${APACHE_LOG_DIR}/docman-access.log docman_safe
 </VirtualHost>
 
 <VirtualHost *:443>
@@ -1647,7 +1650,7 @@ Those two lines replace the `/etc/letsencrypt/live/...` directives in the comple
         Require all denied
     </FilesMatch>
     ErrorLog ${APACHE_LOG_DIR}/docman-error.log
-    CustomLog ${APACHE_LOG_DIR}/docman-access.log combined
+    CustomLog ${APACHE_LOG_DIR}/docman-access.log docman_safe
 </VirtualHost>
 ```
 

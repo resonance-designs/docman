@@ -45,6 +45,8 @@ Activity changes and notification insertion are separate database writes. A proc
 
 ## Pausing and retrying
 
+If saving notification settings or retrying failed emails commits successfully but its audit append fails, the API returns HTTP 200 with `committed: true`, `auditRecorded: false`, and a recovery message (including the committed retry count). The operation must not be repeated to repair its audit. Preserve the response and have an administrator investigate the audit failure. This does not make the business write and audit append transactional.
+
 - Turning off activity emails pauses the queue; in-app notices continue. Invitations, resets and explicit test emails are unaffected.
 - Paused messages remain queued and resume when enabled. Do not use the switch expecting the backlog to be discarded.
 - Outgoing email must remain configured. If that provider is disabled/unavailable, activity sends fail and retry.

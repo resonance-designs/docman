@@ -7,7 +7,9 @@
  *
  * Usage: SMOKE_BASE_URL=http://127.0.0.1:5001 node src/scripts/smokeTest.js
  *        Supply SMOKE_ADMIN_PASSWORD or DOCMAN_DEFAULT_PASSWORD for the disposable test account.
- *        Requires LOCAL_SELF_REGISTRATION_ENABLED not "false" (test users are registered as viewers).
+ *        Disposable test deployment only: enable System Settings > Accounts > Self-registration
+ *        (accounts.policy.selfRegistrationEnabled) before running; restore it to off afterward.
+ *        The script checks this database-backed policy and never enables registration itself.
  * @author Richard Bakos
  * @version 3.0.0
  * @license UNLICENSED
@@ -89,6 +91,14 @@ async function main() {
         ctx.admin = { token: res.data.token, id: String(res.data.user.id), role: res.data.user.role };
     });
     if (!ctx.admin) return finish();
+
+    await check('database policy permits disposable test registrations', async () => {
+        const res = await call('GET', '/api/auth/account-policy');
+        assert(res.status === 200 && res.data.selfRegistrationEnabled === true,
+            'Enable self-registration in System Settings > Accounts on the disposable test deployment, then rerun. Restore it to off afterward.');
+        ctx.registrationReady = true;
+    });
+    if (!ctx.registrationReady) return finish();
 
     await check("self-registration cannot request superadmin", async () => {
         const res = await call("POST", "/api/auth/register", {

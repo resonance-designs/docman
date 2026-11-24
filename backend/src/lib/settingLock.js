@@ -42,7 +42,19 @@ export async function withSettingLock(key, fn, { ttlMs = 15000 } = {}) {
     try {
         return await fn();
     } finally {
-        await SystemSetting.updateOne({ key, "value.holder": holder }, { $set: { value: {} } }).catch(() => {});
+        let released = false;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                await SystemSetting.updateOne({ key, "value.holder": holder }, { $set: { value: {} } });
+                released = true;
+                break;
+            } catch {
+                if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 50 * (attempt + 1)));
+            }
+        }
+        // Do not misreport a committed mutation as failed, or take over a slow writer.
+        if (!released) console.error('Setting lock release failed; guard may remain retained:', key,
+            'Stop and verify ALL writers are inactive before holder-matched recovery.', holder);
     }
 }
 

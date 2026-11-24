@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # @author Richard Bakos
-# @version 3.0.1
+# @version 3.0.2
 # @license UNLICENSED
 # Interactive fresh-server installation. See docs/deployment/automated-installation.md.
 set -Eeuo pipefail
@@ -9,6 +9,11 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 STATE=/var/lib/docman-installer
 HELPER="$STATE/runner/configure.py"
 APP=/var/www/docman
+# Resume execution only from the private copy, never build-account-writable source.
+if [[ "${BASH_SOURCE[0]}" == "$STATE/runner/install.sh" && "${1:-}" == --source-root ]]; then
+  ROOT="$2"
+  shift 2
+fi
 STAGE=preflight
 usage() {
   cat <<'HELP'
@@ -67,6 +72,13 @@ if [[ ! -f "$STATE/started" ]]; then
   if [[ -d "$APP" && "$ROOT" != "$APP" ]] && [[ -n "$(find "$APP" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then fail "$APP is not empty. Clone there or choose a fresh server; nothing will be deleted."; fi
 fi
 [[ ! -f "$STATE/complete" ]] || { printf 'This installer already completed. Use walkthrough section 19 for updates; no files changed.\n'; exit 0; }
+if [[ -f "$STATE/state.json" ]]; then
+  completion=$(python3 -c 'import json,sys; print("yes" if json.load(open(sys.argv[1])).get("complete") is True else "no")' "$STATE/state.json") || fail 'Cannot read installer state; preserve it and investigate.'
+  if [[ "$completion" == yes ]]; then
+    printf 'This installer already completed. Use the update guide; no files changed.\n'
+    exit 0
+  fi
+fi
 SOURCE_COMMIT=$(git -c safe.directory="$ROOT" -C "$ROOT" rev-parse HEAD)
 git -c safe.directory="$ROOT" -C "$ROOT" cat-file -e HEAD:install.sh || fail 'The installer must be committed in the selected release.'
 [[ -z "$(git -c safe.directory="$ROOT" -C "$ROOT" status --porcelain --untracked-files=no)" ]] || fail 'Use a committed, unchanged checkout for installation.'
@@ -74,8 +86,10 @@ if [[ -f "$STATE/started" ]]; then
   [[ "$(cat "$STATE/started")" == "$SOURCE_COMMIT" ]] || fail 'Resume with the original checkout commit; do not change source during installation.'
 fi
 printf '\nThis installs system packages, creates local MongoDB/Redis accounts and configures Apache on a dedicated server.\nIt does not configure your organization DNS, perimeter firewall, mail relay permissions, or backup server.\n'
-read -r -p 'Continue on this dedicated server? Type INSTALL: ' answer
-[[ "$answer" == INSTALL ]] || fail 'Cancelled; no installation started.'
+if [[ "${BASH_SOURCE[0]}" != "$STATE/runner/install.sh" ]]; then
+  read -r -p 'Continue on this dedicated server? Type INSTALL: ' answer
+  [[ "$answer" == INSTALL ]] || fail 'Cancelled; no installation started.'
+fi
 install -d -m 0700 "$STATE"
 if [[ ! -f "$STATE/started" ]]; then
   install -d -m 0700 "$STATE/runner"
@@ -83,6 +97,10 @@ if [[ ! -f "$STATE/started" ]]; then
   chown -R root:root "$STATE/runner"
   chmod -R go-rwx "$STATE/runner"
   printf '%s\n' "$SOURCE_COMMIT" > "$STATE/started"
+fi
+if [[ "${BASH_SOURCE[0]}" != "$STATE/runner/install.sh" ]]; then
+  install -o root -g root -m 0700 "$ROOT/install.sh" "$STATE/runner/install.sh"
+  exec bash "$STATE/runner/install.sh" --source-root "$ROOT"
 fi
 step 'Install operating-system prerequisites'
 apt-get update

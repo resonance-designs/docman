@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tempfile
 from urllib.parse import quote
 
 APP = Path('/var/www/docman')
@@ -26,10 +27,11 @@ def run(argv, **kwargs):
 def atom(path, content, mode=0o600):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temp = path.with_name(path.name + '.docman-new')
-    fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    fd, name = tempfile.mkstemp(prefix=path.name + '.docman-', dir=path.parent)
+    temp = Path(name)
     try:
         with os.fdopen(fd, 'w') as output:
+            os.fchmod(output.fileno(), mode)
             output.write(content)
         os.replace(temp, path)
         os.chmod(path, mode)
@@ -78,6 +80,12 @@ def ask(label, default='', valid=lambda value: bool(value)):
             return value
         print('Invalid value. Please try again.')
 
+def upload_size_valid(value):
+    try:
+        return value.isdecimal() and 1 <= int(value) <= 250
+    except (ValueError, TypeError):
+        return False
+
 def password(label):
     print(f'{label}: choose your own password, 18+ characters, at most 72 UTF-8 bytes. Characters are hidden.')
     while True:
@@ -124,7 +132,7 @@ def prompt():
     c['person']['email'] = ask('DocMan email address', valid=lambda x: bool(re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', x))).lower()
     c['person']['password'] = password('First DocMan superadmin login')
     c['approvals'] = ask('Require another assigned user to approve file versions? yes/no', 'yes', lambda x: x in ['yes', 'no']) == 'yes'
-    c['upload_mb'] = int(ask('Maximum upload size in MiB (1-250)', '50', lambda x: x.isdigit() and 1 <= int(x) <= 250))
+    c['upload_mb'] = int(ask('Maximum upload size in MiB (1-250)', '50', upload_size_valid))
     print('Document storage encryption is enabled. Its machine key and a separate email-credential key are generated automatically and never displayed.')
     c['jwt'] = secrets.token_hex(64)
     c['document_key'] = secrets.token_hex(32)
@@ -356,6 +364,7 @@ Installed package versions:
 '''
     atom(STATE / 'RESULTS.txt', report)
     c['person'].pop('password', None)
+    c['complete'] = True
     save(c)
     (STATE / 'complete').touch(mode=0o600)
     print(report)

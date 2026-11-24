@@ -3,7 +3,7 @@
     <v-card-title class="d-flex align-center justify-space-between">{{ title }}<v-btn variant="text" :loading="loading" :disabled="busy" @click="load">Refresh</v-btn></v-card-title>
     <v-card-text>
       <v-alert v-if="error" type="error" class="mb-3" role="alert">{{ error }}</v-alert>
-      <v-alert v-if="message" type="success" class="mb-3" role="status">{{ message }}</v-alert>
+      <v-alert v-if="message" :type="relationshipsPending ? 'warning' : 'success'" class="mb-3" role="status">{{ message }}</v-alert>
       <p v-if="kind === 'documents'" class="mb-4">Linking a document organizes it here. Its existing document permissions still control who can read it.</p>
       <v-progress-linear v-if="loading" indeterminate />
       <template v-else>
@@ -35,8 +35,10 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { api } from '@/services/api';
+import { relationshipMessage } from '@/lib/relationshipMessage';
 const props = defineProps({ teamId: { type: String, required: true }, kind: { type: String, required: true }, canManage: Boolean });
 const items = ref([]), available = ref([]), selected = ref([]), loading = ref(false), busy = ref(false), error = ref(''), message = ref(''), removing = ref(null), search = ref(''), page = ref(1), loadFailed = ref(false);
+const relationshipsPending = ref(false);
 const title = computed(() => props.kind[0].toUpperCase() + props.kind.slice(1));
 const field = computed(() => ({ documents: 'documentIds', books: 'bookIds', projects: 'projectIds' })[props.kind]);
 const filtered = computed(() => items.value.filter(item => `${item.title || item.name} ${item.description || ''}`.toLowerCase().includes((search.value || '').toLowerCase())));
@@ -55,13 +57,13 @@ async function load() {
 async function add() {
   if (!selected.value.length || busy.value) return;
   busy.value = true; message.value = ''; error.value = '';
-  try { const result = await api.post(`/teams/${props.teamId}/${props.kind}`, { [field.value]: selected.value }); selected.value = []; message.value = result.data.message; await load(); }
+  try { const result = await api.post(`/teams/${props.teamId}/${props.kind}`, { [field.value]: selected.value }); selected.value = []; relationshipsPending.value=Boolean(result.data.relationshipsPending); message.value = relationshipMessage(result.data,'Resources linked.'); await load(); }
   catch (e) { error.value = e.response?.data?.message || 'Unable to link resources.'; }
   finally { busy.value = false; }
 }
 async function remove() {
   busy.value = true; message.value = ''; error.value = '';
-  try { await api.delete(`/teams/${props.teamId}/${props.kind}`, { data: { [field.value]: [removing.value._id] } }); removing.value = null; message.value = 'Resource unlinked.'; await load(); }
+  try { const result=await api.delete(`/teams/${props.teamId}/${props.kind}`, { data: { [field.value]: [removing.value._id] } }); removing.value = null; relationshipsPending.value=Boolean(result.data.relationshipsPending); message.value = relationshipMessage(result.data,'Resource unlinked.'); await load(); }
   catch (e) { error.value = e.response?.data?.message || 'Unable to unlink resource.'; }
   finally { busy.value = false; }
 }

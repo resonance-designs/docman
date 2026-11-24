@@ -11,7 +11,8 @@ export function validateProfile(body) {
     if (Object.keys(body).some(key => !editable.includes(key))) throw new Error('Only profile fields may be changed here.');
     const data = {};
     for (const [key, value] of Object.entries(body)) {
-        if (typeof value !== 'string' || value.length > (key === 'bio' ? 500 : 254) || /[\x00-\x1f\x7f]/.test(value)) throw new Error(`Invalid ${key}.`);
+        const controls = key === 'bio' ? /[\x00-\x09\x0b\x0c\x0e-\x1f\x7f]/ : /[\x00-\x1f\x7f]/;
+        if (typeof value !== 'string' || value.length > (key === 'bio' ? 500 : 254) || controls.test(value)) throw new Error(`Invalid ${key}.`);
         data[key] = value.trim();
         if (['firstname', 'lastname'].includes(key) && !data[key]) throw new Error('First and last name are required.');
     }
@@ -38,7 +39,7 @@ export async function changePassword(req, res) {
     try {
         const user = await User.findById(req.user.id).select('password identityProvider authentikSub isActive invitationPending').lean();
         if (!user || user.isActive === false || user.invitationPending || external(user)) return res.status(403).json({ message: 'Password changes are available only for active local accounts.' });
-        if (typeof req.body.currentPassword !== 'string' || Buffer.byteLength(req.body.currentPassword, 'utf8') > 72 || !await bcrypt.compare(req.body.currentPassword, user.password)) return res.status(400).json({ message: 'Current password is incorrect.' });
+        if (typeof req.body.currentPassword !== 'string' || !await bcrypt.compare(req.body.currentPassword, user.password)) return res.status(400).json({ message: 'Current password is incorrect.' });
         const error = passwordError(req.body.password, await getAccountPolicy());
         if (error) return res.status(400).json({ message: error });
         const password = await bcrypt.hash(req.body.password, 12);

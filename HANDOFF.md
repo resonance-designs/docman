@@ -1,5 +1,13 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## PR #50 fixes for 3.0.2 — November 22, 2026
+
+PR #52 follow-up: the November 23 eight-finding pass was committed as `55fcf35`. The November 24 five-finding pass repairs no-op relationship mismatches, pending-status reporting, scan fairness, the concurrency test predicate, and tokenless session expiry. See the [follow-up record and validation](docs/reviews/pr-52-coderabbit-3.0.2.md). The latest changes remain uncommitted and undeployed. Project/team relationship reconciliation runs with the backend; see [recovery guidance](docs/resource-management.md). The optional migration cursor optimization remains deferred.
+
+The initial 42 PR #50 fixes were committed on `bugs/3.0.1-fixes`; see [individual dispositions and validation](docs/reviews/pr-50-coderabbit-3.0.2.md). The root and application/documentation package manifests are version **3.0.2**. No deployment is established by these source changes. Preserve the existing 3.0.1 release tag; do not claim that server installations have these fixes.
+
+Existing installations need the safe Apache access-log configuration applied separately: the updater intentionally preserves Apache configuration. Follow the updated installation/manual guide and address historical token-bearing logs separately. Complete fresh-Ubuntu/systemd/restic restore and live browser/SMTP acceptance before claiming deployment validation. The manual generator now records current metadata; previously generated PDFs retain their old metadata until rebuilt.
+
 ## Hosting retirement — November 20, 2026
 
 Render is no longer a deployment target. Removed active hosting instructions/navigation and replaced legacy NODE_ENV=render startup scripts with production mode. Use self-hosted Ubuntu/Linode guidance. The external service/Git integration and obsolete DNS records are not controlled by this repository and have not been disabled here; retire those before merging if automatic deployment is still enabled. Historical changelog entries remain historical.

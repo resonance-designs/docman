@@ -14,7 +14,30 @@ import bcrypt from '../../backend/node_modules/bcrypt/bcrypt.js';
 
 const bootstrap = fileURLToPath(new URL('./bootstrap.mjs', import.meta.url));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-test('fresh bootstrap and retries preserve accounts, keys/settings and one creation audit', { timeout: 60000 }, async () => {
+async function stopChild(child, stopped) {
+    if (child.exitCode !== null || child.signalCode !== null || !child.pid) return;
+    child.kill('SIGTERM');
+    const force = setTimeout(() => child.kill('SIGKILL'), 2000);
+    try { await stopped; } finally { clearTimeout(force); }
+}
+async function waitForChild(child, signal) {
+    const complete = new Promise(resolve => child.once('close', code => resolve([code])));
+    let childError;
+    child.on('error', error => { childError = error; });
+    const cancel = () => { void stopChild(child, complete); };
+    signal.addEventListener('abort', cancel, { once: true });
+    try {
+        if (signal.aborted) cancel();
+        const result = await complete;
+        signal.throwIfAborted();
+        if (childError) throw childError;
+        return result;
+    } finally {
+        signal.removeEventListener('abort', cancel);
+        await stopChild(child, complete);
+    }
+}
+test('fresh bootstrap and retries preserve accounts, keys/settings and one creation audit', { timeout: 60000 }, async (t) => {
     const probe = createServer();
     probe.listen(0, '127.0.0.1');
     await once(probe, 'listening');
@@ -29,20 +52,29 @@ test('fresh bootstrap and retries preserve accounts, keys/settings and one creat
     try {
         let connected = false;
         for (let attempt = 0; attempt < 40; attempt++) {
+            t.signal.throwIfAborted();
             if (spawnError) throw spawnError;
-            try { await mongoose.connect(uri, { serverSelectionTimeoutMS: 300 }); connected = true; break; }
+            assert.equal(mongo.exitCode, null, 'fixture MongoDB exited before readiness');
+            try { await mongoose.connect(uri, { serverSelectionTimeoutMS: 300 }); connected = true; }
             catch { await sleep(200); }
+            if (connected) {
+                const status = await mongoose.connection.db.admin().serverStatus();
+                assert.equal(status.pid, mongo.pid, 'connected MongoDB must be the fixture child');
+                assert.equal(mongo.exitCode, null, 'fixture MongoDB must remain running');
+                break;
+            }
         }
         assert.ok(connected, 'disposable MongoDB started');
         const config = { person: { firstname: 'Installer', lastname: 'Fixture', username: 'installer-fixture', email: 'installer@example.invalid', password: randomBytes(24).toString('hex') }, uploadMB: 50 };
         const env = { ...process.env, NODE_ENV: 'production', MONGO_URI: uri, AUDIT_FAIL_CLOSED: 'true', AUDIT_STDOUT: 'false',
             DOCUMENT_ENCRYPTION_KEY: randomBytes(32).toString('hex'), EMAIL_SETTINGS_KEY: randomBytes(32).toString('hex') };
         async function run() {
+            t.signal.throwIfAborted();
             const child = spawn(process.execPath, [bootstrap], { env, stdio: ['pipe', 'pipe', 'pipe'] });
             let output = '';
             child.stdout.on('data', data => { output += data; });
             child.stderr.on('data', data => { output += data; });
-            const complete = once(child, 'close');
+            const complete = waitForChild(child, t.signal);
             child.stdin.end(JSON.stringify(config));
             const [code] = await complete;
             assert.ok(!output.includes(config.person.password), 'password absent from output');
@@ -74,8 +106,17 @@ test('fresh bootstrap and retries preserve accounts, keys/settings and one creat
         assert.equal(await db.collection('auditlogs').countDocuments({ action: 'user.create' }), 1);
     } finally {
         await mongoose.disconnect();
-        if (mongo.exitCode === null && !spawnError) mongo.kill('SIGTERM');
-        await stopped;
+        await stopChild(mongo, stopped);
         await rm(directory, { recursive: true, force: true });
     }
+});
+
+test('aborting a stalled bootstrap child terminates it and settles the wait', { timeout: 10000 }, async () => {
+    const controller = new AbortController();
+    const child = spawn(process.execPath, ['-e', "process.on('SIGTERM', () => {}); console.log('ready'); setInterval(() => {}, 1000)"], { stdio: ['ignore', 'pipe', 'ignore'] });
+    const waiting = waitForChild(child, controller.signal);
+    await once(child.stdout, 'data');
+    controller.abort();
+    await assert.rejects(waiting, { name: 'AbortError' });
+    assert.notEqual(child.signalCode, null, 'child must be reaped before the rejected wait returns');
 });

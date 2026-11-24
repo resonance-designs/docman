@@ -1,4 +1,5 @@
 import { startNotificationWorker } from './services/notificationDeliveryService.js';
+import { startProjectTeamReconciliationWorker } from './services/projectTeamReconciliation.js';
 /*
  * @name Server Application
  * @file /docman/backend/src/server.js
@@ -140,6 +141,7 @@ const startServer = async () => {
     await initRedisProvider();
     await (await import('./models/Notification.js')).default.init();
     startNotificationWorker();
+    startProjectTeamReconciliationWorker();
 
     if (String(process.env.SEED_ON_DEPLOY || '').toLowerCase() === 'true') {
         const { runSafeSeed } = await import('./scripts/seedSafe.js');

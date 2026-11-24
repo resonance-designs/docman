@@ -25,6 +25,13 @@ const projectSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Team'
         }],
+        teamSyncRevision: { type: Number, default: 0, select: false },
+        teamSyncPending: { type: Boolean, default: false, select: false },
+        teamSyncDeleting: { type: Boolean, default: false, select: false },
+        teamSyncActor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', select: false },
+        // Retain historical candidates so a newer reconciliation fences every
+        // destination an older worker could still write after being delayed.
+        teamSyncCandidates: { type: [mongoose.Schema.Types.ObjectId], default: [], select: false },
         owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -127,6 +134,14 @@ projectSchema.virtual('progress').get(function() {
 
 // Index for efficient queries
 projectSchema.index({ teams: 1 });
+projectSchema.index({ teamSyncPending: 1, updatedAt: 1 });
+// A durably accepted deletion is invisible immediately while cleanup retries.
+projectSchema.pre(/^find/, function() { this.where({ teamSyncDeleting: { $ne: true } }); });
+projectSchema.pre('countDocuments', function() { this.where({ teamSyncDeleting: { $ne: true } }); });
+projectSchema.pre('aggregate', function() { this.pipeline().unshift({ $match: { teamSyncDeleting: { $ne: true } } }); });
+projectSchema.pre('save', function() {
+    if (!this.isNew) this.$where = { ...this.$where, teamSyncDeleting: { $ne: true } };
+});
 projectSchema.index({ owner: 1 });
 projectSchema.index({ 'collaborators.user': 1 });
 projectSchema.index({ status: 1 });

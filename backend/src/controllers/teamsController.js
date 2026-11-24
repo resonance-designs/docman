@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { tryReconcileProjectTeams } from '../services/projectTeamReconciliation.js';
 import { documentReadFilter } from '../middleware/documentAccess.js';
 import Notification from '../models/Notification.js';
 /*
@@ -303,7 +304,10 @@ export async function deleteTeam(req, res) {
             return res.status(403).json({ message: "Access denied" });
         }
 
-        await Project.updateMany({ teams: teamId }, { $pull: { teams: teamId } });
+        await Project.updateMany({ teams: teamId, teamSyncDeleting: { $ne: true } }, {
+            $pull: { teams: teamId }, $set: { teamSyncPending: true, teamSyncActor: req.user._id },
+            $inc: { teamSyncRevision: 1 }, $addToSet: { teamSyncCandidates: teamId },
+        });
         await Team.findByIdAndDelete(teamId);
 
         res.status(200).json({ message: "Team deleted successfully" });
@@ -499,7 +503,11 @@ export async function acceptInvitation(req, res) {
         }, { $push: { members: { user: user._id, role: invitation.role, joinedAt: new Date() } },
              $set: { 'invitations.$.status': 'accepted', lastUpdatedBy: user._id } }, { new: true, runValidators: true });
         if (!accepted) return res.status(409).json({ message: 'Invitation is no longer available.' });
-        await Notification.updateMany({ recipient: user._id, invitationToken: token }, { $unset: { invitationToken: 1 }, $set: { isRead: true, readAt: new Date() } });
+        try {
+            await Notification.updateMany({ recipient: user._id, invitationToken: token }, { $unset: { invitationToken: 1 }, $set: { isRead: true, readAt: new Date() } });
+        } catch {
+            console.error('Team invitation accepted; notification cleanup failed. Membership is committed.');
+        }
         res.status(200).json({ message: 'Invitation accepted successfully', teamId: team._id });
     } catch (error) {
         console.error("Error accepting invitation:", error);
@@ -1102,24 +1110,21 @@ export async function addProjectsToTeam(req, res) {
 
         // Add projects to team and team to projects
         let addedCount = 0;
+        let relationshipsPending = false;
         for (const projectId of projectIds) {
-            if (team.addProject(projectId)) {
-                addedCount++;
-                // Also add team to project
-                const project = projects.find(p => p._id.toString() === projectId);
-                if (project) {
-                    project.addTeam(teamId);
-                    await project.save();
-                }
-            }
+            const result = await Project.updateOne({ _id: projectId.toLowerCase(), teams: { $ne: teamId }, teamSyncDeleting: { $ne: true } }, {
+                $addToSet: { teams: teamId, teamSyncCandidates: teamId },
+                $inc: { teamSyncRevision: 1 }, $set: { teamSyncPending: true, teamSyncActor: currentUserId },
+            });
+            addedCount += result.modifiedCount;
+            if (result.matchedCount === 0) await scheduleTeamLinkRepair(projectId, teamId, currentUserId);
+            if (!await tryReconcileProjectTeams(projectId)) relationshipsPending = true;
         }
-
-        team.lastUpdatedBy = currentUserId;
-        await team.save();
 
         res.status(200).json({ 
             message: `${addedCount} project(s) added to team successfully`,
-            addedCount
+            addedCount,
+            relationshipsPending
         });
     } catch (error) {
         console.error("Error adding projects to team:", error);
@@ -1159,30 +1164,36 @@ export async function removeProjectsFromTeam(req, res) {
 
         // Remove projects from team and team from projects
         let removedCount = 0;
+        let relationshipsPending = false;
         for (const projectId of projectIds) {
-            if (team.removeProject(projectId)) {
-                removedCount++;
-                // Also remove team from project
-                const project = await Project.findById(projectId);
-                if (project) {
-                    project.removeTeam(teamId);
-                    await project.save();
-                }
-            }
+            const result = await Project.updateOne({ _id: projectId.toLowerCase(), teams: teamId, teamSyncDeleting: { $ne: true } }, {
+                $pull: { teams: teamId }, $addToSet: { teamSyncCandidates: teamId },
+                $inc: { teamSyncRevision: 1 }, $set: { teamSyncPending: true, teamSyncActor: currentUserId },
+            });
+            removedCount += result.modifiedCount;
+            if (result.matchedCount === 0) await scheduleTeamLinkRepair(projectId, teamId, currentUserId);
+            if (!await tryReconcileProjectTeams(projectId)) relationshipsPending = true;
         }
-
-        team.lastUpdatedBy = currentUserId;
-        await team.save();
 
         res.status(200).json({ 
             message: `${removedCount} project(s) removed from team successfully`,
-            removedCount
+            removedCount,
+            relationshipsPending
         });
     } catch (error) {
         console.error("Error removing projects from team:", error);
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
+async function scheduleTeamLinkRepair(projectId, teamId, actor) {
+    // Repair existing mismatches without changing canonical membership or reviving deletions.
+    await Project.updateOne({ _id: projectId.toLowerCase(), teamSyncDeleting: { $ne: true } }, {
+        $set: { teamSyncPending: true, teamSyncActor: actor },
+        $inc: { teamSyncRevision: 1 },
+        $addToSet: { teamSyncCandidates: teamId },
+    });
+}
+
 function projectManagementFilter(user) {
     if (user.role === 'superadmin') return {};
     const actor = user._id || user.id;

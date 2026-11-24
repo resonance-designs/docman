@@ -93,6 +93,17 @@ Silent completion is normal. Enter that path at the backup prompt. Because it is
 
 For an existing repository, use its **existing** restic password. If `/etc/docman/restic-repository` and a protected `/etc/docman/restic-password` are present, the updater offers to reuse them. Otherwise it asks for the password twice. For a new repository choose your own password of at least 18 characters and save it outside this server in your password manager. It is a restic password, not a MongoDB or DocMan account password.
 
+The interactive password prompt currently requires at least 18 characters even for an existing repository. If its existing password is shorter, keep it unchanged and use the protected password-file route:
+
+1. Run `sudo install -d -m 0700 /etc/docman`.
+2. Run `sudo nano /etc/docman/restic-repository`. Save the existing repository address on one line.
+3. Run `sudo nano /etc/docman/restic-password`. Save its existing password on one line. In Nano, press **Ctrl+O**, **Enter**, then **Ctrl+X** to save and exit. Do not paste this password into chat or a shell command.
+4. Run `sudo chown root:root /etc/docman/restic-repository /etc/docman/restic-password`, then `sudo chmod 0600 /etc/docman/restic-repository /etc/docman/restic-password`. These commands normally print nothing on success.
+5. Run `sudo stat -c '%U %G %a %n' /etc/docman/restic-repository /etc/docman/restic-password`. Expect `root root 600` for both files. Stop and fix permissions if either differs.
+6. Rerun the updater, accept the saved repository address, and answer `yes` to reuse its protected password file. Repository validation must succeed before the update proceeds.
+
+Never change an existing repository password just to satisfy the prompt.
+
 If the repository cannot be opened, initialization requires typing `INITIALIZE`. Use that only for a genuinely new/empty destination. For wrong passwords, connection errors or an existing inaccessible repository, press Enter to stop and resolve the cause. Restic refuses to initialize over an existing repository. The script checks repository integrity before downtime and again after making the snapshot.
 
 ## 5. Select the approved release and run

@@ -10,6 +10,8 @@
 import mongoose from "mongoose";
 import Doc from "../models/Doc.js";
 import File from "../models/File.js";
+import Category from "../models/Category.js";
+import { withCategoryWriteLock } from '../lib/categoryWriteLock.js';
 import { sanitizeErrorMessage, logError } from "../lib/utils.js";
 import { resetReviewAssignmentsForNewCycle, cleanupDuplicateReviewAssignments, cleanupOrphanedReviewAssignments } from "../controllers/reviewController.js";
 import { record, AUDIT_ACTIONS } from "./auditService.js";
@@ -497,7 +499,20 @@ export async function getDocumentById(documentId, user) {
  * @param {Object} user - User object
  * @returns {Promise<Object>} Created document
  */
+async function validateDocumentCategory(id) {
+    if (!mongoose.isValidObjectId(id) || !await Category.exists({ _id: id, type: 'Document' })) {
+        throw Object.assign(new Error('Invalid document category.'), { statusCode: 400 });
+    }
+}
+
 export async function createDocument(documentData, file, user, req = null) {
+    return withCategoryWriteLock(async () => {
+        await validateDocumentCategory(documentData.category);
+        return createDocumentLocked(documentData, file, user, req);
+    });
+}
+
+async function createDocumentLocked(documentData, file, user, req = null) {
     const context = req || { user };
     try {
         const parsedFields = parseDocumentFields(documentData);
@@ -567,6 +582,16 @@ export async function createDocument(documentData, file, user, req = null) {
  * @returns {Promise<Object>} Updated document
  */
 export async function updateDocument(documentId, updateData, file, user, req = null) {
+    if (Object.hasOwn(updateData, 'category')) {
+        return withCategoryWriteLock(async () => {
+            await validateDocumentCategory(updateData.category);
+            return updateDocumentLocked(documentId, updateData, file, user, req);
+        });
+    }
+    return updateDocumentLocked(documentId, updateData, file, user, req);
+}
+
+async function updateDocumentLocked(documentId, updateData, file, user, req = null) {
     const context = req || { user };
     try {
         // Get existing document and check access

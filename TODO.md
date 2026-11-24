@@ -1,5 +1,14 @@
 # DocMan
 
+## 3.0.2 — CodeRabbit fixes from PR #50
+
+- [x] Verify and implement fixes for the [42 published PR #50 findings](docs/reviews/pr-50-coderabbit-3.0.2.md): 16 inline, 2 outside-diff, and 24 minor findings. Committed in the history through `1b7dcbd`; deployment acceptance remains pending.
+- [x] Address the [eight functional PR #52 follow-ups](docs/reviews/pr-52-coderabbit-3.0.2.md), including durable project/team recovery, fail-open audit warnings, stale-session rejection, updater interruption and backup-path handling, and handoff status. Local changes and validation do not establish deployment acceptance.
+- [ ] Optional PR #52 migration optimization: use a cursor in `migrationStorage.js` rather than loading all file records at once. Deliberately excluded from the eight functional follow-up fixes.
+- [x] Address the five November 24 PR #52 follow-ups: no-op relationship repair, pending metadata status, bounded scan fairness, predicate-sensitive concurrency tests, and tokenless 401 cleanup. Local validation is recorded in the PR #52 review record; deployment remains pending.
+- [ ] Complete isolated fresh-Ubuntu/systemd/restic restore acceptance, apply the safe Apache log format on existing deployments, and run the deployed multi-user/browser/SMTP checks. Record the final fixing commit and refresh the review snapshot for any new CodeRabbit rounds before release.
+- [ ] Repair the pre-existing legacy `services/documentService.test.js` expectations/mocks and `docs.test.js` ESM harness. Their failures reproduce on pristine HEAD; 207 targeted backend tests pass for the PR #50 fixes, but the full legacy suite is not green.
+
 - [x] Fix shared mobile header at 375px: compact labeled account actions, verified with a browser fixture.
 - [ ] Run live multi-user acceptance for Categories, Books, Teams and Projects using `docs/resource-management.md`; local fixture review does not verify database writes or mail delivery.
 
@@ -76,161 +85,161 @@ The current Vue shell has a fixed navigation drawer, wordmark, and configured Vu
 
 Retain earlier completion notes as history; validate remaining work against the current Vue application before implementation. The current priorities above supersede conflicting historical behavior.
 
-1. Authentication implementation history — security verification remains open in the current checklist above.
-   1. ~~JWT authentication system~~
-      1. ~~Check that there is email format, username length, password complexity, regex validation, etc...~~
-      2. ~~Check that there are no issues with the inactivity/auto-logout functionality~~
-      3. ~~Check that nothing is interfering with the token expiry~~
-   2. ~~Email notifications~~
-      1. ~~User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation, like if they are a stakeholder, owner, author, etc...~~
-   3. ~~Restrict rate-limiting per IP/User and apply rate-limiting where relevant~~
-2. Enhance CreateDocPage by adding a field for the documents review to be marked as complete -- NEED TO TEST
-   1. This field should only be visible to the owners and authors of the document -- NEED TO TEST
-   2. This field should only be visible when the document is open for review -- NEED TO TEST
-   3. Should include a hidden field that tracks the date the review was completed -- NEED TO TEST
-   4. Should include a hidden field that tracks who marked the review as complete -- NEED TO TEST
-   5. In fact, there should be a field in all forms to track who last updated anything
-3. Scheduling -- NEED TO TEST
-   1. Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review. -- NEED TO TEST
-      1. They should get notice 1 week prior to it opening for review with a calendar reminder file attached -- NEED TO TEST
-      2. Setup a weekly alert until the review is marked as complete. -- NEED TO TEST
-   2. Can set review deadlines -- NEED TO TEST
-   3. If review determines updates are needed, can assign to authors and contributors. -- NEED TO TEST
-4. ~~Versioning System~~
-   1. ~~Users should be able to upload new versions of the document~~
-   2. ~~Users should be able to view previous versions of the document~~
-   3. ~~Users should be able to download previous versions of the document~~
-   4. Users should be able to compare previous versions of the document -- NEED TO TEST
-   5. Users should be able to view the change log for the document -- NEED TO TEST
-5. ~~On the ViewDocPage, add a download button to download a calendar event for the date that a document is up for review~~
-6. ~~External Contacts in CreateDocPage~~
-   1. ~~Ability to add as many external contacts as needed. Each external contact should have a name, email, phone number, and type (which should be a dropdown).~~
-   2. ~~The types should be stored in a collection~~
-   3. ~~There should be an admin page to manage the types of external contacts.~~
-7. Historical theme switcher — see the current Vue customization backlog above.
-   1. ~~One theme is the current theme~~
-   2. ~~One is a clean business theme~~
-   3. ~~And the third is a retro gaming theme~~
-   4. ~~Users should be able to select their preferred theme in their profile~~
-8. ~~Internal notification and messaging system~~
-   1. ~~Be able to invite members already in the system to teams through it's internal messaging and notification system.~~
-   2. ~~User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.~~
-9. ~~Universal helper and debugging functions for the frontend and backend~~
-   ~~1.  Should be named globalUtils.js~~
-   ~~1.  Can be used anywhere~~
-   ~~2.  Are made available across the entire project~~
-   ~~3.  Can be used for debugging, logging, handling simple yet redundant tasks, etc...~~
-   ~~4.  Can turn on or off the debugging with a debug flag~~
-   ~~5.  Should be able to log to the console, a file, or a database~~
-   ~~6.  Should be able to log errors, warnings, info, debug, etc...~~
-10. Reconcile endpoint test coverage with current routes; earlier test additions do not demonstrate complete coverage.
-11. ~~Add informational and usage comments throughout the frontend code~~
-12. ~~Add informational and usage comments throughout the backend code~~
-13. ~~Make certain comments dynamic somehow~~
-14. ~~Add the functionality to add "Books" to the site that contain multiple chapters/documents~~
-15. ~~Modify the CreateBooksPage so that the only things collected are title, description, category, documents, owners, lastUpdatedBy, and the timestamps.~~
-16. Add a PaginatedBookTable component that uses the same design patterns and styling as used in the PaginatedDocTable component and use it in the ViewBooksPage.
-17. Add the FilterBar component to the ViewBooksPage that allows the user to search and filter the books by category, and owners.
-18. ~~In Teams and Projects, add the functionality to add Books and Documents:~~
-    1. ~~Add a tab to the tab menu of the Teams details page and the Projects details page called "Books".~~
-       1. ~~In this tab, there should be a header that says "Team Books" and then present a table of all the books that are currently assigned to the team.~~
-          1. ~~This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and ungroup them from the current team. There should be a button to ungroup all the selected books from the current team under the table.~~
-       2. ~~Below that there should be another header that says "Add Books" and then present a table of all the books that are not currently assigned to the team.~~
-          1. ~~This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and group them to the current team. There should be a button to group all the selected books to the current team under the table.~~
-    2. ~~Add a tab to the tab menu of the Teams details page and the Projects details page called "Documents".~~
-       1. ~~In this tab, there should be a header that says "Team Documents" and then present a table of all the documents that are currently assigned to the team.~~
-          1. ~~This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and ungroup them from the current team. There should be a button to ungroup all the selected documents from the current team under the table.~~
-       2. ~~Below that there should be another header that says "Add Documents" and then present a table of all the documents that are not currently assigned to the team.~~
-          1. ~~This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and group them to the current team. There should be a button to group all the selected documents to the current team under the table.~~
-19. ~~The Members tab in the tab menu of the Teams details page does not currently function. Create a view for it to display all users in the Team.~~
-20. ~~The Projects details page does not have a Collaborators tab in the tab menu. Create one and create a view for it to display all collaborators of the Project.~~
-21. ~~In the SystemInfoPage, add a "Danger Zone" section at the bottom that has buttons to clear the following collections:~~
-    1. ~~Clear Books~~
-       1. ~~Copy all books to a collection called "archives_books". Then delete the books from the main collection.~~
-    2. ~~Clear Documents~~
-       1. ~~Copy all documents to a collection called "archives_documents". Then delete the documents from the main collection.~~
-    3. ~~Clear Charts~~
-       1. ~~Copy all charts to a collection called "archives_charts". Then delete the charts from the main collection.~~
-    4. ~~Clear External Contacts~~
-       1. ~~Copy all external contacts to a collection called "archives_external_contacts". Then delete the external contacts from the main collection.~~
-    5. ~~Clear External Contact Types~~
-       1. ~~Copy all external contact types to a collection called "archives_external_contact_types". Then delete the external contact types from the main collection.~~
-    6. ~~Clear Files~~
-       1. ~~Copy all files to a collection called "archives_files". Then delete the files from the main collection.~~
-    7. ~~Clear Notifications~~
-       1. ~~Copy all notifications to a collection called "archives_notifications". Then delete the notifications from the main collection.~~
-    8. ~~Clear Projects~~
-       1. ~~Copy all projects to a collection called "archives_projects". Then delete the projects from the main collection.~~
-    9. ~~Clear Reviews~~
-       1. ~~Copy all reviews to a collection called "archives_reviews". Then delete the reviews from the main collection.~~
-    10. ~~Clear Review Assignments~~
-    11. ~~Copy all review assignments to a collection called "archives_review_assignments". Then delete the review assignments from the main collection.~~
-    12. ~~Clear Reviews~~
-    13. ~~Copy all reviews to a collection called "archives_reviews". Then delete the reviews from the main collection.~~
-    14. ~~Clear Teams~~
-    15. ~~Copy all teams to a collection called "archives_teams". Then delete the teams from the main collection.~~
-    16. ~~Clear Users~~
-    17. ~~Copy all users to a collection called "archives_users". Then delete the users from the main collection.~~
-    18. ~~Add a button to Delete all the files in the uploads directory.~~
-        1. ~~Instead of actually deleting the files, move them to an archive directory.~~
-    19. ~~Have a confirmation modal before each action.~~
-    20. ~~Have a button to restore all the collections from the archive collections back to the main collections.~~
-    21. ~~Have a button to restore all the files from the archive directory back to the uploads directory.~~
-    22. ~~Have buttons to generate dummy data~~
-22. Review idle and absolute session lifetimes with agency requirements; the historical five-day inactivity request is not an approved production policy.
-23. ~~Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc~~
-24. ~~A script to rewrite test scripts when to make sure the tests still work correctly with any updates since the tests were written.~~
-25. ~~Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" in the Projects and Teams pages actually do something.~~
-26. Update user-levels/roles logic. -- NEED TO TEST
-    1. We are going to introduce a new role, "Super Admin" (represented as "superadmin" in the Model/DB).
-    2. Access/Restrictions to resources in the app, among the currently established roles remains the same, except we are going to take away the following for regular "Admins":
-       1. The "Danger Zone" section in the SystemInfoPage.
-       2. The ability to edit other users profiles at all.
-       3. The ability to delete other users.
-       4. The ability to manage all teams and projects.
-       5. The ability to mange specific teams and projects, unless they are an owner of the team or project.
-       6. Superseded: only superadmins may create/manage accounts; regular admins must be denied by the API as well as the UI.
-    3. Verify the current role/resource permission matrix; do not assume association with a resource grants unrestricted editing or bypasses approval rules.
-    4. Stakeholders and review assignees can only view/download the documents they are assigned to unless they are also marked as an author or owner of the document as well.
-    5. Verify superadmin administration permissions and account protections; privileged roles must still obey validation, audit, and applicable approval safeguards.
-    6. ~~Make sure to update the role of the user with resonance.designs.com@gmail.com to superadmin.~~
-27. ~~Clean up the whole "review date" thing. Right now there are multiple review date fields and it's confusing.~~
-    1. ~~Ditch the "Review Date" field.~~
-    2. ~~Change the "Opens For Review" field so that the date-picker can not go to the past.~~
-    3. ~~Under the "Opens For Review" field, add a new field called "Review Interval" that is a dropdown of options in periods of time (monthly, quarterly, semiannually, and annually) and also a custom interval option that exposes a number input field. This field should be in days and excepts a number of days. This field should take the value of the "Opens For Review" field and then add the interval to it. So if someone sets the "Opens For Review" field to today and selects monthly, the "Review Interval" field will automatically calculate what the next review date should be.~~
-    4. ~~When creating a new document, the default value for the "Review Interval" field should be quarterly.~~
-    5. ~~When editing a document, the default value for the "Review Interval" field should be whatever is currently set in the DB.~~
-    6. ~~When viewing a document, the "Review Interval" field should be disabled and read-only.~~
-    7. ~~Under the "Review Interval" field, add a new field called "Review Period" that sets the time-frame (one week, two weeks, three weeks, and a month) that review assignees have to review the document. When the review date comes around, the review assignee will receive a notification and an email with a link to the document, a calendar event attachment with the review date and the due-date (calculated by the "Review Period" field) for completing the review.~~
-    8. ~~Under the "Review Period" field, add a new field called "Last Reviewed On" that is disabled and read-only. This field should be populated with the date the review was completed.~~
-    9. ~~Under the "Last Reviewed" field, add a new field called "Next Review Due On" that is disabled and read-only. This field should be populated with the calculated date from the "Review Interval" field.~~
-    10. ~~When creating a new document, the default value for the "Last Reviewed On" field should be null.~~
-    11. ~~When viewing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.~~
-    12. ~~When editing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.~~
-    13. ~~When creating a new document, the default value for the "Next Review Due On" field should be null.~~
-    14. ~~When a review is marked as completed, the next review date should be calculated by the "Review Interval" field against the date the review was completed.~~
-28. Public self-registration is deferred and must remain disabled. Superadmin account-management UI/API is implemented; verify the latest build is published and functional on the NMDOH server.
-29. Add a "Create Document" button on the home page visible to those with roles that allow them to create documents that takes them directly to the CreateDocPage.
-30. Review/adapt the existing `.github/workflows/deploy.yml` and `scripts/apache_production_deploy.sh` for the intended deployment target; do not assume the Linode workflow can reach the internal NMDOH server.
-    1. Use a controlled release trigger, preserve environment files and uploaded data, install locked dependencies when needed, and build `frontend-vue`.
-    2. Publish the verified `frontend-vue/dist/` output to the configured Apache document root, restart the backend when needed, and perform health/login checks. Follow the canonical Ubuntu guide rather than the removed legacy React paths.
-    3. Include backups, migration ordering, rollback, deployment permissions, and a recoverable failure path; a full server reboot is not a normal application update step.
-31. Define agency-approved document classifications and enforce their corresponding access, sharing, retention, and handling rules. Labels alone do not enforce security; do not introduce unsupported government classification claims or anonymous access.
-32. Check that the app works using MongoDB Atlas
-33. Develop a short-code system to embed custom charts built with CustomChartsPage.
-34. Add search/filters to ViewCatsPage.
-    1. ViewCatsPage should be searchable by name and type.
-    2. ViewCatsPage should be filterable by type.
-    3. ViewCatsPage should have be able to sort by name, type, and created in the PaginatedCatTable component.
-35. Theme work is tracked in the current Vue theming/customization checklist above.
-36. Make sure header comments and JSDoc comments are added to all files.
-37. Cleanup and compartmentalize the code as much as possible.
-38. Security review is tracked in the current security/production-readiness checklist above.
-39. Soft deletion/restoration already exists. Verify deployed access restrictions, related file/history retention, restoration, and eventual purge policy rather than introducing a competing temporary-collection design.
-40. ~~Create a branch with local storage for data and bundle into an Electron app for desktop use~~
-41. Deferred exploratory fork: Docker/Kubernetes hosting. The current deployment remains native Ubuntu; do not introduce containers into this POC.
-42. Create another fork with a mobile app for iOS and Android
-43. Create another fork for the purpose of refactoring into a Recipes MERN app
+- [ ] Authentication implementation history — security verification remains open in the current checklist above.
+  - [x] JWT authentication system
+    - [x] Check that there is email format, username length, password complexity, regex validation, etc...
+    - [x] Check that there are no issues with the inactivity/auto-logout functionality
+    - [x] Check that nothing is interfering with the token expiry
+  - [x] Email notifications
+    - [x] User can chose to be notified on certain things. Some things are mandatory based on their association with the documentation, like if they are a stakeholder, owner, author, etc...
+  - [x] Restrict rate-limiting per IP/User and apply rate-limiting where relevant
+- [ ] Enhance CreateDocPage by adding a field for the documents review to be marked as complete -- NEED TO TEST
+  - [ ] This field should only be visible to the owners and authors of the document -- NEED TO TEST
+  - [ ] This field should only be visible when the document is open for review -- NEED TO TEST
+  - [ ] Should include a hidden field that tracks the date the review was completed -- NEED TO TEST
+  - [ ] Should include a hidden field that tracks who marked the review as complete -- NEED TO TEST
+  - [ ] In fact, there should be a field in all forms to track who last updated anything
+- [ ] Scheduling -- NEED TO TEST
+  - [ ] Authors, contributors, and stake-holders can be scheduled to review documentation based on when the document becomes open for review. -- NEED TO TEST
+    - [ ] They should get notice 1 week prior to it opening for review with a calendar reminder file attached -- NEED TO TEST
+    - [ ] Setup a weekly alert until the review is marked as complete. -- NEED TO TEST
+  - [ ] Can set review deadlines -- NEED TO TEST
+  - [ ] If review determines updates are needed, can assign to authors and contributors. -- NEED TO TEST
+- [x] Versioning System~~
+  - [x] Users should be able to upload new versions of the document
+  - [x] Users should be able to view previous versions of the document
+  - [x] Users should be able to download previous versions of the document
+  - [ ] Users should be able to compare previous versions of the document -- NEED TO TEST
+  - [ ] Users should be able to view the change log for the document -- NEED TO TEST
+- [x] On the ViewDocPage, add a download button to download a calendar event for the date that a document is up for review
+- [x] External Contacts in CreateDocPage
+  - [x] Ability to add as many external contacts as needed. Each external contact should have a name, email, phone number, and type (which should be a dropdown).
+  - [x] The types should be stored in a collection
+  - [x] There should be an admin page to manage the types of external contacts.
+- [x] Historical theme switcher — see the current Vue customization backlog above.
+  - [x] One theme is the current theme
+  - [x] One is a clean business theme
+  - [x] And the third is a retro gaming theme
+  - [x] Users should be able to select their preferred theme in their profile
+- [x] Internal notification and messaging system
+  - [x] Be able to invite members already in the system to teams through it's internal messaging and notification system.
+  - [x] User will get a notification inside the system if a document is assigned to them in any way or if a document that are attached to is coming up for review.
+- [x] Universal helper and debugging functions for the frontend and backend~~
+  - [x] Should be named globalUtils.js
+  - [x] Can be used anywhere
+  - [x] Are made available across the entire project
+  - [x] Can be used for debugging, logging, handling simple yet redundant tasks, etc...
+  - [x] Can turn on or off the debugging with a debug flag
+  - [x] Should be able to log to the console, a file, or a database
+  - [x] Should be able to log errors, warnings, info, debug, etc...
+- [ ] Reconcile endpoint test coverage with current routes; earlier test additions do not demonstrate complete coverage.
+- [x] Add informational and usage comments throughout the frontend code
+- [x] Add informational and usage comments throughout the backend code
+- [x] Make certain comments dynamic somehow
+- [x] Add the functionality to add "Books" to the site that contain multiple chapters/documents
+- [x] Modify the CreateBooksPage so that the only things collected are title, description, category, documents, owners, lastUpdatedBy, and the timestamps.
+- [x] Add a PaginatedBookTable component that uses the same design patterns and styling as used in the PaginatedDocTable component and use it in the ViewBooksPage.
+- [x] Add the FilterBar component to the ViewBooksPage that allows the user to search and filter the books by category, and owners.
+- [x] In Teams and Projects, add the functionality to add Books and Documents:
+  - [x] Add a tab to the tab menu of the Teams details page and the Projects details page called "Books".
+    - [x] In this tab, there should be a header that says "Team Books" and then present a table of all the books that are currently assigned to the team.
+      - [x] This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and ungroup them from the current team. There should be a button to ungroup all the selected books from the current team under the table.
+      - [x] Below that there should be another header that says "Add Books" and then present a table of all the books that are not currently assigned to the team.
+      - [x] This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select books and group them to the current team. There should be a button to group all the selected books to the current team under the table.
+  - [x] Add a tab to the tab menu of the Teams details page and the Projects details page called "Documents".
+    - [x] In this tab, there should be a header that says "Team Documents" and then present a table of all the documents that are currently assigned to the team.
+      - [x] This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and ungroup them from the current team. There should be a button to ungroup all the selected documents from the current team under the table.
+      - [x] Below that there should be another header that says "Add Documents" and then present a table of all the documents that are not currently assigned to the team.
+      - [x] This table should have the same design patterns and styling as used in the PaginatedDocTable component but instead of view/delete actions, it should have a checkbox to select documents and group them to the current team. There should be a button to group all the selected documents to the current team under the table.
+- [x] The Members tab in the tab menu of the Teams details page does not currently function. Create a view for it to display all users in the Team.
+- [x] The Projects details page does not have a Collaborators tab in the tab menu. Create one and create a view for it to display all collaborators of the Project.
+- [x] In the SystemInfoPage, add a "Danger Zone" section at the bottom that has buttons to clear the following collections:
+  - [x] Clear Books
+    - [x] Copy all books to a collection called "archives_books". Then delete the books from the main collection.
+  - [x] Clear Documents
+    - [x] Copy all documents to a collection called "archives_documents". Then delete the documents from the main collection.
+  - [x] Clear Charts
+    - [x] Copy all charts to a collection called "archives_charts". Then delete the charts from the main collection.
+    - [x] Clear External Contacts
+      - [x] Copy all external contacts to a collection called "archives_external_contacts". Then delete the external contacts from the main collection.
+    - [x] Clear External Contact Types
+      - [x] Copy all external contact types to a collection called "archives_external_contact_types". Then delete the external contact types from the main collection.
+    - [x] Clear Files
+      - [x] Copy all files to a collection called "archives_files". Then delete the files from the main collection.
+    - [x] Clear Notifications
+      - [x] Copy all notifications to a collection called "archives_notifications". Then delete the notifications from the main collection.
+    - [x] Clear Projects
+      - [x] Copy all projects to a collection called "archives_projects". Then delete the projects from the main collection.
+    - [x] Clear Reviews
+      - [x] Copy all reviews to a collection called "archives_reviews". Then delete the reviews from the main collection.
+    - [x] Clear Review Assignments
+    - [x] Copy all review assignments to a collection called "archives_review_assignments". Then delete the review assignments from the main collection.
+    - [x] Clear Reviews
+    - [x] Copy all reviews to a collection called "archives_reviews". Then delete the reviews from the main collection.
+    - [x] Clear Teams
+    - [x] Copy all teams to a collection called "archives_teams". Then delete the teams from the main collection.
+    - [x] Clear Users
+    - [x] Copy all users to a collection called "archives_users". Then delete the users from the main collection.
+    - [x] Add a button to Delete all the files in the uploads directory.
+      - [x] Instead of actually deleting the files, move them to an archive directory.
+    - [x] Have a confirmation modal before each action.
+    - [x] Have a button to restore all the collections from the archive collections back to the main collections.
+    - [x] Have a button to restore all the files from the archive directory back to the uploads directory.
+    - [x] Have buttons to generate dummy data
+- [ ] Review idle and absolute session lifetimes with agency requirements; the historical five-day inactivity request is not an approved production policy.
+- [ ] Use modal confirmations instead of the browser's native alerts, !window.confirm like confirmation of deletions, etc
+- [ ] A script to rewrite test scripts when to make sure the tests still work correctly with any updates since the tests were written.
+- [ ] Make it so that the "Manage All Teams", "Team Settings", "Manage All Projects", and "Project Settings" in the Projects and Teams pages actually do something.
+- [ ] Update user-levels/roles logic. -- NEED TO TEST
+  - [ ] We are going to introduce a new role, "Super Admin" (represented as "superadmin" in the Model/DB).
+  - [ ] Access/Restrictions to resources in the app, among the currently established roles remains the same, except we are going to take away the following for regular "Admins":
+    - [ ] The "Danger Zone" section in the SystemInfoPage.
+    - [ ] The ability to edit other users profiles at all.
+    - [ ] The ability to delete other users.
+    - [ ] The ability to manage all teams and projects.
+    - [ ] The ability to mange specific teams and projects, unless they are an owner of the team or project.
+    - [ ] Superseded: only superadmins may create/manage accounts; regular admins must be denied by the API as well as the UI.
+  - [ ] Verify the current role/resource permission matrix; do not assume association with a resource grants unrestricted editing or bypasses approval rules.
+  - [ ] Stakeholders and review assignees can only view/download the documents they are assigned to unless they are also marked as an author or owner of the document as well.
+  - [ ] Verify superadmin administration permissions and account protections; privileged roles must still obey validation, audit, and applicable approval safeguards.
+  - [x] Make sure to update the role of the user with resonance.designs.com@gmail.com to superadmin.
+- [x] Clean up the whole "review date" thing. Right now there are multiple review date fields and it's confusing.
+  - [x] Ditch the "Review Date" field.
+  - [x] Change the "Opens For Review" field so that the date-picker can not go to the past.
+  - [x] Under the "Opens For Review" field, add a new field called "Review Interval" that is a dropdown of options in periods of time (monthly, quarterly, semiannually, and annually) and also a custom interval option that exposes a number input field. This field should be in days and excepts a number of days. This field should take the value of the "Opens For Review" field and then add the interval to it. So if someone sets the "Opens For Review" field to today and selects monthly, the "Review Interval" field will automatically calculate what the next review date should be.
+  - [x] When creating a new document, the default value for the "Review Interval" field should be quarterly.
+  - [x] When editing a document, the default value for the "Review Interval" field should be whatever is currently set in the DB.
+  - [x] When viewing a document, the "Review Interval" field should be disabled and read-only.
+  - [x] Under the "Review Interval" field, add a new field called "Review Period" that sets the time-frame (one week, two weeks, three weeks, and a month) that review assignees have to review the document. When the review date comes around, the review assignee will receive a notification and an email with a link to the document, a calendar event attachment with the review date and the due-date (calculated by the "Review Period" field) for completing the review.
+  - [x] Under the "Review Period" field, add a new field called "Last Reviewed On" that is disabled and read-only. This field should be populated with the date the review was completed.
+  - [x] Under the "Last Reviewed" field, add a new field called "Next Review Due On" that is disabled and read-only. This field should be populated with the calculated date from the "Review Interval" field.
+  - [x] When creating a new document, the default value for the "Last Reviewed On" field should be null.
+  - [x] When viewing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.
+  - [x] When editing a document, the "Last Reviewed On" and "Next Review Due On" fields should be disabled and read-only.
+  - [x] When creating a new document, the default value for the "Next Review Due On" field should be null.
+  - [x] When a review is marked as completed, the next review date should be calculated by the "Review Interval" field against the date the review was completed.
+- [ ] Public self-registration is deferred and must remain disabled. Superadmin account-management UI/API is implemented; verify the latest build is published and functional on the NMDOH server.
+- [ ] Add a "Create Document" button on the home page visible to those with roles that allow them to create documents that takes them directly to the CreateDocPage.
+- [ ] Review/adapt the existing `.github/workflows/deploy.yml` and `scripts/apache_production_deploy.sh` for the intended deployment target; do not assume the Linode workflow can reach the internal NMDOH server.
+  - [ ] Use a controlled release trigger, preserve environment files and uploaded data, install locked dependencies when needed, and build `frontend-vue`.
+  - [ ] Publish the verified `frontend-vue/dist/` output to the configured Apache document root, restart the backend when needed, and perform health/login checks. Follow the canonical Ubuntu guide rather than the removed legacy React paths.
+  - [ ] Include backups, migration ordering, rollback, deployment permissions, and a recoverable failure path; a full server reboot is not a normal application update step.
+- [ ] Define agency-approved document classifications and enforce their corresponding access, sharing, retention, and handling rules. Labels alone do not enforce security; do not introduce unsupported government classification claims or anonymous access.
+- [ ] Check that the app works using MongoDB Atlas
+- [ ] Develop a short-code system to embed custom charts built with CustomChartsPage.
+- [ ] Add search/filters to ViewCatsPage.
+  - [ ] ViewCatsPage should be searchable by name and type.
+  - [ ] ViewCatsPage should be filterable by type.
+  - [ ] ViewCatsPage should have be able to sort by name, type, and created in the PaginatedCatTable component.
+- [ ] Theme work is tracked in the current Vue theming/customization checklist above.
+- [ ] Make sure header comments and JSDoc comments are added to all files.
+- [ ] Cleanup and compartmentalize the code as much as possible.
+- [ ] Security review is tracked in the current security/production-readiness checklist above.
+- [ ] Soft deletion/restoration already exists. Verify deployed access restrictions, related file/history retention, restoration, and eventual purge policy rather than introducing a competing temporary-collection design.
+- [x] Create a branch with local storage for data and bundle into an Electron app for desktop use
+- [ ] Deferred exploratory fork: Docker/Kubernetes hosting. The current deployment remains native Ubuntu; do not introduce containers into this POC.
+- [ ] Create another fork with a mobile app for iOS and Android
+- [ ] Create another fork for the purpose of refactoring into a Recipes MERN app
 
 ## Remaining authentication UX follow-up
 
