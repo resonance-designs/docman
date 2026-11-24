@@ -1,5 +1,10 @@
 # DocMan
 
+## Web updater acceptance
+
+- [x] Implement superadmin stable-release discovery, interactive update/backup prompts, restricted privileged broker and independent read-only progress. See [setup and testing boundaries](docs/deployment/web-updates.md).
+- [ ] Validate on disposable Ubuntu with real systemd/Apache: helper setup, authorization, GitHub access, LOCAL/SAVED backups, cancellation and timeout, page refresh during downtime, successful update, post-mutation failure/recovery, helper restart interruption, and matching backup restore. Then record NMDOH acceptance separately.
+
 ## 3.0.2 — CodeRabbit fixes from PR #50
 
 - [x] Verify and implement fixes for the [42 published PR #50 findings](docs/reviews/pr-50-coderabbit-3.0.2.md): 16 inline, 2 outside-diff, and 24 minor findings. Committed in the history through `1b7dcbd`; deployment acceptance remains pending.

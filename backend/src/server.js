@@ -1,4 +1,5 @@
 import { startNotificationWorker } from './services/notificationDeliveryService.js';
+import softwareUpdateRoutes from './routes/softwareUpdateRoutes.js';
 import { startProjectTeamReconciliationWorker } from './services/projectTeamReconciliation.js';
 /*
  * @name Server Application
@@ -100,6 +101,7 @@ app.use("/api/books", booksRoutes); // Declare books endpoints
 app.use("/api/teams", teamsRoutes); // Declare teams endpoints
 app.use("/api/projects", projectsRoutes); // Declare projects endpoints
 app.use("/api/system", systemRoutes); // Declare system endpoints
+app.use('/api/software-updates', softwareUpdateRoutes);
 app.use("/api/analytics", analyticsRoutes); // Declare analytics endpoints
 app.use("/api/custom-charts", customChartsRoutes); // Declare custom charts endpoints
 app.use("/api/reviews", reviewRoutes); // Declare review endpoints

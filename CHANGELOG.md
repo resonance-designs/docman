@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [3.0.3] - 2026-11-24
+
+### Added
+
+- Add a superadmin-only Software updates panel for newer stable GitHub tags, pinned release selection, interactive confirmations/encrypted backup prompts, and progress through backend downtime. Reuse CLI update safety checks and recovery behavior through a separately installed root-owned broker with restricted control and read-only progress sockets.
+- Add one-time Ubuntu helper/Apache setup, web-update operations and recovery guidance, and focused API, broker, prompt, progress and frontend tests. Full Ubuntu end-to-end update/restore acceptance remains pending.
+
+### Documentation
+
+- Document recovery for a missing GitHub Pages site and the separate Render dashboard actions required to disable automatic deployment and retire an existing service.
+
+## [3.0.2] - 2026-11-24
 
 ### Documentation
 

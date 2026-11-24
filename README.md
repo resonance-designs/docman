@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-3.0.2-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.2-green)
+![Static Badge](https://img.shields.io/badge/Version-3.0.3-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.3-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -237,6 +237,8 @@ The existing React frontend should remain intact until the Vue/Vuetify frontend 
 ## ⚙️ Production Deployment & Update Scripts
 
 Maintainers should read the [Release and Deployment Maintainer Guide](./docs/RELEASE_AND_DEPLOYMENT.md) before cutting release branches, operating self-hosted servers, or changing deployment automation.
+
+Superadmins can use **System settings → Software updates** to select newer stable GitHub tags and complete interactive updates with encrypted backups. This requires [one-time server setup](docs/deployment/web-updates.md) for a restricted privileged helper; progress remains available while the backend restarts. Existing servers must first receive this feature through the CLI updater. Full Ubuntu update/restore acceptance remains pending.
 
 DocMan includes three scripts to manage deployment and updates on a production Apache server.
 
