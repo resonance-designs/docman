@@ -82,6 +82,7 @@
       </v-col>
     </v-row>
     <AccountSettingsCard v-if="isSuperadmin" />
+    <SoftwareUpdatesCard v-if="isSuperadmin" />
     <StorageSettingsCard v-if="isSuperadmin" />
     <EmailSettingsCard v-if="isSuperadmin" />
     <NotificationSettingsCard v-if="isSuperadmin" />
@@ -90,6 +91,7 @@
 </template>
 
 <script setup>
+import SoftwareUpdatesCard from '@/components/admin/SoftwareUpdatesCard.vue';
 import PublicSharingSettingsCard from '@/components/admin/PublicSharingSettingsCard.vue';
 import NotificationSettingsCard from '@/components/admin/NotificationSettingsCard.vue';
 import AccountSettingsCard from '@/components/admin/AccountSettingsCard.vue';

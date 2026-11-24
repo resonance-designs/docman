@@ -1,5 +1,7 @@
 # Update an existing DocMan server with update.sh
 
+For the optional superadmin frontend, see [Update DocMan from System settings](web-updates.md). It uses this same runner and backup/recovery rules, with a one-time operator-installed privileged helper; an older deployment must receive the feature through this CLI procedure first.
+
 `update.sh` updates the documented native-service deployment on **Ubuntu 26.04 LTS**. It supports both the manually installed NMDOH layout and the layout produced by `install.sh`. It builds the selected release before downtime, makes an encrypted backup while writers are stopped, applies migrations, publishes Vue, restarts the backend and checks HTTPS.
 
 **Validation:** local safety tests and syntax checks pass. A real disposable-MongoDB/restic integration test recovered the backed-up database, uploaded bytes, frontend and original Git commit, and confirmed private environment/password files were excluded. Full update/reboot/failure-recovery acceptance on a disposable Ubuntu 26.04 VM is still required. Do not describe local tests as proof that NMDOH has been updated. The [NMDOH execution record](nmdoh-poc-validation.md) tracks that deployment separately.

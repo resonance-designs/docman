@@ -179,6 +179,12 @@ docs-site/
 
 The workflow at `.github/workflows/docs-site-pages.yml` builds that Docusaurus site and publishes it to GitHub Pages. In repository settings, configure Pages to use **GitHub Actions** as the source.
 
+If **Setup Pages** fails with `Get Pages site failed` / `Not Found`, open the repository's **Settings → Pages**, select **GitHub Actions** under **Build and deployment → Source**, then rerun the failed workflow. The workflow's `pages: write` permission does not itself create a missing Pages site. Confirm both the build and deploy jobs succeed and open `https://resonance-designs.github.io/docman/`. A successful local documentation build alone does not confirm publication.
+
+### Retired external deployment services
+
+Removing Render configuration from Git does not disable an existing Render service's Git integration. In that service's Render dashboard, open **Settings**, set **Auto-Deploy** to **Off**, and save. Verify the saved setting. This stops automatic deployments, but does not stop existing running instances or their failure alerts. Suspend the retired service separately; delete it only after confirming any data or configuration that must be retained has been preserved. Do not remove an organization-wide GitHub integration if other services still need it. See [Render's auto-deploy documentation](https://render.com/docs/deploys).
+
 ## Linode Deployment Notes
 
 The Linode deployment should preserve the distinction between:
