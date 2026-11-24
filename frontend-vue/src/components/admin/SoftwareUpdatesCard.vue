@@ -53,10 +53,16 @@ const recoveryRequired=computed(()=>['interrupted','recovery-required'].includes
 const headers=[{title:'Release',key:'tag'},{title:'Commit',key:'commit'},{title:'',key:'action',sortable:false}];
 const ticketKey=getStorageKey('update-progress-ticket');
 let ticket=sessionStorage.getItem(ticketKey) || '', timer, disposed=false;
+let controlEpoch=0, controls=0, stateRevision=0;
+async function control(request){
+  controls++;controlEpoch++;
+  try{return await request();}finally{controls--;}
+}
 if(ticket)job.value={status:'running',stage:'Reconnecting to updater'};
 const failure=e=>e.response?.data?.message || 'Could not contact the updater. Ask the server operator to verify one-time setup.';
 function accept(data) {
   if(disposed)return;
+  stateRevision++;
   if(data.ticket){ticket=data.ticket;sessionStorage.setItem(ticketKey,ticket);}
   if(job.value.prompt?.id!==data.prompt?.id)answer.value='';
   job.value=data;connectionLost.value=false;
@@ -70,29 +76,36 @@ async function start(){
     if(!probe.ok)throw new Error('Progress route unavailable');
     const progress=await probe.json();
     if(typeof progress.status!=='string')throw new Error('Progress route is not configured');
-    const {data}=await api.post('/software-updates/start',{tag:selected.value.tag,commit:selected.value.commit});accept(data);confirm.value=false;
+    const {data}=await control(()=>api.post('/software-updates/start',{tag:selected.value.tag,commit:selected.value.commit}));accept(data);confirm.value=false;
   }
   catch(e){error.value=failure(e);await resume();}finally{sending.value=false;}
 }
 async function answerPrompt(){
   const promptId=job.value.prompt.id;const value=answer.value;answer.value='';sending.value=true;error.value='';
-  try{const {data}=await api.post('/software-updates/answer',{promptId,answer:value});accept(data);}
+  try{const {data}=await control(()=>api.post('/software-updates/answer',{promptId,answer:value}));accept(data);}
   catch(e){error.value=failure(e);}finally{sending.value=false;}
 }
-async function cancel(){sending.value=true;try{accept((await api.post('/software-updates/cancel')).data);}catch(e){error.value=failure(e);}finally{sending.value=false;}}
-async function resume(){try{accept((await api.get('/software-updates/status')).data);}catch(e){error.value=failure(e);}}
+async function cancel(){sending.value=true;try{accept((await control(()=>api.post('/software-updates/cancel'))).data);}catch(e){error.value=failure(e);}finally{sending.value=false;}}
+async function resume(){
+  // Read-only recovery must not block saved-ticket polling during backend downtime.
+  const epoch=++controlEpoch, revision=stateRevision;
+  try{const {data}=await api.get('/software-updates/status');if(epoch===controlEpoch && revision===stateRevision)accept(data);}
+  catch(e){if(!disposed && epoch===controlEpoch && revision===stateRevision)error.value=failure(e);}
+}
 async function poll(){
+  const epoch=controlEpoch;
   try{
-    if(ticket && busy.value){
+    if(ticket && busy.value && controls===0){
       // Separate read-only socket survives backend shutdown; never use the auth interceptor here.
       const response=await fetch('/_docman-update/status',{headers:{Authorization:`Bearer ${ticket}`},cache:'no-store',signal:AbortSignal.timeout(15000)});
       if(!response.ok)throw new Error('Progress unavailable');
-      accept(await response.json());
+      const data=await response.json();
+      if(epoch===controlEpoch && controls===0)accept(data);
     }
-  }catch{connectionLost.value=true;}
+  }catch{if(!disposed && epoch===controlEpoch && controls===0)connectionLost.value=true;}
   finally{if(!disposed)timer=setTimeout(poll,3000);}
 }
 function reload(){window.location.reload();}
-onMounted(async()=>{await resume();if(!disposed){await check();poll();}});
+onMounted(()=>{void resume();void check();void poll();});
 onUnmounted(()=>{disposed=true;clearTimeout(timer);ticket='';answer.value='';});
 </script>

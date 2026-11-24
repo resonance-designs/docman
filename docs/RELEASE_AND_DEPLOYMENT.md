@@ -183,7 +183,7 @@ If **Setup Pages** fails with `Get Pages site failed` / `Not Found`, open the re
 
 ### Retired external deployment services
 
-Removing Render configuration from Git does not disable an existing Render service's Git integration. In that service's Render dashboard, open **Settings**, set **Auto-Deploy** to **Off**, and save. Verify the saved setting. This stops automatic deployments, but does not stop existing running instances or their failure alerts. Suspend the retired service separately; delete it only after confirming any data or configuration that must be retained has been preserved. Do not remove an organization-wide GitHub integration if other services still need it. See [Render's auto-deploy documentation](https://render.com/docs/deploys).
+Removing Render configuration from Git does not disable an existing Render service's Git integration. In that service's Render dashboard, open **Settings**, set **Auto-Deploy** to **Off**, and save. Verify the saved setting. This stops automatic deployments, but does not stop existing running instances or their failure alerts. Before suspending the retired service, preserve any data or configuration that must be retained and verify that preservation succeeded. Then suspend the service separately. Delete it only after confirming preservation. Do not remove an organization-wide GitHub integration if other services still need it. See [Render's auto-deploy documentation](https://render.com/docs/deploys).
 
 ## Linode Deployment Notes
 
