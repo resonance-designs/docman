@@ -8,6 +8,18 @@ function harness(kind = 'User') {
 }
 beforeEach(() => Notification.updateOne.mockResolvedValue({}));
 
+test.each([
+    ['User', { _id: 'u', role: 'editor', isActive: true }, { _id: 'u', role: 'viewer', isActive: false }],
+    ['Project', { _id: 'p', collaborators: [] }, { _id: 'p', collaborators: [{ user: 'removed', role: 'editor' }] }]
+])('stale %s save does not notify unchanged role/status/membership', async (kind, persisted, stale) => {
+    const hooks = harness(kind);
+    const model = { findOne: () => ({ setOptions: () => ({ select: () => ({ lean: async () => persisted }) }) }) };
+    const doc = { constructor: model, _id: persisted._id, $locals: {}, isNew: false, isModified: field => field === 'updatedAt', toObject: () => stale };
+    await hooks.pre.save.call(doc);
+    await hooks.post.save(doc);
+    expect(Notification.updateOne).not.toHaveBeenCalled();
+});
+
 test('saved review assignment queues generic notice without a document-access dependency', async () => {
     const hooks = harness('ReviewAssignment');
     const assignment = { _id: 'assignment', document: 'private-document', assignee: 'reviewer', assignedBy: 'owner', status: 'pending' };

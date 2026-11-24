@@ -22,8 +22,26 @@ jest.mock('../models/SystemSetting.js', () => ({ __esModule: true, default: {
 } }));
 
 import { withSettingLock, LockBusyError } from '../lib/settingLock.js';
+import SystemSetting from '../models/SystemSetting.js';
 
 beforeEach(() => mockRows.clear());
+
+test('release retries retain the holder match and unblock the next writer', async () => {
+    SystemSetting.updateOne.mockRejectedValueOnce(new Error('transient'));
+    await withSettingLock('retry', async () => 'saved', { ttlMs: null });
+    const calls = SystemSetting.updateOne.mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0]).toEqual(calls[1][0]);
+    expect(mockRows.get('retry').value).toEqual({});
+});
+
+test('exhausted release reports retained guard without claiming committed work failed', async () => {
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
+    for (let i = 0; i < 3; i++) SystemSetting.updateOne.mockRejectedValueOnce(new Error('offline'));
+    await expect(withSettingLock('retained', async () => 'saved', { ttlMs: null })).resolves.toBe('saved');
+    expect(log).toHaveBeenCalled();
+    expect(mockRows.get('retained').value.holder).toBeTruthy();
+});
 
 test('serializes overlapping holders and releases afterwards', async () => {
     let release;

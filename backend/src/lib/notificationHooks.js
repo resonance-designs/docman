@@ -31,8 +31,18 @@ export function notificationHooks(schema, { kind }) {
     }
     schema.pre('save', async function() {
         this.$locals.notificationBefore = this.isNew ? null : await read(this.constructor, { _id: this._id });
+        // A stale Mongoose instance saves modified paths only. Do not compare its
+        // unchanged in-memory role/membership against freshly persisted values.
+        const before = this.$locals.notificationBefore;
+        const submitted = this.toObject();
+        this.$locals.notificationAfter = before ? { ...before } : submitted;
+        if (before) {
+            for (const field of selection.split(' ')) {
+                if (this.isModified(field)) this.$locals.notificationAfter[field] = submitted[field];
+            }
+        }
     });
-    schema.post('save', async function(doc) { await emit(doc.constructor, doc.$locals.notificationBefore, doc.toObject()); });
+    schema.post('save', async function(doc) { await emit(doc.constructor, doc.$locals.notificationBefore, doc.$locals.notificationAfter || doc.toObject()); });
     for (const operation of ['findOneAndUpdate', 'updateOne', 'findOneAndDelete', 'deleteOne']) {
         schema.pre(operation, { query: true, document: false }, async function() { this.notificationBefore = await read(this.model, this.getFilter()); });
         schema.post(operation, { query: true, document: false }, async function(result) {

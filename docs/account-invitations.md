@@ -16,6 +16,8 @@ The initial superadmin is still created with the installation helper. That boots
 
 Only a hash of the random invitation token is stored. Acceptance atomically consumes the token and activates the account. The link's fragment keeps the token out of ordinary HTTP access logs. Opening/scanning the link alone does not activate anything; submitting a password is required. Treat the email link as private.
 
+If activation commits but its audit append fails, the API returns HTTP 200 with `activated: true`, `auditRecorded: false`, and a warning. The account is already active: sign in with the chosen password instead of reusing the invitation or requesting another one. Have an administrator investigate the audit failure. The UI preserves the sign-in action and displays this warning.
+
 If email delivery fails, the account remains pending and the UI explicitly reports the failure. Do not create a duplicate account. Fix outgoing email and click **Resend invitation** on the existing account. Resending replaces the token, invalidating earlier links. **Revoke invitation** invalidates the invitation and leaves the account disabled. A revoked account can be manually reset/enabled by a superadmin, but is no longer eligible for invitation resending. Pending email changes and manual password resets are blocked; revoke first if correcting the address. Mail-server acceptance is not proof of inbox receipt.
 
 ## Account policy

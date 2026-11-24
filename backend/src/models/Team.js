@@ -40,6 +40,7 @@ import mongoose from "mongoose";
  */
 const teamSchema = new mongoose.Schema(
     {
+        projectSyncRevisions: { type: Map, of: Number, select: false, default: undefined },
         name: {
             type: String,
             required: [true, "Team name is required"],

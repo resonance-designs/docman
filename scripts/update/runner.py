@@ -13,6 +13,7 @@ import pwd
 import re
 import secrets
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -28,8 +29,70 @@ STATE = Path('/var/lib/docman-updates')
 BUILDS = Path('/var/www/docman-update-builds')
 TIMERS = ('docman-backup.timer', 'docman-audit-verify.timer')
 KEYS = ('DOCUMENT_ENCRYPTION_KEY', 'EMAIL_SETTINGS_KEY')
+RESTIC_REPOSITORY_FILE = Path('/etc/docman/restic-repository')
+RESTIC_PASSWORD_FILE = Path('/etc/docman/restic-password')
 
 class Stop(RuntimeError): pass
+
+class Cancelled(KeyboardInterrupt): pass
+
+def cancel_update(signum, frame):
+    # Recovery must not itself be interrupted by repeated termination requests.
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    raise Cancelled('Update cancelled by SIGTERM')
+
+def run_command(args, **kwargs):
+    """Reap the command and terminate its process group before recovery can run."""
+    input_value = kwargs.pop('input', None)
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGINT)}
+    pending = []
+    def defer_cancel(signum, frame):
+        if previous[signum] != signal.SIG_IGN:
+            pending.append(signum)
+    def restore_handlers():
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
+    try:
+        # Do not mask signals: a blocked mask would survive exec in the child.
+        # Python handlers reset on exec; defer only the parent's cancellation until
+        # Popen returns and cleanup owns the process, including its constructor gap.
+        for sig in previous:
+            signal.signal(sig, defer_cancel)
+        child = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, start_new_session=True, **kwargs)
+    except BaseException:
+        restore_handlers()
+        if pending: signal.raise_signal(pending[0])
+        raise
+    with child:
+        try:
+            restore_handlers()
+            if pending: signal.raise_signal(pending[0])
+            stdout, stderr = child.communicate(input_value)
+        except BaseException:
+            try: os.killpg(child.pid, signal.SIGTERM)
+            except ProcessLookupError: pass
+            try: child.communicate(timeout=5)
+            except subprocess.TimeoutExpired: pass
+            finally:
+                try: os.killpg(child.pid, signal.SIGKILL)
+                except ProcessLookupError: pass
+                child.communicate()
+            raise
+        return subprocess.CompletedProcess(args, child.returncode, stdout, stderr)
+
+def validate_backup_destination(destination):
+    destination = Path(destination).resolve()
+    for tree in (APP, PUBLIC, BUILDS, STATE, UPLOADS):
+        tree = tree.resolve()
+        require(not (destination.is_relative_to(tree) or tree.is_relative_to(destination)),
+                'Backup repository overlaps an application, staging, state or upload tree. Choose separate storage.')
+    return destination
+
+def same_backup_repository(selected, saved):
+    if selected.startswith('/') and saved.startswith('/'):
+        return Path(selected).resolve() == Path(saved).resolve()
+    return selected == saved
 
 def require(condition, message):
     if not condition: raise Stop(message)
@@ -122,7 +185,7 @@ class Updater:
         if self.run_dir: private_write(self.run_dir / 'report.json', json.dumps(self.report, indent=2) + '\n')
 
     def run(self, args, *, input=None, cwd=None, env=None, check=True, binary=False):
-        result = subprocess.run(args, input=input, cwd=cwd, env=env, capture_output=True, text=not binary)
+        result = run_command(args, input=input, cwd=cwd, env=env, text=not binary)
         if self.run_dir:
             try:
                 with (self.run_dir / 'commands.log').open('a') as log:
@@ -140,7 +203,17 @@ class Updater:
         return self.run(['runuser', '-u', self.owner.pw_name, '--', 'env', 'HOME=' + self.owner.pw_dir,
                          'sh','-c','umask 022; exec "$@"','sh',*args], **kwargs)
 
-    def git(self, *args): return self.owner_run(['git', '-C', str(APP), *args]).stdout.strip()
+    def git(self, *args): return self.owner_run(['git', '-c', 'diff.autoRefreshIndex=false', '-C', str(APP), *args]).stdout.strip()
+
+    def snapshot_environment(self):
+        original_bytes = ENV.read_bytes()
+        self.original_env = original_bytes.decode('utf-8')
+        self.env_hash = hashlib.sha256(original_bytes).hexdigest()
+        # Parse the exact snapshot with Node's own dotenv grammar, not a second file read.
+        parsed = self.run(['/usr/bin/node', '--input-type=module', '-e',
+            "import {parseEnv} from 'node:util'; let input=''; for await(const chunk of process.stdin) input+=chunk; console.log(JSON.stringify(parseEnv(input)));"],
+            input=self.original_env)
+        self.values = json.loads(parsed.stdout)
 
     def active(self, unit): return self.run(['systemctl', 'is-active', '--quiet', unit], check=False).returncode == 0
 
@@ -177,7 +250,7 @@ class Updater:
         self.run(['apache2ctl','configtest'])
         version = self.run(['node','-p','process.versions.node']).stdout.strip().split('.')
         require(int(version[0]) == 22 and int(version[1]) >= 12, 'Node 22.12+ within 22.x is required; major upgrades are separate.')
-        self.values = self.node('console.log(JSON.stringify(Object.fromEntries(' + json.dumps(['MONGO_URI','UPLOAD_DIR','APP_BASE_URL','NODE_PORT',*KEYS]) + '.map(k=>[k,process.env[k]||""]))));')
+        self.snapshot_environment()
         require(self.values['UPLOAD_DIR'] == str(UPLOADS) and self.values['NODE_PORT'] == '5001', 'Expected external uploads and backend port 5001; other layouts require manual review.')
         uri = urlsplit(self.values['MONGO_URI'])
         require(uri.scheme == 'mongodb' and uri.hostname in ('127.0.0.1','localhost') and uri.path == '/docman', 'Updater supports the documented local docman database only. Atlas/other databases require the manual procedure.')
@@ -185,8 +258,6 @@ class Updater:
         require(url.scheme == 'https' and url.hostname and not url.username and not url.password and url.port in (None,443) and url.path in ('','/') and not url.query and not url.fragment, 'APP_BASE_URL must be the HTTPS site origin on port 443.')
         require(bool(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]*', url.hostname)), 'Invalid website hostname.')
         self.host = url.hostname
-        self.original_env = ENV.read_bytes().decode('utf-8')
-        self.env_hash = digest(ENV)
         self.vue_hash = digest(VUE_ENV)
         self.report.update(old_commit=self.git('rev-parse','HEAD'), hostname=self.host, deployment_owner=self.owner.pw_name)
         self.report['old_index_sha256'] = digest(PUBLIC/'index.html')
@@ -262,19 +333,22 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
 
     def configure_backup(self):
         self.say('Verify encrypted backup destination')
-        repo_file = Path('/etc/docman/restic-repository')
+        repo_file = RESTIC_REPOSITORY_FILE
         default = repo_file.read_text().strip() if repo_file.is_file() else ''
         repo = input('Restic repository (absolute mounted path or sftp:host:/path)' + (f' [{default}]' if default else '') + ': ').strip() or default
         require(repo.startswith('/') or re.fullmatch(r'sftp:(?:[A-Za-z0-9_][A-Za-z0-9_.-]*@)?[A-Za-z0-9][A-Za-z0-9.-]*:/[A-Za-z0-9_./-]+', repo), 'Unsupported repository address.')
         require(not any(ord(c)<32 or ord(c)==127 for c in repo), 'Invalid repository characters.')
+        reuse_saved_repository = same_backup_repository(repo, default)
         if repo.startswith('/'):
             destination = Path(repo)
             require(destination.is_dir() and not destination.is_symlink(), 'Local backup destination must already exist as a real directory; see guide.')
+            destination = validate_backup_destination(destination)
+            repo = str(destination)
             if destination.stat().st_dev == Path('/').stat().st_dev:
                 require(input('This backup is on the server root disk, not disaster recovery. For an internal POC only, type LOCAL-POC: ').strip() == 'LOCAL-POC', 'Choose separate backup storage.')
                 self.report['backup_scope'] = 'LOCAL POC ONLY'
-        existing_password = Path('/etc/docman/restic-password')
-        if repo == default and existing_password.is_file() and input('Use the existing protected restic password file? yes/no [yes]: ').strip() in ('','yes'):
+        existing_password = RESTIC_PASSWORD_FILE
+        if reuse_saved_repository and existing_password.is_file() and input('Use the existing protected restic password file? yes/no [yes]: ').strip() in ('','yes'):
             require(existing_password.stat().st_uid == 0 and existing_password.stat().st_mode & 0o077 == 0, 'Protect the restic password file: root ownership, mode 600.')
             password = existing_password.read_text().rstrip('\n')
         else:
@@ -303,8 +377,8 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
         self.timer_states = {unit:self.active(unit) for unit in TIMERS}
         self.report['timer_states'] = self.timer_states
         self.save()
-        private_write(STATE/'ACTIVE', self.report['run_id']+'\n')
         self.paused = True
+        private_write(STATE/'ACTIVE', self.report['run_id']+'\n')
         for unit, active in self.timer_states.items():
             if active: self.run(['systemctl','stop',unit])
         # A verifier may have started waiting on the lock while we acquired it.
@@ -344,7 +418,7 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
     def deploy(self):
         self.say('Select target source and install the staged dependencies')
         require(digest(ENV)==self.env_hash and digest(VUE_ENV)==self.vue_hash, 'Configuration changed after backup; refusing to overwrite.')
-        self.git('switch','--detach',self.report['target_commit'])
+        self.git('switch','--no-overwrite-ignore','--detach',self.report['target_commit'])
         for directory in ('backend','frontend-vue'):
             # Narrow destination is the dependency directory only; never delete checkout/uploads.
             self.owner_run(['rsync','-a','--delete',str(self.build/directory/'node_modules')+'/',str(APP/directory/'node_modules')+'/'])
@@ -379,14 +453,14 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
 
     def health(self, expected_index=None):
         for attempt in range(30):
-            result = self.run(['curl','--noproxy','*','--silent','--max-time','3','--output','/dev/null','--write-out','%{http_code}','http://127.0.0.1:5001/api/docs'],check=False)
+            result = self.run(['curl','--disable','--noproxy','*','--silent','--max-time','3','--output','/dev/null','--write-out','%{http_code}','http://127.0.0.1:5001/api/docs'],check=False)
             if result.returncode==0 and result.stdout=='401': break
             if attempt==29: raise Stop('Backend did not return HTTP 401; update is not healthy.')
             time.sleep(1)
         for route, expected in (('/', '200'),('/api/docs','401')):
-            result=self.run(['curl','--noproxy','*','--silent','--show-error','--max-time','20','--resolve',self.host+':443:127.0.0.1','--output','/dev/null','--write-out','%{http_code}','https://'+self.host+route])
+            result=self.run(['curl','--disable','--noproxy','*','--silent','--show-error','--max-time','20','--resolve',self.host+':443:127.0.0.1','--output','/dev/null','--write-out','%{http_code}','https://'+self.host+route])
             require(result.stdout==expected, f'HTTPS {route}: expected {expected}. Certificate errors are not bypassed.')
-        result=self.run(['curl','--noproxy','*','--silent','--show-error','--max-time','20','--resolve',self.host+':443:127.0.0.1','https://'+self.host+'/'],binary=True)
+        result=self.run(['curl','--disable','--noproxy','*','--silent','--show-error','--max-time','20','--resolve',self.host+':443:127.0.0.1','https://'+self.host+'/'],binary=True)
         expected=expected_index or self.report.get('published_index_sha256') or digest(PUBLIC/'index.html')
         require(hashlib.sha256(result.stdout).hexdigest()==expected, 'HTTPS is not serving the expected frontend index.')
 
@@ -445,6 +519,7 @@ def main():
     parser.add_argument('--ref')
     args=parser.parse_args()
     require(os.geteuid()==0,'Run with sudo.')
+    previous_sigterm = signal.signal(signal.SIGTERM, cancel_update)
     updater=Updater()
     try:
         updater.preflight()
@@ -466,6 +541,8 @@ def main():
             except OSError: print('WARNING: could not save diagnostic report.',file=sys.stderr)
             print('Private diagnostic directory:',updater.run_dir,file=sys.stderr)
         raise
+    finally:
+        signal.signal(signal.SIGTERM, previous_sigterm)
 
 if __name__=='__main__':
     try: main()

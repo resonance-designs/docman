@@ -158,7 +158,7 @@ function buildRequestInfo(context) {
         ip,
         userAgent: context.headers?.["user-agent"] || null,
         method: context.method || null,
-        path: rawPath ? rawPath.split("?")[0] : null,
+        path: rawPath ? rawPath.split("?")[0].replace(/(\/(?:public\/documents|docs\/public)\/)[^/]+/gi, '$1[REDACTED]') : null,
     };
 }
 

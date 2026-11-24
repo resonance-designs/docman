@@ -16,9 +16,22 @@ test.each(['role', 'isActive', 'email', 'username', 'identityProvider', 'passwor
     expect(() => validateProfile({ [field]: 'value' })).toThrow();
 });
 test('validates and trims profile fields', () => {
+    expect(validateProfile({ bio: 'First\nSecond\r\nThird' }).bio).toBe('First\nSecond\r\nThird');
+    expect(() => validateProfile({ bio: 'Bad\u0000text' })).toThrow();
+    expect(() => validateProfile({ firstname: 'First\nSecond' })).toThrow();
     expect(validateProfile({ firstname: ' Jane ', bio: '' })).toEqual({ firstname: 'Jane', bio: '' });
     expect(() => validateProfile({ firstname: ' ' })).toThrow();
     expect(() => validateProfile({ bio: 'a'.repeat(501) })).toThrow();
+});
+
+test('legacy current passwords over 72 bytes can be verified, but new passwords remain capped', async () => {
+    const request = req(); request.body.currentPassword = 'x'.repeat(80);
+    const response = res(); await changePassword(request, response);
+    expect(bcrypt.compare).toHaveBeenCalledWith(request.body.currentPassword, 'oldhash');
+    expect(User.updateOne).toHaveBeenCalled();
+    User.updateOne.mockClear(); request.body.password = 'y'.repeat(80);
+    await changePassword(request, res());
+    expect(User.updateOne).not.toHaveBeenCalled();
 });
 test('password change checks current password, hashes once and revokes sessions/reset tokens atomically', async () => {
     const response = res(); await changePassword(req(), response);

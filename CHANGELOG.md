@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Documentation
+
+- Record the eight PR #52 functional follow-up findings and validation; correct the handoff's committed/version status. Keep the optional migration cursor optimization deferred.
+- Track all 42 PR #50 CodeRabbit findings with individual 3.0.2 dispositions and validation evidence. Correct update/restore/email setup ordering, lock recovery, existing repository password guidance, and generated manual metadata/QA heading verification.
+
+### Fixed
+
+- Repair existing project/team mismatches on no-op add/remove requests, retain pending-sync status during metadata edits, and rotate bounded recovery scans so failing projects cannot starve later work. Make concurrency mocks evaluate the actual revision predicate.
+- Clear stale in-memory login state on tokenless HTTP 401 responses after cross-tab logout, while preserving subsequent logins.
+- Persist project/team reconciliation with relationship changes; retry partial reciprocal writes with revision fences, coordinate team-side writers and project deletion, and report committed changes while cleanup is pending.
+- Treat fail-open audit `null` results as audit failures after committed invitation activation, notification settings saves, and email retry requests, preserving successful mutation results and accurate warnings.
+- Preserve a newer login when an older session hydration request fails or returns HTTP 401.
+- Defer updater cancellation during child-process construction until cleanup owns the child, without blocking signals in the child. Reuse protected backup credentials for equivalent normalized local repository paths.
+- Execute the installer from root-owned private state, persist completion and administrator-password removal atomically, and make interrupted configuration writes and invalid upload-size answers retryable.
+- Remove public bearer tokens from serialized audit paths and Apache access logs; document applying the safe log format to existing deployments.
+- Coordinate document category writes with book/category guards, retry holder-matched guard release, and prevent concurrent project date updates from creating invalid ranges.
+- Prevent stale account/project saves from emitting false change notices; report committed invitation/settings changes accurately when audit or notification cleanup fails. Preserve legacy password verification and multiline biographies.
+- Preserve consistent backups across pending service restarts; exclude incomplete snapshots from retention. Harden updater environment snapshots, backup destinations, ignored local files, read-only checks, TLS checks, and interruption recovery.
+- Correct stale session/editor responses, project metadata edits with unchanged teams, public links under a router base, and uppercase reciprocal project IDs. Check missing uploads independently of checksum backfill.
+- Isolate MongoDB test endpoints, verify child identity before fixture writes, and cancel stalled bootstrap processes. Add focused backend, frontend, installer, updater, Apache and manual-generation regressions.
+
 ## [3.0.1] - 2026-11-18
 
 ### Added

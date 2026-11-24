@@ -147,17 +147,19 @@ Saved configuration and keys are reused. An interruption before the configuratio
 
 Do not run the script with `bash -x`: shell tracing is inappropriate for credential setup. Do not publish `.env.prod`, state.json, database configuration, SSH private keys or TLS private keys. If seeking help, share only the failed stage and redacted diagnostic output.
 
-State lives at `/var/lib/docman-installer`, root-owned mode 0700, with `state.json` mode 0600. It contains credentials and recovery keys. Do not delete it during a partial installation. Keep the original clone until installation is complete. The installed source is `/var/www/docman`; privileged retry helpers are held separately in root-only installer state so npm builds cannot modify them.
+State lives at `/var/lib/docman-installer`, root-owned mode 0700, with `state.json` mode 0600. It contains credentials and recovery keys. Do not delete it during a partial installation. Keep the original clone until installation is complete. The installed source is `/var/www/docman`; the running Bash installer and privileged retry helpers execute from root-only installer state so npm builds cannot modify them. Completion and removal of the initial administrator password are saved together in `state.json`; a rerun recognizes completion even if writing the supplementary `complete` marker failed. Other recovery credentials remain protected in state.
 
 ## 6. Open DocMan and configure email
 
 From a workstation allowed to reach the server, open the HTTPS address printed by the installer. For a self-signed/internal CA certificate, complete workstation trust first. Sign in with the **DocMan username and password** you chose, not the MongoDB administrator account.
 
-**Expected:** the application loads and your superadmin can open user management and system settings. Create a second test account, sign in as that account in a separate browser session, and test the document workflow. Use disposable, non-sensitive demonstration files until acceptance is complete.
+**Expected:** the application loads and your superadmin can open user management and system settings. Configure and test email next, before creating a second account.
 
 Email is deliberately **disabled**, not silently pointed at AWS. Configure **System Settings → Outgoing email** using [walkthrough section 16](ubuntu-server-installation.md#16-configure-outgoing-email-in-system-settings). It covers SMTP relay by IP, SMTP username/password, TLS/STARTTLS, SES, sender permissions, CA trust, saving settings and verifying test-email receipt. Password-reset mail will not work until delivery is configured.
 
 For NMDOH, `webmail.state.nm.us:25` is a reported candidate only. Authentication, TLS, allowed sender addresses and server-IP relay authorization still need confirmation from the mail administrators. The installer neither contacts this server nor sends mail.
+
+After the test email arrives, create a second test account. If you already created it while email was disabled, resend its invitation from user management. Open the emailed invitation in a separate browser session, set its password, sign in, and test the document workflow with disposable, non-sensitive files. **Expected:** invitation receipt, successful activation, and successful sign-in. Stop and resolve delivery or activation errors before testing assignments.
 
 ## 7. Protect keys, check schedules and prove recovery
 
@@ -285,9 +287,11 @@ JS
 
 **Expected:** `Recovery email disabled`, printed only after an acknowledged update matches the existing outbound record or inserts it if missing. This deliberately removes saved mail credentials from the isolated recovery copy; it does not touch the original server or snapshot. If the command reports an error or does not print the success message, stop and keep the recovery application stopped until this step succeeds.
 
-Use manual sections 12–14 to build/publish Vue, install the service and configure a valid certificate for the private recovery hostname. Keep timers disabled. Follow section 18.4 to verify the audit chain (`"valid":true`), start the backend (`active`), sign in with restored accounts, test permissions and download old/new document versions. Compare recovered downloads with known originals, including encrypted files. Record snapshot ID, source commit, checks, results and elapsed recovery time. A successful backup command alone does not establish recoverability.
+Use manual sections 12–14 to build/publish Vue, install the service and configure a valid certificate for the private recovery hostname, but **skip all backend startup and backend health-check commands**, including `systemctl enable --now docman-backend` in section 13. Keep the backend stopped and timers disabled. Follow section 18.4 to verify the audit chain first. Only after verification returns `"valid":true`, start the backend and confirm `active`. If verification fails, keep the backend stopped and investigate. Then sign in with restored accounts, test permissions and download old/new document versions. Compare recovered downloads with known originals, including encrypted files. Record snapshot ID, source commit, checks, results and elapsed recovery time. A successful backup command alone does not establish recoverability.
 
 ## Maintainer acceptance checklist
+
+The Apache template uses `docman_safe` access logging: client, time, method, protocol, status and byte count, with no request URL or Referer. Public-link tokens must not appear in access logs. Existing installations keep their Apache configuration during updates: apply the matching configuration in manual section 14.4, run `sudo apache2ctl configtest` (expect `Syntax OK`), and only then `sudo systemctl reload apache2` (normally silent). A failed syntax check means do not reload. Handle pre-existing token-bearing logs under your incident/retention process and revoke affected public links if required; this change does not erase historical logs.
 
 Run on a disposable **fresh Ubuntu 26.04 LTS VM**, not NMDOH's existing deployment. Record the exact DocMan commit and installed package versions.
 

@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-3.0.1-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.1-green)
+![Static Badge](https://img.shields.io/badge/Version-3.0.2-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.2-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -296,68 +296,13 @@ If you are recovering a broken Linode deployment rather than deploying to a bran
 
 The preserved env file under `~/docman/previous-backend.env.prod` is intended to make those prompts much less painful on the next run.
 
-#### 2️⃣ Standard Interactive Update
+#### Updates to existing servers
 
-```bash
-sudo ./apache_production_update.sh
-```
+Use the [guided updater walkthrough](docs/deployment/automated-updates.md), including its prerequisite checks and separate tools clone. **Do not pull the live checkout before the pre-update backup.** The updater records the installed commit and backs up the database, uploads and original source before switching to the approved release.
 
-* Updates an existing Apache-hosted DocMan instance in an interactive mode.
-* Uses the current checked-out repo as the update source after you `git pull`.
-* Creates a full persistent backup of `/var/www/docman`, the Apache publish root, and the current systemd unit before destructive steps.
-* Exports discovered `.env*` files into `~/docman/env-backups/`.
-* Restores backend `.env.prod` and materializes `frontend-vue/.env.production` before rebuilding.
-* Builds the current `frontend-vue` app and `dist-remote/remote/`.
-* Republishes both the browser UI and the hybrid remote bundle.
-* Restarts the backend service and reloads Apache.
-* Can optionally run Certbot for one or more domains.
+The guided updater is interactive; an unattended replacement is not currently provided. The older `apache_production_update*.sh` scripts are legacy tooling and are not the recommended routine-update procedure for this release. For a nonstandard layout, use the [manual Ubuntu update procedure](docs/deployment/ubuntu-server-installation.md#19-existing-installations-and-updates) and preserve the old deployment before changing its checkout.
 
-#### 3️⃣ Non-Interactive Update
-
-```bash
-sudo ./apache_production_update_ni.sh [--ssl] [--dry-run]
-```
-
-* Performs a fully automated update of the current Vue/remote-bundle deployment shape.
-* Uses the current checked-out repo as the update source after you `git pull`.
-* Creates a full persistent backup of `/var/www/docman`, the Apache publish root, and the current systemd unit before destructive steps.
-* Restores backend `.env.prod` and materializes `frontend-vue/.env.production` before rebuilding.
-* Rebuilds the Vue frontend and the remote bundle.
-* Republishes frontend assets into the Apache publish root.
-* Automatically rolls back from the persistent local backup if any command fails.
-* `--dry-run` simulates the update without applying changes.
-* `--ssl` enables Certbot, but expects these environment variables to be set first:
-  * `SSL_DOMAINS`
-  * `CERTBOT_EMAIL`
-
-### Recommended Workflow
-
-1. For a **fresh server**, use `apache_production_deploy.sh`.
-2. For **routine updates**, test with dry-run first:
-
-   ```bash
-   sudo ./apache_production_update_ni.sh --dry-run
-   ```
-3. Then run the actual non-interactive update:
-
-   ```bash
-   SSL_DOMAINS="docman.resonancedesigns.dev api.docman.resonancedesigns.dev" CERTBOT_EMAIL="info@resonancedesigns.dev" sudo ./apache_production_update_ni.sh --ssl
-   ```
-
-   or
-
-   ```bash
-   sudo ./apache_production_update_ni.sh
-   ```
-
-   Depending on whether you need SSL updated or not.
-
-### Notes
-
-* **Backups**: The deploy and update scripts export discovered `.env*` files into `~/docman/env-backups/`, keep `~/docman/previous-backend.env.prod` as the preferred recovery copy, and create persistent full deployment backups under `/var/www/docman_bak_<timestamp>/`.
-* **Rollback**: Scripts automatically restore previous state if a command fails.
-* **Root Privileges**: Scripts must be run as root or via sudo.
-* **Dry-Run Logs**: Non-interactive script logs simulated commands for review without applying changes.
+A failed update after source/database mutation requires the documented recovery procedure; do not perform an automatic code-only rollback over a changed database. Fresh-server installation and update acceptance remain separate checks.
 
 ## 🏗️ Architecture
 

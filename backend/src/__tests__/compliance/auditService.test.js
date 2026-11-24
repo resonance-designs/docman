@@ -90,6 +90,15 @@ describe("canonical hashing helpers", () => {
 });
 
 describe("record + verifyChain", () => {
+    test.each(['/api/docs/public/', '/public/documents/'])('serialized audit redacts bearer path at %s', async prefix => {
+        const secret = 'a'.repeat(64);
+        await record({ ...req, originalUrl: `${prefix}${secret}/download?token=hidden` }, {
+            action: AUDIT_ACTIONS.FILE_DOWNLOAD, documentId: '507f1f77bcf86cd799439012', resourceId: '507f1f77bcf86cd799439013'
+        });
+        expect(JSON.stringify(mockStore)).not.toContain(secret);
+        expect(mockStore[0].request.path).toBe(`${prefix}[REDACTED]/download`);
+        expect(mockStore[0].documentId).toBe('507f1f77bcf86cd799439012');
+    });
     test("entries are sequenced and linked to the previous hash", async () => {
         await record(req, { action: AUDIT_ACTIONS.DOCUMENT_UPDATE, documentId: "507f1f77bcf86cd799439012", changes: [{ field: "title", from: "A", to: "B" }] });
         await record(req, { action: AUDIT_ACTIONS.FILE_DOWNLOAD });
