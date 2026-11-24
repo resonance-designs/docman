@@ -176,6 +176,10 @@ class Updater:
         self.backend_stopped = False
         self.lock = None
 
+    def interactive(self): return sys.stdin.isatty()
+    def ask(self, prompt): return input(prompt)
+    def ask_password(self, prompt): return getpass.getpass(prompt)
+
     def say(self, stage):
         self.report['stage'] = stage
         print('\n== ' + stage + ' ==', flush=True)
@@ -265,14 +269,14 @@ class Updater:
         print('PASS: clean standard-layout deployment, active services, trusted HTTPS and API authentication.')
 
     def prepare(self, requested_ref):
-        require(sys.stdin.isatty(), 'Interactive terminal required.')
+        require(self.interactive(), 'Interactive terminal required.')
         require(STATE.resolve() == STATE and BUILDS.resolve() == BUILDS, 'State/build parent must not have symlink ancestors.')
         STATE.mkdir(mode=0o700, exist_ok=True)
         require(STATE.stat().st_uid == 0 and STATE.stat().st_mode & 0o077 == 0, 'Update state must be root-owned mode 700.')
         require(not (STATE/'ACTIVE').exists(), 'An unfinished update is recorded in /var/lib/docman-updates/ACTIVE. Follow its recovery report before starting another update.')
         self.say('Fetch and select the approved release')
         self.git('fetch','--tags','origin')
-        ref = requested_ref or input('Approved target branch/tag/commit (for example origin/dev): ').strip()
+        ref = requested_ref or self.ask('Approved target branch/tag/commit (for example origin/dev): ').strip()
         require(valid_ref(ref), 'Invalid reference. Enter a branch/tag or commit ID, not a shell command.')
         target = self.git('rev-parse','--verify','--end-of-options',ref + '^{commit}')
         require(bool(re.fullmatch(r'[a-f0-9]{40,64}', target)), 'Target did not resolve to a commit.')
@@ -291,7 +295,7 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
         self.report['new_machine_keys'] = new_keys
         if new_keys: print('Missing keys will be generated once:', ', '.join(new_keys), '\nExisting files are not re-encrypted; preserve these keys in your approved secret store.')
         print('This will build first, then pause DocMan for a consistent encrypted backup and migration.\nExisting secrets, accounts, Apache configuration and service files are preserved.\nConfirm no other app processes, custom jobs or administrators will write this database/uploads during maintenance.')
-        require(input('Proceed with this exact release? Type UPDATE: ').strip() == 'UPDATE', 'Cancelled.')
+        require(self.ask('Proceed with this exact release? Type UPDATE: ').strip() == 'UPDATE', 'Cancelled.')
         run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + secrets.token_hex(4)
         self.run_dir = STATE / run_id
         self.run_dir.mkdir(mode=0o700)
@@ -335,7 +339,7 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
         self.say('Verify encrypted backup destination')
         repo_file = RESTIC_REPOSITORY_FILE
         default = repo_file.read_text().strip() if repo_file.is_file() else ''
-        repo = input('Restic repository (absolute mounted path or sftp:host:/path)' + (f' [{default}]' if default else '') + ': ').strip() or default
+        repo = self.ask('Restic repository (absolute mounted path or sftp:host:/path)' + (f' [{default}]' if default else '') + ': ').strip() or default
         require(repo.startswith('/') or re.fullmatch(r'sftp:(?:[A-Za-z0-9_][A-Za-z0-9_.-]*@)?[A-Za-z0-9][A-Za-z0-9.-]*:/[A-Za-z0-9_./-]+', repo), 'Unsupported repository address.')
         require(not any(ord(c)<32 or ord(c)==127 for c in repo), 'Invalid repository characters.')
         reuse_saved_repository = same_backup_repository(repo, default)
@@ -345,23 +349,23 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
             destination = validate_backup_destination(destination)
             repo = str(destination)
             if destination.stat().st_dev == Path('/').stat().st_dev:
-                require(input('This backup is on the server root disk, not disaster recovery. For an internal POC only, type LOCAL-POC: ').strip() == 'LOCAL-POC', 'Choose separate backup storage.')
+                require(self.ask('This backup is on the server root disk, not disaster recovery. For an internal POC only, type LOCAL-POC: ').strip() == 'LOCAL-POC', 'Choose separate backup storage.')
                 self.report['backup_scope'] = 'LOCAL POC ONLY'
         existing_password = RESTIC_PASSWORD_FILE
-        if reuse_saved_repository and existing_password.is_file() and input('Use the existing protected restic password file? yes/no [yes]: ').strip() in ('','yes'):
+        if reuse_saved_repository and existing_password.is_file() and self.ask('Use the existing protected restic password file? yes/no [yes]: ').strip() in ('','yes'):
             require(existing_password.stat().st_uid == 0 and existing_password.stat().st_mode & 0o077 == 0, 'Protect the restic password file: root ownership, mode 600.')
             password = existing_password.read_text().rstrip('\n')
         else:
-            password = getpass.getpass('Existing repository password (or choose 18+ characters for a NEW repository): ')
+            password = self.ask_password('Existing repository password (or choose 18+ characters for a NEW repository): ')
             require(len(password)>=18 and not any(ord(c)<32 or ord(c)==127 for c in password), 'Use 18+ characters without control characters.')
-            require(password == getpass.getpass('Repeat repository password: '), 'Repository passwords differ.')
+            require(password == self.ask_password('Repeat repository password: '), 'Repository passwords differ.')
         private_write(self.run_dir/'restic-password', password+'\n')
         self.restic_env = {**os.environ,'RESTIC_REPOSITORY':repo,'RESTIC_PASSWORD_FILE':str(self.run_dir/'restic-password')}
         self.restic_command = ['restic'] + (['-o','sftp.args=-oBatchMode=yes -oStrictHostKeyChecking=yes'] if repo.startswith('sftp:') else [])
         self.report['backup_repository'] = repo
         opened = self.run(self.restic_command+['snapshots','--json'],env=self.restic_env,check=False)
         if opened.returncode:
-            require(input('Cannot open repository. Initialize ONLY if new/empty; type INITIALIZE or press Enter to stop: ').strip() == 'INITIALIZE', 'Backup unavailable; no deployment changes made.')
+            require(self.ask('Cannot open repository. Initialize ONLY if new/empty; type INITIALIZE or press Enter to stop: ').strip() == 'INITIALIZE', 'Backup unavailable; no deployment changes made.')
             self.run(self.restic_command+['init'],env=self.restic_env)
         self.run(self.restic_command+['check'],env=self.restic_env)
         self.save()

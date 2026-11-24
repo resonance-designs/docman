@@ -1,5 +1,19 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## Superadmin web updater — November 24, 2026
+
+Implemented System settings → Software updates: newer published non-prerelease GitHub releases only, exact commit selection, required encrypted backup with LOCAL POC or operator-configured SAVED storage, interactive prompts, and read-only progress while the backend stops. Backend API requires superadmin; a root-owned broker runs separately with fixed repository/tag restrictions and no arbitrary command endpoint or broad sudo rule. First deploy the feature using the existing CLI updater, then run `sudo bash scripts/update/enable-web-updater.sh` once on the server. Helper code is intentionally outside the mutable checkout and later helper upgrades require operator setup. See [complete web updater setup and recovery](docs/deployment/web-updates.md). The operator deployed feature commit e0da7c3 and installed its helper on NMDOH development: migration, 158-entry audit verification, HTTPS, socket permissions, unauthenticated progress rejection, and superadmin release discovery passed. Full UI update/restore acceptance is pending. These results precede the PR #54 review fixes.
+
+The user confirmed Render auto-deploy was disabled and the old service suspended after the Pages repair. This is user-reported completion; no authenticated Render inspection was performed here.
+
+Web updater local validation: 68 targeted tests passed (33 CLI, 10 broker/worker, 12 backend API, 13 frontend), Vue production build and setup-script Bash syntax passed. The existing bundle-size advisory remains. Initial helper deployment passed as recorded above; full restore acceptance remains pending.
+
+PR #54 follow-up fixes: reject interrupted helper responses; serialize installer/broker starts with an installation lock plus the existing CLI lock; filter published GitHub release metadata on discovery and start. Validation: 46 Linux updater tests, 15 backend tests, and Bash syntax passed. After deploying these fixes, rerun helper setup to replace the root-owned copies. GitGuardian incident 41063984 flags pwd.getpwnam('docman').pw_uid, a Unix account lookup with no embedded password; classify this specific incident as false positive.
+
+## Deployment automation follow-up — November 24, 2026
+
+The master documentation workflow at `4d04b6d` failed during Setup Pages because the repository Pages site was missing (HTTP 404). Pages was enabled with `build_type: workflow`; rerun `45457088369` passed both build and deployment. The local documentation build also passed. GitHub reports a nonblocking Node 20 action-runtime deprecation warning; action upgrades remain separate maintenance. No active Render deployment workflow or Render repository webhook was found; the obsolete external Render service still requires dashboard retirement. Auto-Deploy Off stops Git-triggered deployments, while suspension is separate. No authenticated Render access was available and no Render service setting was changed. See the maintainer guide for both recovery procedures.
+
 ## PR #50 fixes for 3.0.2 — November 22, 2026
 
 PR #52 follow-up: the November 23 eight-finding pass was committed as `55fcf35`. The November 24 five-finding pass repairs no-op relationship mismatches, pending-status reporting, scan fairness, the concurrency test predicate, and tokenless session expiry. See the [follow-up record and validation](docs/reviews/pr-52-coderabbit-3.0.2.md). The latest changes remain uncommitted and undeployed. Project/team relationship reconciliation runs with the backend; see [recovery guidance](docs/resource-management.md). The optional migration cursor optimization remains deferred.
