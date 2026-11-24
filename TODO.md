@@ -2,6 +2,7 @@
 
 ## Web updater acceptance
 
+- [x] Fix the [five PR #55 CodeRabbit findings](docs/reviews/pr-55-coderabbit-ui-updater.md) on the UI-update testing branch: retired-service preservation order, stale progress/control races, saved-ticket polling during backend delays, Apache rewrite validation/configuration rollback, and explicit backup-selection hooks. Local validation: 50 Linux tests, 20 frontend regressions, Vue build, and Bash syntax passed. The v3.0.3 tag is unchanged; live newer-release update/restore acceptance remains pending.
 - [x] Implement superadmin stable-release discovery, interactive update/backup prompts, restricted privileged broker and independent read-only progress. See [setup and testing boundaries](docs/deployment/web-updates.md).
 - [ ] Validate on disposable Ubuntu with real systemd/Apache: helper setup, authorization, GitHub access, LOCAL/SAVED backups, cancellation and timeout, page refresh during downtime, successful update, post-mutation failure/recovery, helper restart interruption, and matching backup restore. Then record NMDOH acceptance separately.
 

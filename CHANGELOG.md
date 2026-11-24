@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Prevent stale updater polls from restoring answered prompts; start saved-ticket progress independently of backend status and release requests.
+- Validate the helper's Apache rewrite/proxy layout before editing configuration and restore the current site's configuration and include if configtest fails.
+- Replace backup destination prompt-text matching with an explicit CLI/web selection hook, preserving LOCAL/SAVED restrictions.
+- Require preservation of retired-service data/configuration before suspension as well as deletion.
+- Resolve all five PR #55 findings locally; 50 Linux updater tests, 20 frontend regressions, Vue build, and Bash syntax passed. Live update/restore acceptance remains pending.
+
+### Documentation
+
+- Record all five PR #55 CodeRabbit findings as deferred work for the UI-update testing branch, with source links and acceptance criteria; no associated fixes are included in this documentation pass.
+
 ## [3.0.3] - 2026-11-24
 
 ### Added

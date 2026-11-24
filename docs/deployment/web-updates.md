@@ -31,6 +31,8 @@ Helper code is deliberately outside the application checkout and is not replaced
 
 Setup holds `/run/lock/docman-web-updater-install.lock` and the CLI's `/run/lock/docman-update.lock` until restart finishes. A start during setup is rejected; an already-running update prevents setup. This also protects installation over the original helper, whose workers already honor the CLI lock. Do not remove lock files to bypass contention. The PR #54 helper fixes require rerunning setup after deploying the corrected code.
 
+The PR #55 follow-up validates the supported HTTPS virtual host and SPA rewrite condition before changing Apache configuration. Unsupported custom layouts stop with an explanation instead of reporting success. If configtest fails, both the site file and updater include are restored to their state immediately before that invocation (a newly created include is removed). Apache is not reloaded and setup does not print PASS. The historical `.before-web-updater` copy is retained for reference, not used to overwrite newer operator settings. Rerun setup from the complete reviewed checkout, including `configure_web_apache.py`, to install the updated helper and validate the configuration.
+
 ## Interactive update
 
 1. Sign in as a superadmin and open **System settings → Software updates**. Click **Check for updates**.

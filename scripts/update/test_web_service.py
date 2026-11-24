@@ -153,4 +153,26 @@ print(json.dumps({'type':'result','status':'complete','report':{'run_id':'fixtur
                     web.worker('v3.0.4','a'*40)
                 self.assertEqual(json.loads(output.getvalue())['status'],expected)
 
+    def test_backup_selection_uses_explicit_hook(self):
+        import io
+        import sys
+        import select
+        from types import SimpleNamespace
+        saved=web.STATE/'repository'
+        for answer,contents,expected in [('LOCAL',None,web.LOCAL_BACKUP),('SAVED','sftp:backup:/docman','sftp:backup:/docman'),('SAVED',None,None),('SAVED','',None),('/arbitrary/path',None,None)]:
+            with self.subTest(answer=answer,contents=contents):
+                saved.unlink(missing_ok=True)
+                if contents is not None:saved.write_text(contents)
+                class Base:
+                    def __init__(self):self.report={}
+                fake=SimpleNamespace(Updater=Base,Stop=RuntimeError,STATE=web.STATE,RESTIC_REPOSITORY_FILE=saved)
+                selected=[]
+                def run():selected.append(fake.Updater().ask_backup_repository('ignored default'))
+                fake.main=run;output=io.StringIO()
+                with patch.dict(sys.modules,{'runner':fake}),patch.object(sys,'stdout',output),patch.object(sys,'stdin',io.StringIO(json.dumps({'answer':answer})+'\n')),patch.object(select,'select',return_value=([1],[],[])),patch.object(sys,'argv',['fixture']),patch.object(sys,'path',list(sys.path)):
+                    web.worker('v3.0.4','a'*40)
+                result=json.loads(output.getvalue().splitlines()[-1])
+                self.assertEqual(result['status'],'complete' if expected else 'failed')
+                self.assertEqual(selected,[expected] if expected else [])
+
 if __name__=='__main__':unittest.main()

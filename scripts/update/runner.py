@@ -179,6 +179,8 @@ class Updater:
     def interactive(self): return sys.stdin.isatty()
     def ask(self, prompt): return input(prompt)
     def ask_password(self, prompt): return getpass.getpass(prompt)
+    def ask_backup_repository(self, default):
+        return self.ask('Restic repository (absolute mounted path or sftp:host:/path)' + (f' [{default}]' if default else '') + ': ').strip() or default
 
     def say(self, stage):
         self.report['stage'] = stage
@@ -339,7 +341,7 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
         self.say('Verify encrypted backup destination')
         repo_file = RESTIC_REPOSITORY_FILE
         default = repo_file.read_text().strip() if repo_file.is_file() else ''
-        repo = self.ask('Restic repository (absolute mounted path or sftp:host:/path)' + (f' [{default}]' if default else '') + ': ').strip() or default
+        repo = self.ask_backup_repository(default)
         require(repo.startswith('/') or re.fullmatch(r'sftp:(?:[A-Za-z0-9_][A-Za-z0-9_.-]*@)?[A-Za-z0-9][A-Za-z0-9.-]*:/[A-Za-z0-9_./-]+', repo), 'Unsupported repository address.')
         require(not any(ord(c)<32 or ord(c)==127 for c in repo), 'Invalid repository characters.')
         reuse_saved_repository = same_backup_repository(repo, default)
