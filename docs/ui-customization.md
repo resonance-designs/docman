@@ -5,7 +5,7 @@ Admins and superadmins can open **System Settings → UI Customization**. These 
 ## Change appearance
 
 1. Open the customization tab using an admin or superadmin account.
-2. Set the color and font size for ordinary links, hovered/active/visited links, headings H1–H6, and paragraphs. Colors use six-digit hex values (for example, `#1F2937`); sizes are whole pixels from 10 to 72. Browser privacy rules may limit visible styling of visited links.
+2. Set the color and font size for ordinary links, hovered/active/visited links, headings H1–H6, and paragraphs. Colors use six-digit hex values (for example, `#1F2937`); sizes are whole pixels from 10 to 72. Visited links use the normal link size; the visited-size control is disabled because browsers restrict visited styling for privacy. Their color remains configurable.
 3. Upload an optional PNG, JPEG, or WebP logo, at most **256 KiB**. Include useful alternative text. SVG and remote image URLs are not supported. Removing the custom logo restores the application wordmark after saving.
 4. Choose **Left**, **Right**, or **Top** navigation. Small screens retain accessible collapsible navigation.
 5. Enable an optional footer and set its plain text, background/text colors, and optional link. Supply both link label and absolute HTTPS URL, or leave both empty. HTML is displayed as text, not interpreted.

@@ -23,9 +23,9 @@
                     <input class="color-picker" type="color" :value="preview.typography[key].color" :aria-label="`${label} color picker`" :disabled="saving" @input="draft.typography[key].color = $event.target.value" />
                     <v-text-field v-model="draft.typography[key].color" :aria-label="`${label} hex color`" :label="`${label} color`" density="compact" hide-details maxlength="7" :disabled="saving" />
                   </div>
-                  <v-text-field v-model.number="draft.typography[key].fontSize" :label="`${label} size`" type="number" min="10" max="72" step="1" suffix="px" density="compact" hide-details :disabled="saving" />
+                  <v-text-field v-model.number="draft.typography[key].fontSize" :label="`${label} size`" type="number" min="10" max="72" step="1" suffix="px" density="compact" hide-details :disabled="saving || key === 'linkVisited'" />
                 </div>
-                <p class="text-caption text-medium-emphasis mt-4">Use 10–72 pixels. Check your choices for readability and contrast; a 16px or larger paragraph size is a good starting point. Browsers limit visited-link styling for privacy.</p>
+                <p class="text-caption text-medium-emphasis mt-4">Use 10–72 pixels. Check your choices for readability and contrast; a 16px or larger paragraph size is a good starting point. Visited links use the normal link size; their size control is disabled because browsers restrict visited styling for privacy. You can still change their color.</p>
               </v-card-text>
             </v-card>
             <v-card class="mb-5" title="Logo & navigation">
