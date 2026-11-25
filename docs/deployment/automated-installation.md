@@ -4,7 +4,7 @@
 
 **Validation status:** shell/JavaScript syntax, 15 configuration safety tests, and bootstrap/retry integration against a disposable MongoDB database have passed locally. A complete installation and interrupted-install recovery on a disposable Ubuntu 26.04 VM are still pending. Do not describe this as a verified unattended deployment yet. Record VM acceptance results using the checklist at the end of this document.
 
-**Existing DocMan server? Stop here.** This is not an updater. In particular, do not run it on the existing NMDOH server. Follow [walkthrough section 19](ubuntu-server-installation.md#19-existing-installations-and-updates), taking a matching database/uploads backup first. Its existing data, configuration and encryption keys must survive the update.
+**Existing DocMan server? Stop here.** This is not an updater. In particular, do not run it on the existing development server. Follow [walkthrough section 19](ubuntu-server-installation.md#19-existing-installations-and-updates), taking a matching database/uploads backup first. Its existing data, configuration and encryption keys must survive the update.
 
 For future updates of an installer-created server, the checkout is owned by the non-login `docman-build` account. Run section 19's Git/npm commands as that account using `sudo -u docman-build -H` before the command (for example, `sudo -u docman-build -H git -C /var/www/docman status --short --branch`). Run service, backup and publication commands from your normal sudo-capable administrator login as documented. Do not give the build account sudo rights or transfer environment-file ownership to it.
 
@@ -28,7 +28,7 @@ Have these ready:
 
 Do not manually install/configure MongoDB or Redis before using this installer. It deliberately refuses pre-existing database configuration, application configuration or service accounts. An Ubuntu installation that already hosts applications needs a separately planned deployment.
 
-NOC/security continues to own network access rules. The installer does not enable UFW or change firewall rules. Administration must remain reachable, and demonstration clients need TCP 443 access. MongoDB, Redis and the DocMan backend are configured to listen on loopback; Apache exposes the website.
+the network/security team continues to own network access rules. The installer does not enable UFW or change firewall rules. Administration must remain reachable, and demonstration clients need TCP 443 access. MongoDB, Redis and the DocMan backend are configured to listen on loopback; Apache exposes the website.
 
 ### HTTPS choices
 
@@ -137,7 +137,7 @@ Saved configuration and keys are reused. An interruption before the configuratio
 | Existing installation/data detected | Do not delete it. This server needs the existing-install update procedure, or select a genuinely fresh server. |
 | Package download/DNS/TLS failure | Fix access to the reported package endpoint/proxy/CA using walkthrough section 4; rerun. Do not disable certificate validation. |
 | Node version or newer-LTS compatibility stop | Use a release of DocMan whose installer has been updated and tested for the current LTS; do not substitute an older Ubuntu repository. |
-| Clock not synchronized | Have NOC confirm the selected NTP source/network access; check `timedatectl status`. Success is `System clock synchronized: yes`. |
+| Clock not synchronized | Have IT confirm the selected NTP source/network access; check `timedatectl status`. Success is `System clock synchronized: yes`. |
 | MongoDB/Redis cannot start | Run `sudo journalctl -u mongod -u redis-server -n 50 --no-pager`. Fix the reported path/configuration error; do not recreate accounts or disable authentication. |
 | Certificate mismatch/expiry/trust failure | Obtain the matching key/full chain/trusted CA from the issuer. Correct DNS/CA placement; do not use curl's insecure flag to bypass the check. |
 | Backend/Apache health failure | Run `sudo journalctl -u docman-backend -u apache2 -n 50 --no-pager` and `sudo apache2ctl configtest`. `Syntax OK` is the expected Apache result. |
@@ -157,7 +157,7 @@ From a workstation allowed to reach the server, open the HTTPS address printed b
 
 Email is deliberately **disabled**, not silently pointed at AWS. Configure **System Settings → Outgoing email** using [walkthrough section 16](ubuntu-server-installation.md#16-configure-outgoing-email-in-system-settings). It covers SMTP relay by IP, SMTP username/password, TLS/STARTTLS, SES, sender permissions, CA trust, saving settings and verifying test-email receipt. Password-reset mail will not work until delivery is configured.
 
-For NMDOH, `webmail.state.nm.us:25` is a reported candidate only. Authentication, TLS, allowed sender addresses and server-IP relay authorization still need confirmation from the mail administrators. The installer neither contacts this server nor sends mail.
+`smtp.example.org:25` is an illustrative relay endpoint only; obtain the actual hostname and port from your mail administrators. Authentication, TLS, allowed sender addresses and server-IP relay authorization still need confirmation from the mail administrators. The installer neither contacts this server nor sends mail.
 
 After the test email arrives, create a second test account. If you already created it while email was disabled, resend its invitation from user management. Open the emailed invitation in a separate browser session, set its password, sign in, and test the document workflow with disposable, non-sensitive files. **Expected:** invitation receipt, successful activation, and successful sign-in. Stop and resolve delivery or activation errors before testing assignments.
 
@@ -293,7 +293,7 @@ Use manual sections 12–14 to build/publish Vue, install the service and config
 
 The Apache template uses `docman_safe` access logging: client, time, method, protocol, status and byte count, with no request URL or Referer. Public-link tokens must not appear in access logs. Existing installations keep their Apache configuration during updates: apply the matching configuration in manual section 14.4, run `sudo apache2ctl configtest` (expect `Syntax OK`), and only then `sudo systemctl reload apache2` (normally silent). A failed syntax check means do not reload. Handle pre-existing token-bearing logs under your incident/retention process and revoke affected public links if required; this change does not erase historical logs.
 
-Run on a disposable **fresh Ubuntu 26.04 LTS VM**, not NMDOH's existing deployment. Record the exact DocMan commit and installed package versions.
+Run on a disposable **fresh Ubuntu 26.04 LTS VM**, not the organization's existing deployment. Record the exact DocMan commit and installed package versions.
 
 - [ ] Clean install: package installation, authenticated databases, account/category bootstrap, migration, build and protected file permissions.
 - [ ] HTTPS: self-signed path and issued-certificate path; hostname/key/trust failures stop; public Let's Encrypt issuance/renewal where available.

@@ -1,6 +1,6 @@
 # DocMan: complete Ubuntu server installation and operations guide
 
-**For:** a new, dedicated Ubuntu Server LTS machine. These instructions target **Ubuntu 26.04 LTS**, matching the NMDOH server.  
+**For:** a new, dedicated Ubuntu Server LTS machine. These instructions target **Ubuntu 26.04 LTS**.
 **Application:** DocMan 3.0.0, Vue interface, native Linux services.
 **Guide checked against the repository:** November 17, 2026.
 
@@ -20,9 +20,9 @@ This guide follows one installation sequence: **Ubuntu 26.04 LTS (`resolute`), N
 
 MongoDB supports Ubuntu 26.04 starting with 9.0.4. These instructions use its `resolute` repository and `server-9.asc` signing key. See the [MongoDB platform matrix](https://www.mongodb.com/docs/community-platform-support/). Package candidates can change; recorded version outputs below describe the actual installation rather than pinning every future apt installation to those patch versions.
 
-**For an existing NOC-provisioned, internal-only development server:** use the existing access route, such as NinjaOne to an NMDOH workstation and then a terminal on the server. Skip OS provisioning and changes to NOC-managed SSH/network settings. Start with [the internal POC sequence](#44-internal-poc-installation-sequence). Install dependencies and establish local application startup first. Public DNS, DMZ placement, and public certificate issuance are not prerequisites for those installation steps. Internal HTTPS is a later stage of making the application available to demonstration users.
+**For an existing IT-provisioned, internal-only development server:** use the existing access route, such as an approved remote-access tool to a development workstation and then a terminal on the server. Skip OS provisioning and changes to IT-managed SSH/network settings. Start with [the internal POC sequence](#44-internal-poc-installation-sequence). Install dependencies and establish local application startup first. Public DNS, DMZ placement, and public certificate issuance are not prerequisites for those installation steps. Internal HTTPS is a later stage of making the application available to demonstration users.
 
-**Verification boundary:** NMDOH user output confirms Ubuntu 26.04.1, Node 22.22.1/npm 9.2.0, MongoDB 9.0.8 and Redis 8.0.5 with successful authentication/denial checks, checkout e9df951, application accounts/category, migration and valid audit chain, frontend build/publication, and backend startup with local Redis and HTTP 401 from the unauthenticated API. The user reports the application URLs now use the existing internal DNS name `docman-dev.doh.nm.gov`. Apache 2.4.66 and the required proxy/headers/rewrite/SSL modules are now confirmed; restart returned without error. The DocMan site is active with a NOC-approved self-signed certificate; server-side HTTPS checks returned 200 for the website and 401 for the unauthenticated API. The user confirms browser login as RBakos after the workstation certificate-transfer/trust instructions. Document workflow tests remain pending. Clock synchronization and active NTP are confirmed. Base-tool completeness, firewall restrictions, certificate issuance/trust, Apache configuration, workstation/browser workflows, email, and backup recovery still require verification. Reported npm vulnerabilities remain unresolved. This is not a completed or security-approved deployment. Earlier isolated workflow tests do not replace acceptance testing on this server. Recent local documentation edits may not yet be present in its checkout.
+**Verification boundary:** This guide is reusable installation guidance, not certification of any deployment. Verify each checkpoint on your own server. Historical development-test results are recorded separately in [the POC validation record](poc-validation.md). Example hostnames, accounts and addresses must be replaced with your own values.
 
 
 ## Contents
@@ -52,7 +52,7 @@ MongoDB supports Ubuntu 26.04 starting with 9.0.4. These instructions use its `r
 
 ## 1. How to use this guide
 
-For a server you install yourself, work through the sections in order. For the already provisioned NMDOH server, follow section 4.4's numbered sequence. Read the explanation immediately after a command block **before** running it. Run commands one line at a time unless they form a continued command or a complete script. Check each result before continuing; pasting a whole block does not automatically stop later commands if an earlier command fails.
+For a server you install yourself, work through the sections in order. For the already provisioned development server, follow section 4.4's numbered sequence. Read the explanation immediately after a command block **before** running it. Run commands one line at a time unless they form a continued command or a complete script. Check each result before continuing; pasting a whole block does not automatically stop later commands if an earlier command fails.
 
 Commands in `bash` blocks run in your **Ubuntu server's terminal**, unless a paragraph explicitly says otherwise. `powershell` blocks run on your **Windows computer**. `javascript` blocks in the MongoDB section run inside **mongosh**, the database's own prompt. Configuration blocks are file contents; do not paste those at a shell prompt. A script introduced with “paste into this file” is also file content, even if its block is marked `bash`.
 
@@ -61,13 +61,13 @@ Commands in `bash` blocks run in your **Ubuntu server's terminal**, unless a par
 | What the prompt looks like (examples only) | Where you are | What to enter there |
 | --- | --- | --- |
 | `PS C:\Users\you>` | Windows PowerShell | Only commands labeled for Windows |
-| `rbakos@dohr2simdocmdev:~$` | Ubuntu terminal as your personal account | The guide's normal server commands |
+| `deploy@docman-server:~$` | Ubuntu terminal as your personal account | The guide's normal server commands |
 | `root@recovery:~#` | Ubuntu terminal as root | Only the restore steps explicitly requiring a root shell; type `exit` to return to your normal account |
 | `test>` / `admin>` / `docman>` | MongoDB shell | The MongoDB commands in section 7; type `exit` to return to Ubuntu |
 | `sftp>` | Backup file-transfer session | Type `bye` to return to Ubuntu |
 | A full-screen editor with shortcuts along the bottom | nano | Paste/edit the named file, save, and exit before running more commands |
 
-Do not type the prompt itself. For example, type `systemctl is-active mongod`, not `rbakos@dohr2simdocmdev:~$ systemctl is-active mongod`. If Bash displays only `>` after you paste, it is waiting for a closing quote or the rest of a multiline command. Finish the block, or press Ctrl+C and paste it again from the beginning.
+Do not type the prompt itself. For example, type `systemctl is-active mongod`, not `deploy@docman-server:~$ systemctl is-active mongod`. If Bash displays only `>` after you paste, it is waiting for a closing quote or the rest of a multiline command. Finish the block, or press Ctrl+C and paste it again from the beginning.
 
 - A **terminal** is a window where you type commands.
 - **SSH** lets your computer open a secure terminal on the server.
@@ -102,15 +102,15 @@ echo $?
 
 `0` means that command reported success; another number means it did not. Run this immediately: after another command, it checks that other command instead. A command such as `grep` can return `1` simply because it found no match. The deliberate unauthorized-access tests below are also expected to return an error. Those exceptions are explicitly labeled.
 
-For `apt install`, “already the newest version” is success. New packages usually produce many `Unpacking` and `Setting up` lines, then return to your Ubuntu prompt. “No VM guests are running outdated hypervisor binaries” is informational, not a failure. `E:`, “Failed to fetch,” “Unable to locate package,” or an unmet dependency means stop and resolve that package step. If a configuration-file prompt asks whether to replace an existing file, preserve the installed configuration unless this guide explicitly tells you to replace it; do not overwrite NOC's settings by guessing.
+For `apt install`, “already the newest version” is success. New packages usually produce many `Unpacking` and `Setting up` lines, then return to your Ubuntu prompt. “No VM guests are running outdated hypervisor binaries” is informational, not a failure. `E:`, “Failed to fetch,” “Unable to locate package,” or an unmet dependency means stop and resolve that package step. If a configuration-file prompt asks whether to replace an existing file, preserve the installed configuration unless this guide explicitly tells you to replace it; do not overwrite IT's settings by guessing.
 
 ### Values you must obtain, rather than guess
 
 | Value | Where it comes from | When you need it |
 | --- | --- | --- |
-| Server address, personal Ubuntu login, sudo access | NOC/server administrator | Connecting to the server |
+| Server address, personal Ubuntu login, sudo access | IT/server administrator | Connecting to the server |
 | Approved application commit hash | The application maintainer, after the intended fixes have been committed and made available | Section 9; an old version badge is not a substitute |
-| Actual website name and trusted certificate | NOC's DNS/certificate administrator, or the public DNS/CA process if applicable | Browser access in sections 5 and 14 |
+| Actual website name and trusted certificate | IT's DNS/certificate administrator, or the public DNS/CA process if applicable | Browser access in sections 5 and 14 |
 | Database/Redis passwords | Choose your own, at least 18 characters, and save privately | Sections 7–10 |
 | JWT signing secret | Generated by the application-secret command; not a login password | Section 10 |
 | Email identity/API credentials | Your authorized AWS administrator/setup | Optional email section 16 |
@@ -182,7 +182,7 @@ Follow the numbered sections in order, or the explicit internal-server sequence 
 | Working document sharing | Login and role-separated document workflows (section 15) | Upload/replacement/approval/download and denied-access tests pass |
 | Operations | Email if used, backups, restoration, renewal and maintenance (sections 16–22) | Recorded feature checks, usable off-server backup, successful recovery test, assigned operational ownership |
 
-If waiting for an external prerequisite such as a NOC certificate, record the pending item and preserve the files already created. Do not redo successful setup or label browser access complete while waiting.
+If waiting for an external prerequisite such as a IT certificate, record the pending item and preserve the files already created. Do not redo successful setup or label browser access complete while waiting.
 
 ### 2.2 Installed components
 
@@ -193,7 +193,7 @@ If waiting for an external prerequisite such as a NOC certificate, record the pe
 | MongoDB Community 9.0 | Stores users, document metadata, versions, and audit records | Loopback TCP 27017 only |
 | Redis | Shares rate-limit counters across requests/processes | Loopback TCP 6379 only |
 | systemd | Starts services after reboot and restarts the backend after failure | No additional public port |
-| Certbot (public-certificate route only) | Obtains and renews public certificates; not used for the NMDOH internal certificate | Uses the website's HTTP challenge path |
+| Certbot (public-certificate route only) | Obtains and renews public certificates; not used for internal certificate | Uses the website's HTTP challenge path |
 | MongoDB Database Tools | Creates/restores database backups | Connects locally to MongoDB |
 | restic + OpenSSH | Encrypts and transfers backups to another server | Outbound SSH to backup host |
 
@@ -205,7 +205,7 @@ The React frontend, Vite development server, PM2, Nginx, Docker, Kubernetes, Atl
 
 ### 3.1 If your organization or cloud provider supplies the server
 
-Create a VM/instance with the resources above. Select **Ubuntu Server 26.04 LTS x86-64**, attach a persistent disk, reserve a stable IP, and enable console access. If NOC has already provisioned the server, keep that installation and check its version rather than rebuilding it to match an example. Record the supplied SSH username; it is often `ubuntu`, but varies by provider. Add your SSH public key during provisioning if the provider supports it. Do not choose a preconfigured Docker or application image.
+Create a VM/instance with the resources above. Select **Ubuntu Server 26.04 LTS x86-64**, attach a persistent disk, reserve a stable IP, and enable console access. If IT has already provisioned the server, keep that installation and check its version rather than rebuilding it to match an example. Record the supplied SSH username; it is often `ubuntu`, but varies by provider. Add your SSH public key during provisioning if the provider supports it. Do not choose a preconfigured Docker or application image.
 
 If IT supplies the machine, ask for its IP, sudo-enabled username, login method, DNS administrator contact, and whether traffic uses a public address, VPN, or organization proxy. An internal-only deployment can use an organization-issued certificate as explained in section 14.
 
@@ -234,7 +234,7 @@ sudo systemctl enable --now ssh
 
 **Check:** run `systemctl is-active ssh`. It must print `active`. Package installation should finish without an apt error; `enable --now` may print a symlink message or nothing. If the check is not `active`, run `sudo journalctl -u ssh -n 40 --no-pager` from the console. Continue to remote login only after SSH is active.
 
-`ip -br address` shows interface names and addresses. `lo` / `127.0.0.1` is not the address to use from your workstation. Find the address on the network interface (often `ens...` or `enp...`); ask NOC if there are several possible networks.
+`ip -br address` shows interface names and addresses. `lo` / `127.0.0.1` is not the address to use from your workstation. Find the address on the network interface (often `ens...` or `enp...`); ask IT if there are several possible networks.
 
 For a LAN server behind a router, your network administrator must provide a stable address/DHCP reservation. Public access additionally needs the router/firewall to forward TCP 80/443 to this machine. Do not publish database ports. A server on a private VPN can remain private; users must be able to reach that VPN.
 
@@ -349,7 +349,7 @@ Apply Ubuntu updates:
 sudo apt upgrade -y
 ```
 
-Wait for completion. For a NOC-managed server, follow its approved update window and configuration policy. Do not overwrite organization-managed configuration when prompted.
+Wait for completion. For a IT-managed server, follow its approved update window and configuration policy. Do not overwrite organization-managed configuration when prompted.
 
 Install the common prerequisites. Copy this complete command, including both continued lines:
 
@@ -369,10 +369,10 @@ sudo apt install -y ca-certificates curl gnupg git rsync nano jq openssl \
 | build-essential, python3 | Build native npm dependencies and run setup helpers |
 | apache2 | Serve the website and proxy its API over HTTPS |
 | redis-server | Run the local rate-limit store; secure it in section 8 |
-| ufw | Host firewall when NOC has not supplied another managed implementation |
+| ufw | Host firewall when IT has not supplied another managed implementation |
 | dnsutils, util-linux | DNS checks and utilities such as runuser/flock |
 | restic, openssh-client | Encrypted off-server backups; configure in section 17 |
-| unattended-upgrades | Ubuntu security updates, subject to NOC policy |
+| unattended-upgrades | Ubuntu security updates, subject to IT policy |
 
 Verify Apache is actually installed:
 
@@ -388,7 +388,7 @@ On a server you administer independently, enable Ubuntu security updates:
 sudo dpkg-reconfigure -plow unattended-upgrades
 ```
 
-Choose **Yes** in the dialog, then press Enter. On a NOC-managed server, confirm its existing update policy instead of replacing it. MongoDB's third-party packages need a separate update plan; Ubuntu automatic updates alone do not establish that plan.
+Choose **Yes** in the dialog, then press Enter. On a IT-managed server, confirm its existing update policy instead of replacing it. MongoDB's third-party packages need a separate update plan; Ubuntu automatic updates alone do not establish that plan.
 
 Check the clock:
 
@@ -396,7 +396,7 @@ Check the clock:
 timedatectl status
 ```
 
-Expect `System clock synchronized: yes`. Preserve NOC's configured time provider. For an independently administered server using its supplied NTP service, run the following if synchronization is not enabled:
+Expect `System clock synchronized: yes`. Preserve IT's configured time provider. For an independently administered server using its supplied NTP service, run the following if synchronization is not enabled:
 
 ```bash
 sudo timedatectl set-timezone UTC
@@ -406,7 +406,7 @@ timedatectl status
 
 The first two commands normally print nothing. If NTP is unsupported or synchronization remains `no`, resolve the time-service configuration and access to an approved time source before authentication testing. Do not assume an active service means the clock is synchronized.
 
-**If time synchronization needs installation/configuration:** Ubuntu 26.04 uses Chrony by default. Preserve a working NOC-managed provider. On a fresh server without a managed provider, install and start Chrony:
+**If time synchronization needs installation/configuration:** Ubuntu 26.04 uses Chrony by default. Preserve a working IT-managed provider. On a fresh server without a managed provider, install and start Chrony:
 
 ```bash
 sudo apt install -y chrony
@@ -416,15 +416,15 @@ chronyc tracking
 chronyc sources -v
 ```
 
-Expect `active`, a tracking report with `Leap status: Normal`, and a selected source marked `^*`. Initial synchronization may take a short time. If sources remain unreachable, obtain the approved time-server hostname/IP from NOC and check its network reachability rather than repeatedly restarting the application.
+Expect `active`, a tracking report with `Leap status: Normal`, and a selected source marked `^*`. Initial synchronization may take a short time. If sources remain unreachable, obtain the approved time-server hostname/IP from IT and check its network reachability rather than repeatedly restarting the application.
 
-For an internal NTP source supplied by NOC, open `sudo nano /etc/chrony/sources.d/docman-internal.sources` and enter:
+For an internal NTP source supplied by IT, open `sudo nano /etc/chrony/sources.d/docman-internal.sources` and enter:
 
 ```text
-server CHANGE_ME_NOC_TIME_SERVER iburst
+server CHANGE_ME_IT_TIME_SERVER iburst
 ```
 
-Replace the placeholder with the actual NOC hostname/IP, save with Ctrl+O, Enter, and exit with Ctrl+X. This example is for ordinary NTP; if NOC requires authenticated NTS, obtain its specific source/trust settings. If public sources are prohibited, comment out the `pool` lines in `/etc/chrony/sources.d/ubuntu-ntp-pools.sources`; preserve NOC-managed sources and DHCP configuration. Restart and verify:
+Replace the placeholder with the actual IT hostname/IP, save with Ctrl+O, Enter, and exit with Ctrl+X. This example is for ordinary NTP; if IT requires authenticated NTS, obtain its specific source/trust settings. If public sources are prohibited, comment out the `pool` lines in `/etc/chrony/sources.d/ubuntu-ntp-pools.sources`; preserve IT-managed sources and DHCP configuration. Restart and verify:
 
 ```bash
 sudo systemctl restart chrony
@@ -447,7 +447,7 @@ else
 fi
 ```
 
-**Time checkpoint:** `timedatectl status` should show `System clock synchronized: yes` and an active NTP service. UTC is the timezone used by this guide's scheduled tasks. If synchronization is `no`, wait briefly and check again; if it stays `no`, resolve time-service/network access with NOC before authentication testing. A wrong clock can invalidate login tokens and certificates.
+**Time checkpoint:** `timedatectl status` should show `System clock synchronized: yes` and an active NTP service. UTC is the timezone used by this guide's scheduled tasks. If synchronization is `no`, wait briefly and check again; if it stays `no`, resolve time-service/network access with IT before authentication testing. A wrong clock can invalidate login tokens and certificates.
 
 ### 4.4 Internal POC installation sequence
 
@@ -463,9 +463,9 @@ For a fresh, already provisioned internal server, work in this order. Run comman
    lscpu | grep -w avx
    ```
 
-   **Expected:** Ubuntu `26.04`, `x86_64`, and a flags line containing `avx`. In `free -h`, inspect the `Mem:` row; `available` is the memory left for applications. In `df -h /`, `Avail` is free disk space. The supplied NMDOH server had 7.3 GiB total memory and 39 GB available disk. A blank AVX result or a different OS/architecture is a reason to stop before installing MongoDB.
+   **Expected:** Ubuntu `26.04`, `x86_64`, and a flags line containing `avx`. In `free -h`, inspect the `Mem:` row; `available` is the memory left for applications. In `df -h /`, `Avail` is free disk space. A blank AVX result or a different OS/architecture is a reason to stop before installing MongoDB.
 
-2. Complete **section 4.3's operating-system package installation** before continuing. This is the same prerequisite list for the internal POC; do not use a smaller substitute list and postpone missing tools. Respect NOC-managed update/time policies. Then inspect package candidates:
+2. Complete **section 4.3's operating-system package installation** before continuing. This is the same prerequisite list for the internal POC; do not use a smaller substitute list and postpone missing tools. Respect IT-managed update/time policies. Then inspect package candidates:
 
    ```bash
    apt-cache policy nodejs redis-server
@@ -476,7 +476,7 @@ For a fresh, already provisioned internal server, work in this order. Run comman
 3. Follow section 6 to install Node.js, npm, and Redis. Confirm the version outputs and `PONG`.
 4. Follow section 7's MongoDB installation commands. Confirm its version, active service, successful ping, and localhost listener. Then create database accounts and enable authentication using sections 7.2–7.3.
 5. Complete Redis password configuration in section 8. The earlier `PONG` confirms connectivity only; it does not mean Redis has been password-protected yet.
-6. Confirm section 5.2’s host/NOC firewall restrictions before starting the backend; it listens on all interfaces. Then follow sections 9–13 to install the application, configure it, provision users/category, migrate, build, and check backend startup locally. Pass the prerequisite checkpoint below before those steps. Supply the intended application URL when writing settings; the URL does not need to be reachable just to test `http://127.0.0.1:5001/api/docs` on the server. Its expected unauthenticated response is 401. This is a backend startup check, not a browser login acceptance test.
+6. Confirm section 5.2’s host/IT firewall restrictions before starting the backend; it listens on all interfaces. Then follow sections 9–13 to install the application, configure it, provision users/category, migrate, build, and check backend startup locally. Pass the prerequisite checkpoint below before those steps. Supply the intended application URL when writing settings; the URL does not need to be reachable just to test `http://127.0.0.1:5001/api/docs` on the server. Its expected unauthenticated response is 401. This is a backend startup check, not a browser login acceptance test.
 7. After local startup works, complete browser DNS/reachability and organization-trusted HTTPS in sections 5 and 14, then section 15's browser workflow tests. Use section 14's organization-certificate route for the internal POC. Do not open public firewall access or request a public certificate for a short internal machine name.
 8. Complete email, backup/recovery, and operational checks as applicable before handing the POC to users. Their status must be recorded separately from basic application startup.
 
@@ -503,7 +503,7 @@ timedatectl status
 
 **Expected:** every tool says `FOUND`, the final tool message says `Base tools found`, Apache prints `Server version: Apache/2.4...`, and the clock says `System clock synchronized: yes`. A missing tool means the installation is not complete; revisit section 4.3 and resolve apt errors. These checks do not prove Apache is configured or network access is permitted. Node/npm, MongoDB, and Redis have their own version/service/authentication checks in sections 6–8. Record actual results rather than assuming a command in this guide has already been executed.
 
-Use NOC's existing firewall and update policies. If this server needs its own UFW/security-update setup, apply sections 4.3 and 5 with the actual administrator access path accounted for. Do not replace NOC-managed SSH settings simply because the fresh standalone-server example includes them. Snap/Certbot is only necessary if you later choose the public-certificate route.
+Use IT's existing firewall and update policies. If this server needs its own UFW/security-update setup, apply sections 4.3 and 5 with the actual administrator access path accounted for. Do not replace IT-managed SSH settings simply because the fresh standalone-server example includes them. Snap/Certbot is only necessary if you later choose the public-certificate route.
 
 When reporting progress, send the version/check results and any errors; the entire successful apt installation log is unnecessary. Stop on unexpected errors. Never include passwords, private keys, or environment-file contents.
 
@@ -511,7 +511,7 @@ When reporting progress, send the version/check results and any errors; the enti
 
 ### 5.1 DNS
 
-For the internal NMDOH POC, have NOC create or confirm an internal **A record** pointing the chosen website name to this server's private IPv4 address. Do not create a public record for this internal machine. For a public deployment you administer yourself, add an A record in your domain's DNS management page pointing the chosen name to the server's stable public IPv4 address. For a delegated name such as `docs.department.example.org`, use the label appropriate to that DNS zone. Do not include `https://` or a path in a DNS record.
+For the internal development POC, have IT create or confirm an internal **A record** pointing the chosen website name to this server's private IPv4 address. Do not create a public record for this internal machine. For a public deployment you administer yourself, add an A record in your domain's DNS management page pointing the chosen name to the server's stable public IPv4 address. For a delegated name such as `docs.department.example.org`, use the label appropriate to that DNS zone. Do not include `https://` or a path in a DNS record.
 
 Only add an **AAAA record** if IPv6 reaches this server and its firewall is configured. Remove an incorrect old AAAA record; it can make browsers and certificate issuance fail even when IPv4 works. For private deployment, use the private address in the organization's internal DNS instead.
 
@@ -541,7 +541,7 @@ DNS changes can take time to propagate. The A result must match your intended ad
 
 ### Network prerequisites for package installation and operation
 
-Internal-only hosting still needs access to approved software sources. Before installation, have NOC provide the server's DNS resolvers, permitted package-access route (direct or managed proxy/mirror), and time source. Exact proxy addresses, credentials, and organization CA certificates must come from NOC; this guide cannot invent them.
+Internal-only hosting still needs access to approved software sources. Before installation, have IT provide the server's DNS resolvers, permitted package-access route (direct or managed proxy/mirror), and time source. Exact proxy addresses, credentials, and organization CA certificates must come from IT; this guide cannot invent them.
 
 | Connection | Needed for |
 | --- | --- |
@@ -554,7 +554,7 @@ Internal-only hosting still needs access to approved software sources. Before in
 | AWS SES regional HTTPS endpoint, if email is enabled | Outgoing application email |
 | Approved backup host SSH/SFTP port, usually TCP 22 | Off-server backups |
 
-These are destination/service requirements, not instructions to expose inbound database ports. A blocked download is an unresolved prerequisite. Use the error's hostname to request the appropriate NOC rule or mirror/proxy configuration. If TLS inspection is required, obtain the verified organization CA and install its trust as described in section 14.3; do not disable TLS verification in npm, curl, or Git. Proxy-required sites must obtain NOC's apt/Git/npm proxy settings before the package steps can succeed. Working apt access alone does not prove Git/npm access.
+These are destination/service requirements, not instructions to expose inbound database ports. A blocked download is an unresolved prerequisite. Use the error's hostname to request the appropriate IT rule or mirror/proxy configuration. If TLS inspection is required, obtain the verified organization CA and install its trust as described in section 14.3; do not disable TLS verification in npm, curl, or Git. Proxy-required sites must obtain IT's apt/Git/npm proxy settings before the package steps can succeed. Working apt access alone does not prove Git/npm access.
 
 ### 5.2 Two firewall layers
 
@@ -577,9 +577,9 @@ sudo ufw status verbose
 
 Answer `y` when prompted. Check a second SSH connection immediately.
 
-`ufw status verbose` must show `Status: active`, default incoming policy `deny`, and allow rules for OpenSSH/22 and Apache's 80/443 ports. If it says `inactive`, UFW is not enforcing these rules. If NOC manages another firewall instead, verify its equivalent rules with NOC; do not treat an absent UFW command as proof the server is protected. Rule names may be shown as port numbers, and IPv6 rules may appear separately. The general OpenSSH rule allows port 22; organizations can narrow it to known administrator networks after confirming those addresses and keeping console access. Do not guess your source IP and lock yourself out. [Ubuntu's firewall documentation](https://ubuntu.com/server/docs/firewalls/) describes UFW rules.
+`ufw status verbose` must show `Status: active`, default incoming policy `deny`, and allow rules for OpenSSH/22 and Apache's 80/443 ports. If it says `inactive`, UFW is not enforcing these rules. If IT manages another firewall instead, verify its equivalent rules with IT; do not treat an absent UFW command as proof the server is protected. Rule names may be shown as port numbers, and IPv6 rules may appear separately. The general OpenSSH rule allows port 22; organizations can narrow it to known administrator networks after confirming those addresses and keeping console access. Do not guess your source IP and lock yourself out. [Ubuntu's firewall documentation](https://ubuntu.com/server/docs/firewalls/) describes UFW rules.
 
-**NMDOH observed checkpoint:** MongoDB and Redis are loopback-only, Node listens on `*:5001`, Apache listens on ports 80/443, and UFW reports `inactive`. This does not prove public exposure or that NOC filtering blocks internal clients. Confirm the applicable host/network firewall policy and required management access before enabling UFW. Apache listening on 443 alone does not prove the disabled DocMan HTTPS site has a certificate or works.
+**Check your listeners and firewall policy:** MongoDB and Redis should be loopback-only. Check the backend listener and applicable host/network filtering with your administrator. Do not enable UFW without preserving required management access. Apache listening on port 443 alone does not prove the HTTPS site or certificate works.
 
 **Application-specific detail:** the backend currently listens on all interfaces; it does not implement a `HOST=127.0.0.1` setting. This guide therefore relies on the host and network firewalls to prevent direct access to port 5001. Apache connects to it through loopback. MongoDB and Redis will additionally bind to loopback themselves.
 
@@ -589,7 +589,7 @@ Use Node.js **22**, at least **22.12**, from Ubuntu’s package repository. Do n
 
 ### 6.1 Install and verify the Ubuntu packages
 
-The NMDOH server's package candidate was Node 22.22.1. Install Node, npm, and Redis:
+Install Node, npm, and Redis:
 
 ```bash
 sudo apt install -y nodejs npm redis-server
@@ -638,7 +638,7 @@ mongodump --version
 mongorestore --version
 ```
 
-Expected: MongoDB **9.0.4 or newer within 9.0**, `active`, `{ ok: 1 }`, and `127.0.0.1:27017`. The NMDOH installation returned **9.0.8**. Do not change `bindIp` to `0.0.0.0`: the backend will connect locally. `mongodb-org` includes the database-tools dependency; if the backup executables are missing, install `mongodb-database-tools` from the configured MongoDB repository and recheck. The ping is a connectivity check, not an authentication test.
+Expected: MongoDB **9.0.4 or newer within 9.0**, `active`, `{ ok: 1 }`, and `127.0.0.1:27017`. Do not change `bindIp` to `0.0.0.0`: the backend will connect locally. `mongodb-org` includes the database-tools dependency; if the backup executables are missing, install `mongodb-database-tools` from the configured MongoDB repository and recheck. The ping is a connectivity check, not an authentication test.
 
 Source: [MongoDB Community installation for Ubuntu](https://www.mongodb.com/docs/manual/administration/install-community-linux/?linux-distro=ubuntu&linux-method=pkg). Continue to section 7.2.
 
@@ -646,7 +646,7 @@ Source: [MongoDB Community installation for Ubuntu](https://www.mongodb.com/docs
 
 ### 7.2 Create database accounts
 
-These steps match the next step in the guided NMDOH installation. On a fresh instance, create the users locally before enabling authentication, then immediately enable it in section 7.3. Keep MongoDB bound to `127.0.0.1` throughout. If authentication is already enabled, connect using your existing database administrator instead; do not disable it to rerun setup.
+On a fresh instance, create the users locally before enabling authentication, then immediately enable it in section 7.3. Keep MongoDB bound to `127.0.0.1` throughout. If authentication is already enabled, connect using your existing database administrator instead; do not disable it to rerun setup.
 
 Ensure MongoDB is running:
 
@@ -794,7 +794,7 @@ sudo ss -lntp | grep ':27017'
 
 The unauthenticated command **must return an authorization error**, such as `requires authentication` or `Unauthorized`; that error is the expected success condition for this negative test. The listener must remain on `127.0.0.1:27017`. A successful unauthenticated `ping` does not prove authentication is disabled or enabled, so use the collection-list test above.
 
-The MongoDB setup checkpoint is complete only when the authenticated operation succeeds, the unauthenticated operation is denied, and the listener remains local. On the NMDOH server, both authentication tests passed; the loopback listener was confirmed earlier in setup.
+The MongoDB setup checkpoint is complete only when the authenticated operation succeeds, the unauthenticated operation is denied, and the listener remains local. On development server, both authentication tests passed; the loopback listener was confirmed earlier in setup.
 
 ## 8. Install and secure Redis
 
@@ -838,7 +838,7 @@ sudo journalctl -u redis-server -n 50 --no-pager
 
 Look for `FATAL CONFIG FILE ERROR`, a line number, and the offending line. Before sharing logs, replace any displayed password with `[REDACTED]`; an error may include the password setting.
 
-For example, the NMDOH installation reported line 112 containing `port protected-mode yes`, followed by `wrong number of arguments`. Check the saved settings with:
+For example, development installation reported line 112 containing `port protected-mode yes`, followed by `wrong number of arguments`. Check the saved settings with:
 
 ```bash
 sudo grep -nE '^[[:space:]]*(port|protected-mode)[[:space:]]' /etc/redis/redis.conf
@@ -1266,7 +1266,7 @@ cd /var/www/docman/backend
 sudo -u docman env NODE_ENV=production /usr/bin/node src/scripts/migrateComplianceFields.js --dry-run
 ```
 
-**Expected:** the summary begins `[migrateComplianceFields] Dry run complete.` and its `missingFiles` count is `0`. On this new database, document/file update counts will normally be zero. `--dry-run` skips the migration’s record updates, but its database connection setup can create indexes, as observed on the NMDOH server. It is not a strictly read-only operation. A `Failed:` line, missing files, or conflicting versions means stop here and investigate.
+**Expected:** the summary begins `[migrateComplianceFields] Dry run complete.` and its `missingFiles` count is `0`. On this new database, document/file update counts will normally be zero. `--dry-run` skips the migration’s record updates, but its database connection setup can create indexes. It is not a strictly read-only operation. A `Failed:` line, missing files, or conflicting versions means stop here and investigate.
 
 Only after that check passes, apply the migration:
 
@@ -1363,7 +1363,7 @@ sudo systemd-analyze verify /etc/systemd/system/docman-backend.service
 
 **Expected:** no diagnostics and exit status `0` (check with `echo $?` immediately). An unknown setting, missing executable, or missing dependency is a reason to fix this unit or the earlier package installation before starting it. This command checks the unit definition; it does not prove the app can connect to its database.
 
-On the NMDOH Ubuntu server, verification returned `0` while warning that `CPUAccounting=` was removed in the unrelated `xfs_scrub_all.service` and `system-xfs_scrub.slice` units. Those specific warnings did not prevent DocMan startup. Check the named file and exit code: do not edit unrelated system units or treat errors in `docman-backend.service` as harmless.
+On development Ubuntu server, verification returned `0` while warning that `CPUAccounting=` was removed in the unrelated `xfs_scrub_all.service` and `system-xfs_scrub.slice` units. Those specific warnings did not prevent DocMan startup. Check the named file and exit code: do not edit unrelated system units or treat errors in `docman-backend.service` as harmless.
 
 Load and start the service:
 
@@ -1399,7 +1399,7 @@ The update and installation must finish without errors. “Already the newest ve
 
 Use **A** for a publicly resolvable name with inbound port 80 reachable. Use **B** if your organization supplies certificates for a private server. Both routes lead to the final Apache configuration below. Do not distribute a browser certificate-warning bypass as your deployment method.
 
-**For the NMDOH internal server:** go directly to **14.3**, then **14.4**. Skip the public Certbot instructions. This choice concerns who issues your certificate, not a different Ubuntu installation. Finish section 13's local backend check before starting this section. If NOC has not supplied the final name/certificate process yet, local installation can be complete while this browser-access stage remains pending.
+**For internal server:** go directly to **14.3**, then **14.4**. Skip the public Certbot instructions. This choice concerns who issues your certificate, not a different Ubuntu installation. Finish section 13's local backend check before starting this section. If IT has not supplied the final name/certificate process yet, local installation can be complete while this browser-access stage remains pending.
 
 ### 14.2 Route A: public certificate with Certbot
 
@@ -1464,7 +1464,7 @@ Do not install both apt and snap copies of Certbot. If the symlink already exist
 
 ### 14.3 Route B: organization-issued certificate
 
-**NMDOH POC hostname:** the user confirmed `docman-dev.doh.nm.gov` already has an internal DNS A record pointing to `dohr2simdocmdev`. ITSD NOC issues internal certificates. Use `docman-dev.doh.nm.gov` wherever this section and section 14.4 show `docs.example.org`, and set all three backend URL values (`APP_BASE_URL`, `FRONTEND_URL`, `PRODUCTION_URL`) to `https://docman-dev.doh.nm.gov` before browser testing. The machine’s short name is not the browser certificate name.
+**Choose your application hostname:** Have your DNS administrator point your chosen hostname to the server. This guide uses `docs.example.org` as a placeholder. Replace it throughout certificate commands and Apache configuration, and set `APP_BASE_URL`, `FRONTEND_URL`, and `PRODUCTION_URL` to your actual HTTPS URL. The machine short name is not necessarily the browser certificate name.
 
 For a private server, obtain a certificate signed by a CA trusted by every intended user's computer. Your organization's PKI team supplies its issuance process and renewal schedule.
 
@@ -1487,7 +1487,7 @@ sudo chmod 0600 /etc/ssl/docman/privkey.pem
 sudo cat /etc/ssl/docman/docman.csr
 ```
 
-Replace the hostname in both places. The guard preserves any existing key/request: if only one exists, stop and locate its matching file before submission rather than overwriting it. A request awaiting NOC issuance must retain its original private key. Give the **CSR** to the PKI team; never give them the private key. The key-generation command may print a long series of dots/plus signs; that is normal. The final `cat` must display text between `-----BEGIN CERTIFICATE REQUEST-----` and `-----END CERTIFICATE REQUEST-----`. Send that complete **CSR** text through the organization's certificate request process. Do not send `/etc/ssl/docman/privkey.pem`.
+Replace the hostname in both places. The guard preserves any existing key/request: if only one exists, stop and locate its matching file before submission rather than overwriting it. A request awaiting IT issuance must retain its original private key. Give the **CSR** to the PKI team; never give them the private key. The key-generation command may print a long series of dots/plus signs; that is normal. The final `cat` must display text between `-----BEGIN CERTIFICATE REQUEST-----` and `-----END CERTIFICATE REQUEST-----`. Send that complete **CSR** text through the organization's certificate request process. Do not send `/etc/ssl/docman/privkey.pem`.
 
 When the signed PEM certificate arrives, run `sudo nano /etc/ssl/docman/fullchain.pem`. Paste the server certificate block first, then each supplied intermediate certificate block in the order given by PKI. Save and exit. Verify the name and validity dates:
 
@@ -1514,9 +1514,9 @@ sudo install -d -o root -g root -m 0755 /var/www/letsencrypt
 
 Expect module-enabled/already-enabled messages and no directory-creation error. The directory is used by the shared HTTP configuration below; it does not require Certbot. **Do not enable the DocMan site yet:** create its file in section 14.4 first. Certbot is not needed for this route; arrange CA renewal and Apache reload with your PKI team.
 
-#### Approved self-signed certificate for the NMDOH POC
+#### Approved self-signed certificate for development POC
 
-ITSD NOC has approved self-signing for this internal development deployment. This replaces waiting for NOC issuance for this POC; the Security team owns firewall configuration. Reuse the key and CSR created above for `docman-dev.doh.nm.gov`. If those files are absent, complete their creation first. Do not regenerate an existing key.
+Use this option only if your organization approves self-signed certificates for an internal demonstration. Otherwise obtain a certificate through your organization or the public-certificate route above. Reuse the key and CSR created above for `docs.example.org`. If those files are absent, complete their creation first. Do not regenerate an existing key.
 
 On the Ubuntu server, generate the certificate once (do not overwrite a certificate already in use):
 
@@ -1534,10 +1534,10 @@ Verify it before enabling the site:
 
 ```bash
 sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -subject -issuer -dates -ext subjectAltName
-sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -checkhost docman-dev.doh.nm.gov
+sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -checkhost docs.example.org
 ```
 
-Expect identical subject/issuer names, current validity dates, `DNS:docman-dev.doh.nm.gov`, and a hostname-match message. A missing/wrong SAN or a command error is a reason to stop and correct the certificate before site activation. Leave the private key mode 0600 and never transfer it to the workstation.
+Expect identical subject/issuer names, current validity dates, `DNS:docs.example.org`, and a hostname-match message. A missing/wrong SAN or a command error is a reason to stop and correct the certificate before site activation. Leave the private key mode 0600 and never transfer it to the workstation.
 
 Self-signing does not automatically establish browser trust. Distribute only the public certificate through the approved organization process and verify its SHA-256 fingerprint against the server before trusting it on demonstration clients. Record the fingerprint with `sudo openssl x509 -in /etc/ssl/docman/fullchain.pem -noout -sha256 -fingerprint`. Browser trust setup must be completed on the workstation used for the demonstration; installing trust on Ubuntu alone does not configure Windows browsers. Do not use clicking through certificate warnings as the acceptance test.
 
@@ -1552,21 +1552,22 @@ Expect certificate-update messages ending in `done.`. After Apache activation in
 
 #### Trust the approved self-signed certificate on the Windows demonstration workstation
 
-Use the NMDOH Windows workstation reached through NinjaOne, under the same Windows user that will open the browser. This is not the Ubuntu SSH terminal or your personal computer outside the network.
+Use development Windows workstation reached through an approved remote-access tool, under the same Windows user that will open the browser. This is not the Ubuntu SSH terminal or your personal computer outside the network.
 
 First, on the **Ubuntu server**, stage only the public certificate for download:
 
 ```bash
-sudo install -m 0644 /etc/ssl/docman/fullchain.pem /home/rbakos/docman-dev.crt
-sha256sum /home/rbakos/docman-dev.crt
+# Replace deploy with your Ubuntu login name in the paths below.
+sudo install -m 0644 /etc/ssl/docman/fullchain.pem /home/deploy/docman-dev.crt
+sha256sum /home/deploy/docman-dev.crt
 ```
 
 The copy normally prints nothing. Save the displayed SHA-256 file hash for comparison. This public certificate can be transferred; never transfer `privkey.pem`. For another installation, substitute the actual Ubuntu username/home path.
 
-Open **PowerShell on the NMDOH Windows workstation** (a separate window; keep the SSH session open). Download into your Windows user profile:
+Open **PowerShell on the Windows workstation** (a separate window; keep the SSH session open). Download into your Windows user profile:
 
 ```powershell
-scp rbakos@dohr2simdocmdev:/home/rbakos/docman-dev.crt "$env:USERPROFILE\docman-dev.crt"
+scp deploy@docman-server:/home/deploy/docman-dev.crt "$env:USERPROFILE\docman-dev.crt"
 Get-FileHash -Algorithm SHA256 "$env:USERPROFILE\docman-dev.crt"
 ```
 
@@ -1578,15 +1579,15 @@ After matching the hash, import this approved certificate for the current Window
 certutil -user -addstore Root "$env:USERPROFILE\docman-dev.crt"
 ```
 
-Expect `CertUtil: -addstore command completed successfully.` If a trust dialog appears, confirm the certificate identity matches the one just verified before accepting it. If organizational policy denies the import, have ITSD deploy the certificate through its managed trust process; do not work around that policy. This does not modify the computer-wide store or trust on other demonstration users' computers. See [Microsoft's certutil reference](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil).
+Expect `CertUtil: -addstore command completed successfully.` If a trust dialog appears, confirm the certificate identity matches the one just verified before accepting it. If organizational policy denies the import, have IT deploy the certificate through its managed trust process; do not work around that policy. This does not modify the computer-wide store or trust on other demonstration users' computers. See [Microsoft's certutil reference](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/certutil).
 
-Close and reopen the demonstration browser, then visit `https://docman-dev.doh.nm.gov`. Expect the DocMan login page without a certificate warning. If trust errors remain, verify the browser uses the intended Windows profile/trust store and have ITSD apply its browser-specific policy. A timeout is a connectivity problem, not a certificate-import failure. Complete section 15's login/document tests before declaring the demonstration ready.
+Close and reopen the demonstration browser, then visit `https://docs.example.org`. Expect the DocMan login page without a certificate warning. If trust errors remain, verify the browser uses the intended Windows profile/trust store and have IT apply its browser-specific policy. A timeout is a connectivity problem, not a certificate-import failure. Complete section 15's login/document tests before declaring the demonstration ready.
 
 ### 14.4 Final Apache configuration
 
 Run `sudo nano /etc/apache2/sites-available/docman.conf`. If the file is new, paste the following contents; if it contains the temporary HTTP site, replace those contents. Replace **all three hostname occurrences** (ServerName twice, redirect once) and **both certificate paths**.
 
-For the NMDOH/private-certificate route, the two certificate directives must be:
+For development/private-certificate route, the two certificate directives must be:
 
 ```apache
 SSLCertificateFile /etc/ssl/docman/fullchain.pem
@@ -1752,7 +1753,7 @@ sudo ufw status verbose
 
 MongoDB and Redis should bind only to loopback. From another computer, confirm ports 5001, 27017, and 6379 are unreachable. On Windows, use `Test-NetConnection YOUR_SERVER_IP -Port 5001`, then repeat for the other two ports; `TcpTestSucceeded` should be false. Port 443 should succeed. Checking `ss` locally does not verify the external firewall.
 
-If UFW was not installed because NOC manages the firewall, use NOC's firewall status plus the external connection tests; do not install/enable a second firewall just to make this command print something. A network timeout on a deliberately blocked backend/database port is expected; a timeout on HTTPS 443 is not. If an unauthorized user receives document bytes, stop the demonstration and investigate document access before uploading real material.
+If UFW was not installed because IT manages the firewall, use IT's firewall status plus the external connection tests; do not install/enable a second firewall just to make this command print something. A network timeout on a deliberately blocked backend/database port is expected; a timeout on HTTPS 443 is not. If an unauthorized user receives document bytes, stop the demonstration and investigate document access before uploading real material.
 
 Reboot once in a planned test window:
 
@@ -1818,7 +1819,7 @@ Back up `.env.prod` securely using section 17 **before uploading documents**. Re
 
 Turning encryption off affects only new uploads; existing encrypted files stay encrypted and keep downloading normally. If an encrypted download reports an integrity failure, preserve the stored file and restore a verified backup; do not edit hashes or metadata.
 
-Encryption at rest protects stored files, database dumps, and backups taken without the key. It does not protect a compromised running server, which must be able to decrypt files to serve downloads. The server's disks, swap, and backup storage still need infrastructure encryption (for example LUKS) as agreed with NOC/security.
+Encryption at rest protects stored files, database dumps, and backups taken without the key. It does not protect a compromised running server, which must be able to decrypt files to serve downloads. The server's disks, swap, and backup storage still need infrastructure encryption (for example LUKS) as agreed with the network/security team.
 
 ## 16. Configure outgoing email in System settings
 
@@ -1837,28 +1838,13 @@ Ask the agency mail administrator for:
 
 Do not guess these values from the webmail sign-in page. Port 587 commonly uses STARTTLS and 465 commonly uses direct TLS, but use IT's actual values. Internal relays may use port 25. Both authenticated and IP-authorized modes support encrypted connections. Password authentication with an unencrypted connection is rejected. The explicitly selected **No encryption** option is only for an internal relay that IT requires to operate that way; it sends email contents without transport encryption.
 
-#### NMDOH POC: known REDCap mail settings and pending confirmation
+#### Configure your organization's SMTP relay
 
-As reported by the deployment owner on **November 18, 2026**, NMDOH's REDCap server uses SMTP host **`webmail.state.nm.us`** on **port `25`**. These are a starting point for DocMan, not a verified DocMan connection or permission to relay mail.
+Obtain the real SMTP hostname, port, TLS requirements, permitted sender address, and authentication method from your mail administrator. `smtp.example.org` is an example only; port `25` is a possible relay port, not a universal setting. Another application's working mail configuration does not establish this server's authorization.
 
-| DocMan UI field | Candidate value / status |
-| --- | --- |
-| Email service | SMTP |
-| SMTP server hostname or IP | `webmail.state.nm.us` (reported REDCap setting) |
-| SMTP port | `25` (reported REDCap setting) |
-| SMTP authentication | Unconfirmed. Select IP-authorized relay only if the mail administrator confirms no username/password is required; otherwise obtain the application credentials securely. |
-| Connection security | Unconfirmed. Ask whether STARTTLS is supported/required. Port 25 alone does not establish encryption or authentication requirements. |
-| Sender email address | Unconfirmed. The owner believes arbitrary sender addresses may work, but this has not been verified or approved. Obtain an approved application sender address. |
-| Application server authorization | Unconfirmed for `dohr2simdocmdev`, whose website is `docman-dev.doh.nm.gov`. REDCap's authorization does not establish DocMan's authorization. |
+Confirm both network access and mail relay permission. If the relay authorizes by source IP, ask which address it sees and whether it must be allowlisted. Otherwise obtain SMTP credentials securely. Confirm allowed recipient domains, including external recipients, and any private CA trust requirements. Do not assume arbitrary sender addresses are accepted or disable certificate verification.
 
-Ask NOC/security and the mail administrators to confirm **both** of these separate requirements:
-
-1. **Network access:** can `dohr2simdocmdev` reach `webmail.state.nm.us` on TCP port 25, and is a network access rule needed? NOC/security owns these rules; do not independently change host firewalls.
-2. **Mail relay permission:** does the mail server require the application's source IP to be allowlisted, or require SMTP login? Confirm the source IP the relay actually sees, permitted sender addresses, and allowed recipient domains. Explicitly ask whether delivery to outside agencies is permitted; successful internal delivery does not prove that.
-
-Also confirm the TLS mode and any required agency CA bundle. The working REDCap configuration can provide clues, but do not copy REDCap credentials or assume its permissions apply to this application server. No connection to this mail server or real message delivery has been verified for DocMan.
-
-After the email-settings update is deployed, enter the confirmed values using section 16.4. Send a test to an authorized mailbox you control. **Success requires both** the UI's provider-accepted message and receipt in the mailbox (check junk/quarantine). If connection fails, investigate network access/TLS settings; if relay or sender is rejected, have the mail administrator check authorization and address restrictions. If accepted but not received, investigate downstream delivery/filtering. Record the confirmed settings and test outcome here and in HANDOFF; do not record passwords or API keys.
+After configuration in section 16.4, send a test to a mailbox you control. Success requires both provider acceptance and inbox receipt (check junk/quarantine). Connection failures require network/TLS investigation; relay or sender rejection requires mail-administrator review. Keep real infrastructure details and test addresses in private operator records, never in the public repository.
 
 ### 16.2 Prepare credential encryption once (only for saved passwords/API keys)
 
@@ -2500,7 +2486,7 @@ For an actual disaster recovery, use this same procedure on the replacement prod
 
 **Guided standard-layout updater:** [`update.sh` and its walkthrough](automated-updates.md) automate staged builds, an encrypted pre-update backup, migration/publication and service checks. Read its validation status, prerequisite checks and recovery procedure first. On an older server, obtain the updater in a separate tools clone; do not pull the live checkout before its old commit is recorded/backed up. Custom layouts and major platform upgrades continue to use the manual procedure below. Updater snapshots have their own documented artifact layout.
 
-For installations created by `install.sh`, the checkout owner is the non-login `docman-build` account. Prefix this section's Git and npm commands with `sudo -u docman-build -H`; keep backup, service, environment and publication commands under your normal administrator login with sudo where shown. For example: `sudo -u docman-build -H git -C /var/www/docman status --short --branch`. Do not grant the build account sudo privileges or change protected environment-file ownership. Existing manually installed NMDOH deployments retain their established deployment account.
+For installations created by `install.sh`, the checkout owner is the non-login `docman-build` account. Prefix this section's Git and npm commands with `sudo -u docman-build -H`; keep backup, service, environment and publication commands under your normal administrator login with sudo where shown. For example: `sudo -u docman-build -H git -C /var/www/docman status --short --branch`. Do not grant the build account sudo privileges or change protected environment-file ownership. Existing manually installed development deployments retain their established deployment account.
 
 ### 19.1 Inventory before touching an existing server
 
@@ -2815,7 +2801,7 @@ Expect the saved rule and `active`. The scheduled cleanup will delete eligible o
 
 This guide was written against the repository's actual configuration, models, scripts, and routes. Its Bash, Python, embedded JavaScript, JSON, relative links, and section anchors were checked; both Apache examples passed an isolated syntax check with temporary certificates. The documentation site build passed. Systemd parsing was checked, with missing target-installation services/script paths reported in the verification environment rather than installed there.
 
-Existing application verification is recorded in [HANDOFF](../../HANDOFF.md). That earlier Linux application verification used an isolated Ubuntu 22.04 environment with MongoDB 8.0 and Redis 7. The NMDOH Ubuntu 26.04 installation has separately confirmed only the dependency/startup checks listed at the top of this guide. Neither record claims that a complete Ubuntu 26.04 LTS application deployment, certificate setup, AWS configuration, and backup-host recovery has been executed together. Run the checkpoints on the target installation and retain the results as its acceptance record.
+Existing application verification is recorded in [HANDOFF](../../HANDOFF.md). That earlier Linux application verification used an isolated Ubuntu 22.04 environment with MongoDB 8.0 and Redis 7. Historical development acceptance is recorded separately in [the validation record](poc-validation.md). Neither record claims that a complete Ubuntu 26.04 LTS application deployment, certificate setup, AWS configuration, and backup-host recovery has been executed together. Run the checkpoints on the target installation and retain the results as its acceptance record.
 
 
 ### Activity email notifications after an update

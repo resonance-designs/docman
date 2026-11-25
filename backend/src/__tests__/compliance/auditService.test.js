@@ -59,7 +59,7 @@ import {
 } from "../../services/auditService.js";
 
 const req = {
-    user: { _id: "507f1f77bcf86cd799439011", email: "a@nmdoh.test", role: "editor" },
+    user: { _id: "507f1f77bcf86cd799439011", email: "a@example.test", role: "editor" },
     identity: { authType: "local-jwt" },
     ip: "10.1.2.3",
     method: "PUT",
@@ -108,7 +108,7 @@ describe("record + verifyChain", () => {
         expect(mockStore[0].prevHash).toBe(GENESIS_HASH);
         expect(mockStore[1].prevHash).toBe(mockStore[0].hash);
         expect(mockStore[2].prevHash).toBe(mockStore[1].hash);
-        expect(mockStore[0].actor.email).toBe("a@nmdoh.test");
+        expect(mockStore[0].actor.email).toBe("a@example.test");
         expect(mockStore[0].request).toEqual({ ip: "10.1.2.3", userAgent: "jest", method: "PUT", path: "/api/docs/abc" });
         expect(mockStore[2].actor.id).toBeNull();
 
@@ -174,9 +174,9 @@ describe("record + verifyChain", () => {
     test("actorUser overrides the request user (login events)", async () => {
         await record({ ip: "1.1.1.1", headers: {} }, {
             action: AUDIT_ACTIONS.AUTH_LOGIN,
-            actorUser: { _id: "507f1f77bcf86cd799439099", email: "new@nmdoh.test", role: "viewer" },
+            actorUser: { _id: "507f1f77bcf86cd799439099", email: "new@example.test", role: "viewer" },
         });
-        expect(mockStore[0].actor).toMatchObject({ id: "507f1f77bcf86cd799439099", email: "new@nmdoh.test", role: "viewer" });
+        expect(mockStore[0].actor).toMatchObject({ id: "507f1f77bcf86cd799439099", email: "new@example.test", role: "viewer" });
     });
 
     test("editing an entry is detected", async () => {

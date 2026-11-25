@@ -296,7 +296,7 @@ Expected: effective rate-limit store/error accurately reported, no passwords or 
 
 ### SYS-03 - Maintenance guards [P0, disposable database only]
 Steps: with destructive-tools flag off call clear/restore/archive/generate endpoints; as nonsuperadmin repeat. In an independently disposable seeded database, enable flag, run each supported action and verify exact collection/file effects and audit before discarding database.
-Expected: disabled flag denies every destructive route; privileged role alone is insufficient. Enabled behavior matches request and does not reach paths outside configured storage. Never enable this on NMDOH merely to complete a checklist.
+Expected: disabled flag denies every destructive route; privileged role alone is insufficient. Enabled behavior matches request and does not reach paths outside configured storage. Never enable this on a shared or production server merely to complete a checklist.
 
 ### OPS-01 - Backup, update and rollback [P0, clone]
 Steps: back up known published files/accounts/settings/queue and keys; update a cloned server following the Ubuntu guide or approved update.sh options; run migration dry-run and actual migration plus verifyAuditChain; restore backup in isolation and replay core smoke path.
