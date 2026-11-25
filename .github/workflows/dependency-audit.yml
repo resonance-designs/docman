@@ -1,12 +1,8 @@
 name: Dependency security audit
 on:
   workflow_dispatch:
+  # Required master check: run on every PR, including documentation-only changes.
   pull_request:
-    paths:
-      - '**/package.json'
-      - '**/package-lock.json'
-      - 'scripts/security-audit*'
-      - '.github/workflows/dependency-audit.yml'
   push:
     paths:
       - '**/package.json'

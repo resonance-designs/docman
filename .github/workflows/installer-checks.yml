@@ -1,13 +1,8 @@
 name: Installation and update safety checks
 on:
   workflow_dispatch:
+  # Required master check: run on every PR, including documentation-only changes.
   pull_request:
-    paths:
-      - 'install.sh'
-      - 'scripts/install/**'
-      - 'update.sh'
-      - 'scripts/update/**'
-      - '.github/workflows/installer-checks.yml'
   push:
     paths:
       - 'install.sh'
