@@ -86,3 +86,23 @@ test('helper check failure never implies ready or overwrites update progress',as
   await card.checkHelper();assert.equal(card.helper.value.state,'unknown');
   assert.equal(card.job.value.stage,'Backup');assert.equal(card.helperLoading.value,false);
 });
+
+for (const fails of [false, true]) {
+  test(`pre-completion helper response is discarded (failure=${fails})`, async () => {
+    const pending=deferred();
+    const {card}=fixture({api:{get:()=>pending.promise}});
+    const checking=card.checkHelper();
+    card.accept({status:'complete'});
+    const invalidated=card.helper.value;
+    if(fails) pending.reject(new Error('offline'));
+    else pending.resolve({data:{state:'ready'}});
+    await checking;
+    assert.equal(card.helper.value,invalidated);
+    assert.equal(card.helperLoading.value,false);
+  });
+}
+test('helper checks started after completion can verify readiness',async()=>{
+  const {card}=fixture({api:{get:async()=>({data:{state:'ready'}})}});
+  card.accept({status:'complete'});await card.checkHelper();
+  assert.equal(card.helper.value.state,'ready');
+});

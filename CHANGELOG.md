@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [3.1.1] - 2026-11-25
 
+### Fixed
+
+- Keep post-update notification cancellation outside deployment recovery so a healthy application remains running.
+- Preserve Activity badge refreshes requested during an active count request and reject stale helper-readiness responses after update completion.
+- Correct profile security notices and documentation to use available account-recovery paths.
+
 ### Added
 
 - Surface updater-helper readiness in Software Updates, with stale/missing/unverified warnings, server refresh instructions and recheck controls. Warn before deployment and after completion that application success does not confirm helper readiness.

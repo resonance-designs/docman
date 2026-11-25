@@ -68,7 +68,7 @@ const recoveryRequired=computed(()=>['interrupted','recovery-required'].includes
 const headers=[{title:'Release',key:'tag'},{title:'Commit',key:'commit'},{title:'',key:'action',sortable:false}];
 const ticketKey=getStorageKey('update-progress-ticket');
 let ticket=sessionStorage.getItem(ticketKey) || '', timer, disposed=false;
-let controlEpoch=0, controls=0, stateRevision=0;
+let controlEpoch=0, controls=0, stateRevision=0, helperGeneration=0;
 async function control(request){
   controls++;controlEpoch++;
   try{return await request();}finally{controls--;}
@@ -80,17 +80,18 @@ function accept(data) {
   stateRevision++;
   if(data.ticket){ticket=data.ticket;sessionStorage.setItem(ticketKey,ticket);}
   if(job.value.prompt?.id!==data.prompt?.id)answer.value='';
-  if(data.status==='complete' && job.value.status!=='complete')helper.value={state:'unknown',message:'The application update completed. Reload the updated application, then verify the helper against the new release.'};
+  if(data.status==='complete' && job.value.status!=='complete'){helperGeneration++;helper.value={state:'unknown',message:'The application update completed. Reload the updated application, then verify the helper against the new release.'};}
   job.value=data;connectionLost.value=false;
 }
 async function checkHelper(){
   if(helperLoading.value)return;
   helperLoading.value=true;
+  const generation=helperGeneration;
   try{
     const {data}=await api.get('/software-updates/helper');
-    if(!disposed)helper.value=['ready','update-required','unavailable','unknown'].includes(data?.state)
+    if(!disposed && generation===helperGeneration)helper.value=['ready','update-required','unavailable','unknown'].includes(data?.state)
       ? data : {state:'unknown',message:'Helper readiness could not be verified. Ask the server operator to check setup.'};
-  }catch{if(!disposed)helper.value={state:'unknown',message:'Helper readiness could not be verified. Retry after the backend returns or contact the server operator.'};}
+  }catch{if(!disposed && generation===helperGeneration)helper.value={state:'unknown',message:'Helper readiness could not be verified. Retry after the backend returns or contact the server operator.'};}
   finally{helperLoading.value=false;}
 }
 async function check(){loading.value=true;error.value='';try{const {data}=await api.get('/software-updates/releases');installed.value=data.installedVersion;releases.value=data.releases;checked.value=true;}catch(e){error.value=failure(e);}finally{loading.value=false;}}

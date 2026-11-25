@@ -166,6 +166,8 @@ def transaction(ops):
         else:
             ops.restore_original()
         raise
+    # Deployment is committed; notification cancellation must never enter recovery.
+    ops.notify_completion()
 
 class Updater:
     def __init__(self):
@@ -486,6 +488,11 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
         self.report['finished_utc']=datetime.now(timezone.utc).isoformat()
         self.save()
         (STATE/'ACTIVE').unlink()
+        print('\nPASS: updated to',self.report['target_commit'])
+        print('Report:',self.run_dir/'report.json','\nBackup snapshot:',self.report['backup_snapshot'])
+        print('NEXT: browser login, permissions, upload/replacement/approval/download and email tests.\nSecurely export environment.after to your approved secret store if new keys were generated.\nPrivate logs, configuration and backup password remain in this root-only run directory; do not post them.')
+
+    def notify_completion(self):
         # Notification failure must not roll back or quarantine a healthy update.
         # The backend also retries completed web-update broadcasts independently.
         try:
@@ -494,11 +501,8 @@ console.log(JSON.stringify([await db.collection('fileprotections').countDocument
                 cwd=APP/'backend',check=False)
             if notice.returncode != 0:
                 print('WARNING: update succeeded but notification queuing failed; inspect the private report and retry notifications.')
-        except Exception:
+        except (Exception, KeyboardInterrupt):
             print('WARNING: update succeeded but notification queuing failed; inspect the private report and retry notifications.')
-        print('\nPASS: updated to',self.report['target_commit'])
-        print('Report:',self.run_dir/'report.json','\nBackup snapshot:',self.report['backup_snapshot'])
-        print('NEXT: browser login, permissions, upload/replacement/approval/download and email tests.\nSecurely export environment.after to your approved secret store if new keys were generated.\nPrivate logs, configuration and backup password remain in this root-only run directory; do not post them.')
 
     def restore_original(self):
         if not self.paused: return

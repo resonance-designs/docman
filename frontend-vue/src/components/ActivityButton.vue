@@ -15,16 +15,20 @@ defineProps({ compact: Boolean });
 const { state } = useAuth();
 const route = useRoute(), count = ref(0);
 const label = computed(() => count.value ? `Activity, ${count.value} unread notifications` : 'Activity');
-let timer, pending = false, disposed = false;
+let timer, pending = false, queued = false, disposed = false;
 async function refresh() {
-  if (pending || disposed || document.hidden) return;
+  if (disposed || document.hidden) return;
+  if (pending) { queued = true; return; }
   pending = true;
   const token = state.token;
   try {
     const { data } = await api.get('/notifications/unread-count');
     if (!disposed && token === state.token) count.value = Number.isSafeInteger(data.count) && data.count >= 0 ? data.count : 0;
   } catch { /* A failed badge refresh must not interrupt the current page. */ }
-  finally { pending = false; }
+  finally {
+    pending = false;
+    if (queued) { queued = false; void refresh(); }
+  }
 }
 watch(() => route.fullPath, refresh);
 watch(() => state.token, () => { count.value = 0; if (state.token) void refresh(); });

@@ -28,7 +28,7 @@ export function changeEvents(kind, before, after, context = {}) {
         const changed = [...new Set(Object.entries(profileFields).filter(([key]) => !same(before[key] || '', after[key] || '')).map(([, label]) => label))];
         if (context.passwordChanged) changed.push('password');
         if (changed.length && !before.invitationPending) push([row._id], 'Account/profile updated',
-            `Your DocMan account/profile was updated. Changed: ${changed.join(', ')}.\n\nIf you did not authorize this change, reset your credentials immediately using the password reset option on the sign-in page and contact your administrator. If your account is managed by an identity provider, reset your credentials there.`, { type: 'profile_updated' });
+            `Your DocMan account/profile was updated. Changed: ${changed.join(', ')}.\n\nIf you did not authorize this change, contact your administrator immediately. If you can still sign in to a local account, change your password from My Profile. If your account is managed by an identity provider, reset your credentials there.`, { type: 'profile_updated' });
         if (before.role !== after.role) push([row._id], 'Account role changed', `Your DocMan role is now ${after.role}.`);
         if (before.isActive !== after.isActive && !before.invitationPending) push([row._id], after.isActive ? 'Account enabled' : 'Account disabled', `Your DocMan account has been ${after.isActive ? 'enabled' : 'disabled'}.`, { allowInactiveEmail: true });
     }
