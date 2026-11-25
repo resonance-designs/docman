@@ -2,9 +2,9 @@
 
 For the optional superadmin frontend, see [Update DocMan from System settings](web-updates.md). It uses this same runner and backup/recovery rules, with a one-time operator-installed privileged helper; an older deployment must receive the feature through this CLI procedure first.
 
-`update.sh` updates the documented native-service deployment on **Ubuntu 26.04 LTS**. It supports both the manually installed NMDOH layout and the layout produced by `install.sh`. It builds the selected release before downtime, makes an encrypted backup while writers are stopped, applies migrations, publishes Vue, restarts the backend and checks HTTPS.
+`update.sh` updates the documented native-service deployment on **Ubuntu 26.04 LTS**. It supports both the manually installed development layout and the layout produced by `install.sh`. It builds the selected release before downtime, makes an encrypted backup while writers are stopped, applies migrations, publishes Vue, restarts the backend and checks HTTPS.
 
-**Validation:** local safety tests and syntax checks pass. A real disposable-MongoDB/restic integration test recovered the backed-up database, uploaded bytes, frontend and original Git commit, and confirmed private environment/password files were excluded. Full update/reboot/failure-recovery acceptance on a disposable Ubuntu 26.04 VM is still required. Do not describe local tests as proof that NMDOH has been updated. The [NMDOH execution record](nmdoh-poc-validation.md) tracks that deployment separately.
+**Validation:** local safety tests and syntax checks pass. A real disposable-MongoDB/restic integration test recovered the backed-up database, uploaded bytes, frontend and original Git commit, and confirmed private environment/password files were excluded. Full update/reboot/failure-recovery acceptance on a disposable Ubuntu 26.04 VM is still required. Do not describe local tests as proof that The development deployment has been updated. The [development execution record](poc-validation.md) tracks that deployment separately.
 
 Use `install.sh` for a fresh server and `update.sh` for this existing layout. The updater does not upgrade Ubuntu, change Node/MongoDB major versions, replace Apache/systemd configuration, reset accounts, or rotate existing secrets. It does not provide an automatic database rollback.
 
@@ -14,7 +14,7 @@ The updater expects:
 
 | Component | Expected value |
 | --- | --- |
-| Checkout | `/var/www/docman`, with `.git` owned by a non-root deployment account such as `rbakos` or `docman-build` |
+| Checkout | `/var/www/docman`, with `.git` owned by a non-root deployment account such as `deploy` or `docman-build` |
 | Backend | `docman-backend`, running as `docman`, working in `/var/www/docman/backend`, starting `/usr/bin/node /var/www/docman/backend/src/server.js` |
 | Settings | `/var/www/docman/backend/.env.prod`, root-owned mode 640, readable by group `docman` |
 | Vue settings | `/var/www/docman/frontend-vue/.env.production` |
@@ -161,7 +161,7 @@ systemctl is-active docman-backend apache2 mongod redis-server
 
 **Expected:** the report shows the intended old/target commits and a successful backup; the four services print `active`. The report omits passwords and keys. `commands.log`, `environment.before`, `environment.after`, `frontend.before`, `mongodump.yml` and `restic-password` in that directory are private: do not post them. Command diagnostics can contain sensitive data.
 
-From a permitted workstation, verify login, superadmin user management, a second account's access, document upload/replacement/approval/download, unauthorized access denial, history/audit, and any configured email delivery. Compare downloaded bytes with the original harmless test file. Record passes/failures and the deployed commit in the [NMDOH validation record](nmdoh-poc-validation.md) for that deployment. Do not declare the POC ready solely because services are active.
+From a permitted workstation, verify login, superadmin user management, a second account's access, document upload/replacement/approval/download, unauthorized access denial, history/audit, and any configured email delivery. Compare downloaded bytes with the original harmless test file. Record passes/failures and the deployed commit in the [development validation record](poc-validation.md) for that deployment. Do not declare the POC ready solely because services are active.
 
 Apache upload-size limits and TLS lifecycle settings remain unchanged. If you raise the application upload limit in System Settings, follow manual section 15.1 to align `LimitRequestBody`. Outgoing mail settings/accounts are preserved; the updater sends no mail.
 

@@ -1,8 +1,10 @@
 <template>
-  <v-app>
+  <v-app class="docman-appearance" :style="appearanceStyles">
     <div class="suite-shell">
       <v-navigation-drawer
+        v-if="mobile || appearance.menuPosition !== 'top'"
         v-model="drawer"
+        :location="appearance.menuPosition === 'right' ? 'right' : 'left'"
         :temporary="mobile"
         width="280"
       >
@@ -21,21 +23,20 @@
       </v-navigation-drawer>
 
       <v-app-bar flat border color="surface">
-        <v-app-bar-nav-icon aria-label="Toggle navigation" @click="drawer = !drawer" />
+        <v-app-bar-nav-icon v-if="mobile || appearance.menuPosition !== 'top'" aria-label="Toggle navigation" @click="drawer = !drawer" />
         <v-app-bar-title class="suite-wordmark">
-          RDocMan
+          <img v-if="appearance.logo.dataUrl && !logoFailed" :src="appearance.logo.dataUrl" @error="logoFailed = true" :alt="appearance.logo.alt" class="app-logo" />
+          <span v-else>RDocMan</span>
         </v-app-bar-title>
         <v-spacer />
         <template v-if="mobile && isAuthenticated">
-          <v-btn icon="mdi-account-outline" aria-label="My account" title="My account" to="/account" />
-          <v-btn icon="mdi-bell-outline" aria-label="Activity" title="Activity" to="/notifications" />
+          <v-btn icon="mdi-account-outline" aria-label="My Profile" title="My Profile" to="/profile" />
+          <ActivityButton compact />
           <v-btn icon="mdi-logout" aria-label="Sign out" title="Sign out" :loading="signingOut" @click="handleLogout" />
         </template>
         <template v-else>
-        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-account-outline" to="/account">My account</v-btn>
-        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline" to="/notifications">
-          Activity
-        </v-btn>
+        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-account-outline" to="/profile">My Profile</v-btn>
+        <ActivityButton v-if="isAuthenticated" />
         <v-btn
           v-if="isAuthenticated"
           variant="outlined"
@@ -54,28 +55,47 @@
           Sign in
         </v-btn>
         </template>
+        <template v-if="!mobile && appearance.menuPosition === 'top' && visibleNavItems.length" #extension>
+          <nav class="top-navigation" aria-label="Main navigation">
+            <v-btn v-for="item in visibleNavItems" :key="item.title" :to="item.to" :prepend-icon="item.icon" variant="text" size="small">{{ item.title }}</v-btn>
+          </nav>
+        </template>
       </v-app-bar>
 
       <v-main>
-        <router-view />
+        <div class="app-page"><router-view /></div>
+        <footer v-if="appearance.footer.enabled" class="app-footer" :style="{ backgroundColor: appearance.footer.backgroundColor, color: appearance.footer.textColor }">
+          <span>{{ appearance.footer.text }}</span>
+          <a v-if="appearance.footer.linkUrl && appearance.footer.linkLabel" :href="appearance.footer.linkUrl" :style="{ color: appearance.footer.textColor }" target="_blank" rel="noopener noreferrer">{{ appearance.footer.linkLabel }}</a>
+        </footer>
       </v-main>
     </div>
   </v-app>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useAuth } from '@/composables/useAuth';
+import ActivityButton from '@/components/ActivityButton.vue';
 
+import { useAppearance } from '@/composables/useAppearance';
+import { appearanceVariables } from '@/lib/appearance';
+const { appearance, loadAppearance } = useAppearance();
+const appearanceStyles = computed(() => appearanceVariables(appearance.value));
+onMounted(() => { loadAppearance().catch(() => { /* Keep safe default branding if settings are temporarily unavailable. */ }); });
 const { mobile } = useDisplay();
 const router = useRouter();
 const { isAuthenticated, hasRole, logout } = useAuth();
 const drawer = ref(!mobile.value);
 const signingOut = ref(false);
+const logoFailed = ref(false);
+watch(() => appearance.value.logo.dataUrl, () => { logoFailed.value = false; });
+watch([mobile, () => appearance.value.menuPosition], () => { drawer.value = !mobile.value; });
 
 const navItems = [
+  { title: 'My Profile', subtitle: 'Your details and password', icon: 'mdi-account-circle-outline', to: '/profile' },
   {
     title: 'Documents',
     subtitle: 'Files and reviews',

@@ -1,8 +1,10 @@
-# NMDOH development acceptance — November 24, 2026
+# development acceptance — November 24, 2026
+
+> Anonymized historical development evidence. Hostnames, IP addresses and account names are illustrative placeholders, not real deployment settings. Results apply only to the tested environment.
 
 ## Scope and evidence
 
-The operator completed the first browser-driven DocMan update on the NMDOH development/POC server. Evidence consists of the operator's screenshots, pasted terminal output, and explicit confirmation that the requested post-update checks passed. This was not an independently executed remote test or a production certification.
+The operator completed the first browser-driven DocMan update in development/POC server. Evidence consists of the operator's screenshots, pasted terminal output, and explicit confirmation that the requested post-update checks passed. This was not an independently executed remote test or a production certification.
 
 - Starting application: 3.0.3, feature commit `e0da7c3`.
 - Target: published stable release `v3.0.4`, commit `c656a4a009dd18bfc2581deb1e1abd029ff13b86`.

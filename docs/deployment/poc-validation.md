@@ -1,12 +1,14 @@
-# NMDOH POC update and end-to-end validation
+# development POC update and end-to-end validation
 
-Started November 18, 2026. This is the working execution record, not a statement that the new release has passed on NMDOH infrastructure.
+> Anonymized historical development evidence. Hostnames, IP addresses and account names are illustrative placeholders, not real deployment settings. Results apply only to the tested environment.
+
+Started November 18, 2026. This is the working execution record, not a statement that the new release has passed in development infrastructure.
 
 ## Scope and environment
 
-- User authorized updating the internal NMDOH development server, testing the deployed application end to end, and documenting passes and failures before deciding subsequent work.
-- Previously confirmed host: `dohr2simdocmdev`; URL: `https://docman-dev.doh.nm.gov`.
-- Access: user operates the server through the NMDOH remote workstation. Local assistant checks are not server execution evidence.
+- User authorized updating the internal development server, testing the deployed application end to end, and documenting passes and failures before deciding subsequent work.
+- Previously confirmed host: `docman-server`; URL: `https://docs.example.org`.
+- Access: user operates the server through development remote workstation. Local assistant checks are not server execution evidence.
 - Previously used layout: checkout `/var/www/docman`, backend service `docman-backend`, published Vue assets `/var/www/html/docman/public_html`, uploads `/var/lib/docman/uploads`.
 - Selected application update target: `656c74c` (`origin/dev`, merged development baseline), package version 3.0.0. User confirmed this remote commit after fetching on the server. The separate installer/updater branch is not part of this target.
 - Rollback baseline: `67b1790`, saved under `/var/backups/docman-poc/20261118T122717Z`. Current checkout: `656c74c`; locked dependencies installed, migration completed, audit chain valid (14 entries), Vue assets published, backend started and Apache reloaded. Both services reported active. HTTPS and browser checks remain pending; the local backup has not been restore-tested.
@@ -62,9 +64,9 @@ Restic installation subsequently confirmed by the user: `restic 0.18.1 compiled 
 
 ## Separate fresh-installer work
 
-The user additionally requested an interactive `install.sh` for new servers. Implemented locally with a [dedicated walkthrough](automated-installation.md), 15 passing configuration safety tests and a passing disposable-MongoDB bootstrap/retry test. Apache/systemd template parsing and shell/JavaScript syntax checks passed locally. Full fresh Ubuntu 26.04 VM acceptance remains pending. This work has not updated the NMDOH server, and the fresh installer must not be run over that existing deployment. The backup inventory above remains the next NMDOH checkpoint.
+The user additionally requested an interactive `install.sh` for new servers. Implemented locally with a [dedicated walkthrough](automated-installation.md), 15 passing configuration safety tests and a passing disposable-MongoDB bootstrap/retry test. Apache/systemd template parsing and shell/JavaScript syntax checks passed locally. Full fresh Ubuntu 26.04 VM acceptance remains pending. This work has not updated development server, and the fresh installer must not be run over that existing deployment. The backup inventory above remains the next development checkpoint.
 
-The user also requested an existing-deployment updater. `update.sh` now has a separate [update/recovery walkthrough](automated-updates.md), failure-ordering tests and a passing disposable MongoDB/restic backup/restore integration test. These are local checks only. NMDOH remains at the last user-reported deployment baseline; do not fetch/pull its live checkout merely to obtain the updater. Use a separate reviewed tools clone when the script is committed/pushed, then complete preflight/backup acceptance before deploying.
+The user also requested an existing-deployment updater. `update.sh` now has a separate [update/recovery walkthrough](automated-updates.md), failure-ordering tests and a passing disposable MongoDB/restic backup/restore integration test. These are local checks only. development remains at the last user-reported deployment baseline; do not fetch/pull its live checkout merely to obtain the updater. Use a separate reviewed tools clone when the script is committed/pushed, then complete preflight/backup acceptance before deploying.
 
 ## Approved temporary POC rollback copy
 
@@ -235,11 +237,11 @@ The subshell stops at the first failure without closing the interactive terminal
 
 User confirmed frontend publication, Apache configuration validation, backend startup and Apache reload completed. Output: the existing global ServerName warning, `Syntax OK`, then `active` twice. This establishes service state, not browser workflow success.
 
-Next commands on the NMDOH server (execution pending):
+Next commands on the development server (execution pending):
 
 ```bash
-curl -I https://docman-dev.doh.nm.gov/
-curl -i https://docman-dev.doh.nm.gov/api/docs
+curl -I https://docs.example.org/
+curl -i https://docs.example.org/api/docs
 ```
 
 Expected: frontend `HTTP/1.1 200 OK`; API `HTTP/1.1 401 Unauthorized` with `{"message":"No token provided"}` because this request has no login token. Use normal certificate verification; do not add `-k`. A certificate error, connection error, 5xx response or unexpected response needs investigation before browser testing. These checks do not establish authenticated authorization or document workflow correctness.
@@ -248,13 +250,13 @@ Expected: frontend `HTTP/1.1 200 OK`; API `HTTP/1.1 401 Unauthorized` with `{"me
 
 Both server-side HTTPS checks passed at 2026-11-18 12:47:23 UTC without disabling certificate verification. Frontend returned 200; unauthenticated documents API returned 401 with the expected missing-token message. API responses contain security headers from both Apache and the backend, including two CSP policies; record this for configuration review, not as a failed routing check.
 
-Next manual browser check (NOT RUN): on the NMDOH workstation, open https://docman-dev.doh.nm.gov/, hard-refresh with Ctrl+Shift+R, sign out if an old session remains, and sign in using the existing RBakos account. Expected: login succeeds, dashboard renders without a blank page or visible error, and superadmin navigation is available. Record actual results before creating synthetic test accounts/documents. Server-side certificate trust does not establish workstation/browser certificate trust.
+Next manual browser check (NOT RUN): in development workstation, open https://docs.example.org/, hard-refresh with Ctrl+Shift+R, sign out if an old session remains, and sign in using the existing demo-admin account. Expected: login succeeds, dashboard renders without a blank page or visible error, and superadmin navigation is available. Record actual results before creating synthetic test accounts/documents. Server-side certificate trust does not establish workstation/browser certificate trust.
 
 ### First synthetic document: corrected required fields
 
 User encountered the required `Opens For Review` field; earlier chat instructions omitted it and also omitted the required Author selection. This is a walkthrough omission, not evidence of upload failure. Creation remains NOT RUN/unconfirmed.
 
-For `POC Validation — Test Document`, use description `Synthetic document for deployment testing`, Author Richard Bakos (the existing RBakos account), Category General, Opens For Review November 18, 2026 (today for this test), and the synthetic `docman-poc-test.docx` file. Keep Review Interval Quarterly and Review Period 2 weeks at their defaults; the due-date fields calculate automatically. Leave optional assignments empty for this initial test. Click Create Document and record the resulting page/status or exact error. Storage configuration was confirmed ON with no missing-key warning and a 50 MB limit; actual encrypted storage/download verification remains pending.
+For `POC Validation — Test Document`, use description `Synthetic document for deployment testing`, Author Richard Bakos (the existing demo-admin account), Category General, Opens For Review November 18, 2026 (today for this test), and the synthetic `docman-poc-test.docx` file. Keep Review Interval Quarterly and Review Period 2 weeks at their defaults; the due-date fields calculate automatically. Leave optional assignments empty for this initial test. Click Create Document and record the resulting page/status or exact error. Storage configuration was confirmed ON with no missing-key warning and a 50 MB limit; actual encrypted storage/download verification remains pending.
 
 ### Initial document creation result
 
@@ -280,30 +282,30 @@ PASS: user confirmed Download retrieves the initial uploaded file and it opens w
 
 ### SMTP validation prioritized — November 19, 2026
 
-User paused document/approver testing to validate NMDOH SMTP delivery without username/password. Candidate relay from existing REDCap configuration: webmail.state.nm.us, port 25. IP authorization, allowed sender and TLS capabilities remain unverified. DocMan UI supports SMTP with `IP-authorized relay — no username/password` and a saved-settings test message. Begin with STARTTLS; lack of password authentication does not require plaintext transport. Proposed test sender and recipient: user's existing richard.bakos@doh.nm.gov address, display name DocMan POC. No message has been sent and no settings change is confirmed. Require observed relay result and inbox receipt before marking delivery PASS. Test success for this sender/recipient would not establish arbitrary-sender or external-recipient relay permission.
+User paused document/approver testing to validate development SMTP delivery without username/password. Candidate relay from existing another application configuration: smtp.example.org, port 25. IP authorization, allowed sender and TLS capabilities remain unverified. DocMan UI supports SMTP with `IP-authorized relay — no username/password` and a saved-settings test message. Begin with STARTTLS; lack of password authentication does not require plaintext transport. Proposed test sender and recipient: user's existing operator@example.org address, display name DocMan POC. No message has been sent and no settings change is confirmed. Require observed relay result and inbox receipt before marking delivery PASS. Test success for this sender/recipient would not establish arbitrary-sender or external-recipient relay permission.
 
-SMTP test approach corrected by user: test directly from the NMDOH server command line first, without changing DocMan UI/settings. Proposed Python standard-library SMTP test connects to webmail.state.nm.us:25, sends EHLO, uses certificate-verified STARTTLS if advertised, and sends one harmless test message from/to richard.bakos@doh.nm.gov without calling login. If STARTTLS is absent it reports plaintext transport explicitly. Results and inbox receipt remain pending; command-line success alone does not validate DocMan integration.
+SMTP test approach corrected by user: test directly from development server command line first, without changing DocMan UI/settings. Proposed Python standard-library SMTP test connects to smtp.example.org:25, sends EHLO, uses certificate-verified STARTTLS if advertised, and sends one harmless test message from/to operator@example.org without calling login. If STARTTLS is absent it reports plaintext transport explicitly. Results and inbox receipt remain pending; command-line success alone does not validate DocMan integration.
 
 ### SMTP command-line result — DNS blocked
 
-User's Python SMTP test failed with `gaierror: [Errno -3] Temporary failure in name resolution` before printing the connection-success message. No SMTP connection or message submission occurred; no conclusion about authentication, STARTTLS or relay authorization can be drawn. SMTP delivery validation is BLOCKED on resolving webmail.state.nm.us from the application server.
+User's Python SMTP test failed with `gaierror: [Errno -3] Temporary failure in name resolution` before printing the connection-success message. No SMTP connection or message submission occurred; no conclusion about authentication, STARTTLS or relay authorization can be drawn. SMTP delivery validation is BLOCKED on resolving smtp.example.org from the application server.
 
-Next read-only diagnostics on NMDOH Ubuntu: `resolvectl query webmail.state.nm.us`, `resolvectl status`, and `getent ahosts webmail.state.nm.us`. Inspect configured DNS servers and lookup errors before making any resolver changes. Do not replace agency DNS with public DNS or guess a relay IP.
+Next read-only diagnostics in development Ubuntu: `resolvectl query smtp.example.org`, `resolvectl status`, and `getent ahosts smtp.example.org`. Inspect configured DNS servers and lookup errors before making any resolver changes. Do not replace agency DNS with public DNS or guess a relay IP.
 
 ### DNS comparison — November 20, 2026
 
-User supplied Windows nslookup: resolver 9.9.9.9 returned webmail.state.nm.us = 164.64.16.144 (non-authoritative). Ubuntu resolvectl query failed with `Lookup failed due to system error: No route to host`. Ubuntu ens192 uses DNS servers 10.8.101.3 and 10.135.2.12; current server 10.8.101.3. This establishes a DNS-path failure on Ubuntu, not a confirmed SMTP relay rejection. Do not infer that either configured resolver is permanently unavailable or that changing to public DNS is appropriate.
+User supplied Windows nslookup: resolver 9.9.9.9 returned smtp.example.org = 192.0.2.25 (non-authoritative). Ubuntu resolvectl query failed with `Lookup failed due to system error: No route to host`. Ubuntu ens192 uses DNS servers 192.0.2.53 and 192.0.2.54; current server 192.0.2.53. This establishes a DNS-path failure on Ubuntu, not a confirmed SMTP relay rejection. Do not infer that either configured resolver is permanently unavailable or that changing to public DNS is appropriate.
 
-Next diagnostic (pending): connect from Ubuntu directly to user-observed 164.64.16.144 TCP/25 using Python smtplib with a 15-second timeout, issue EHLO, print greeting/capabilities, and quit without AUTH or message submission. This isolates SMTP connectivity from hostname resolution. Success does not prove sender/recipient acceptance or delivery. Keep existing resolver and DocMan settings unchanged.
+Next diagnostic (pending): connect from Ubuntu directly to user-observed 192.0.2.25 TCP/25 using Python smtplib with a 15-second timeout, issue EHLO, print greeting/capabilities, and quit without AUTH or message submission. This isolates SMTP connectivity from hostname resolution. Success does not prove sender/recipient acceptance or delivery. Keep existing resolver and DocMan settings unchanged.
 
 ### Direct-IP SMTP connectivity result — November 20, 2026
 
-PASS: Ubuntu connected to 164.64.16.144:25; SMTP greeting 220 identified webmail.state.nm.us, EHLO returned 250. Advertised STARTTLS, SIZE 36700160, PIPELINING, DSN, ENHANCEDSTATUSCODES, 8BITMIME, BINARYMIME, CHUNKING and SMTPUTF8. Server greeted client as 164.64.16.238 (observed source, potentially NAT). No AUTH capability was listed; no authentication or message submission was attempted. DNS failure remains unresolved. Relay permission and delivery remain NOT RUN.
+PASS: Ubuntu connected to 192.0.2.25:25; SMTP greeting 220 identified smtp.example.org, EHLO returned 250. Advertised STARTTLS, SIZE 36700160, PIPELINING, DSN, ENHANCEDSTATUSCODES, 8BITMIME, BINARYMIME, CHUNKING and SMTPUTF8. Server greeted client as 192.0.2.100 (observed source, potentially NAT). No AUTH capability was listed; no authentication or message submission was attempted. DNS failure remains unresolved. Relay permission and delivery remain NOT RUN.
 
-Next: one direct-IP test message from/to richard.bakos@doh.nm.gov without login, using a Python SMTP subclass to override only TCP destination while retaining webmail.state.nm.us for STARTTLS certificate verification. Do not disable TLS validation or persist an IP-based application setting. Record submission result and inbox receipt separately.
+Next: one direct-IP test message from/to operator@example.org without login, using a Python SMTP subclass to override only TCP destination while retaining smtp.example.org for STARTTLS certificate verification. Do not disable TLS validation or persist an IP-based application setting. Record submission result and inbox receipt separately.
 
 ### Direct-IP SMTP delivery confirmed — November 20, 2026
 
-PASS: user reported `I got the email` after the direct-IP, no-login SMTP test. Confirms delivery from the DocMan server for sender and recipient richard.bakos@doh.nm.gov without SMTP credentials. The supplied test requires certificate-verified STARTTLS before sending; console output was not supplied. Do not generalize this result to arbitrary senders or external recipients.
+PASS: user reported `I got the email` after the direct-IP, no-login SMTP test. Confirms delivery from the DocMan server for sender and recipient operator@example.org without SMTP credentials. The supplied test requires certificate-verified STARTTLS before sending; console output was not supplied. Do not generalize this result to arbitrary senders or external recipients.
 
-Outstanding: Ubuntu resolution of webmail.state.nm.us still failed in the last observed hostname lookup. Direct-IP delivery is a diagnostic workaround, not a persistent configuration change. DocMan email settings remain unchanged; application test delivery remains NOT RUN. Next: have NOC investigate access to configured DNS servers 10.8.101.3 and 10.135.2.12 and restore hostname resolution; then test SMTP through DocMan using hostname, port 25, STARTTLS and no credentials. Existing evidence does not indicate that additional relay allowlisting is needed for the tested sender/recipient.
+Outstanding: Ubuntu resolution of smtp.example.org still failed in the last observed hostname lookup. Direct-IP delivery is a diagnostic workaround, not a persistent configuration change. DocMan email settings remain unchanged; application test delivery remains NOT RUN. Next: have IT investigate access to configured DNS servers 192.0.2.53 and 192.0.2.54 and restore hostname resolution; then test SMTP through DocMan using hostname, port 25, STARTTLS and no credentials. Existing evidence does not indicate that additional relay allowlisting is needed for the tested sender/recipient.

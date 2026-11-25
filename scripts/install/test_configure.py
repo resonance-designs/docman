@@ -83,7 +83,7 @@ class ConfigurationTests(unittest.TestCase):
     def test_hostname_rejects_config_injection(self):
         for name in ['https://example.org', 'x\nServerName evil', '-x.example', 'x..org', 'x.org/anything', '*.example.org', 'x;id']:
             self.assertFalse(installer.host_valid(name), name)
-        self.assertTrue(installer.host_valid('docman-dev.doh.nm.gov'))
+        self.assertTrue(installer.host_valid('docs.example.org'))
         self.assertTrue(installer.host_valid('192.0.2.10'))
 
     def test_backup_destinations_accept_ssh_aliases_and_reject_injection(self):

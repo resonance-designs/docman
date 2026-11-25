@@ -355,7 +355,7 @@ and files restore without the original environment/master key is insufficient.
 TLS mode: {c['tls_mode']}. Self-signed/organization certificates require client trust
 and an owner for renewal; Lets Encrypt uses certbot.timer.
 Check DNS from the actual workstation. Local --resolve checks do not prove client DNS.
-Firewall rules were NOT changed. NOC must permit required HTTPS and administration access.
+Firewall rules were NOT changed. IT must permit required HTTPS and administration access.
 Review dependency audit findings; installation success does not imply a clean audit.
 Root-only resumable installer state contains credentials: protect it as a secret.
 The installer is not an updater; follow Ubuntu walkthrough section 19 for updates.

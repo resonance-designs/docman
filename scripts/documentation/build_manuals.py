@@ -5,6 +5,7 @@ Optional isolated dependencies: python -m pip install --target tmp/pdf-deps repo
 The PDF renderer/QA step additionally uses pymupdf and pillow.
 """
 from pathlib import Path
+import argparse
 import csv
 import html
 import re
@@ -116,7 +117,7 @@ class Illustration(Flowable):
 class ManualDoc(BaseDocTemplate):
     def __init__(self,path,label):
         super().__init__(str(path), pagesize=(612,792), leftMargin=54,rightMargin=54,topMargin=58,bottomMargin=54,
-                         title=label,author='DocMan project',subject='Repository-based guide, 20 November 2026')
+                         title=label,author='DocMan project',subject='Repository-based guide')
         self.label=label
         self.addPageTemplates(PageTemplate(id='main', frames=[Frame(54,54,504,680,leftPadding=0,rightPadding=0,topPadding=0,bottomPadding=0)], onPage=self.decorate))
     def decorate(self,c,doc):
@@ -150,7 +151,8 @@ def route_inventory():
             if 'async (' in tail: handler='inline handler'
             else: handler=tail.split(',')[-1].strip()
             guard=tail[:tail.rfind(',')].strip() if ',' in tail and handler!='inline handler' else ''
-            if 'router.use(verifyAccessToken)' in content: guard='verifyAccessToken (router-wide); '+guard
+            router_guards = re.findall(r'^router\.use\((verifyAccessToken[^\n]*?)\);', content[:match.start()], re.M)
+            if router_guards: guard='; '.join(g+' (router-wide)' for g in router_guards)+'; '+guard
             line=content[:match.start()].count('\n')+1
             rows.append({'id':f'API-{len(rows)+1:03}', 'method':method.upper(),'path':route,'handler':handler,'guards':guard or 'No route-level auth; inspect handler/global middleware', 'source':f'backend/src/routes/{imports[var]}:{line}'})
     with (SRC/'api-route-inventory.csv').open('w',newline='',encoding='utf-8') as f:
@@ -160,7 +162,7 @@ def route_inventory():
 def appendix(rows):
     txt='''\n## Appendix A. Route-by-route execution inventory
 
-This inventory includes every explicit mounted GET/POST/PUT/PATCH/DELETE declaration in backend/src/routes at generation time. Router-wide notification authentication is included. Global rate limiting/security middleware also applies. Conditional API documentation and SPA/static handling in server.js are tested by ENV-01/SEC-02; they are not business API declarations.
+This inventory includes every explicit mounted GET/POST/PUT/PATCH/DELETE declaration in backend/src/routes at generation time. Preceding router-wide verifyAccessToken declarations and their role middleware are included. Global rate limiting/security middleware also applies. Conditional API documentation and SPA/static handling in server.js are tested by ENV-01/SEC-02; they are not business API declarations.
 
 For EACH row run this procedure using the corresponding domain fixture and request recipe:
 
@@ -218,8 +220,11 @@ def build(name,title,subtitle,source,extra='',metadata=None):
     metadata = metadata or release_metadata(ROOT)
     doc=ManualDoc(OUT/name,title)
     doc.edition=metadata['date'].upper()
+    cover_note = ('Test procedures and expected results. Generating this guide does not execute tests or establish acceptance.'
+                  if source.name == 'qa-end-to-end-guide.md' else
+                  'Illustrated with labeled vector diagrams. No simulated screenshot is presented as a real application capture.')
     story=[Spacer(1,80),para('DOCMAN  /  PRACTICAL GUIDES','Case'),Spacer(1,18),para(title,'CoverTitle'),para(subtitle,'Deck'),Spacer(1,20)]
-    story += [para(f"DocMan {metadata['version']} - Vue interface",'Case'),para(metadata['date'],'Body'),para(f"Current source snapshot: {metadata['revision']}. Confirm deployment before use.",'Body'),Spacer(1,24),para('Illustrated with labeled vector diagrams. No simulated screenshot is presented as a real application capture.','SmallText'),PageBreak(),para('Contents','Section')]
+    story += [para(f"DocMan {metadata['version']} - Vue interface",'Case'),para(metadata['date'],'Body'),para(f"Current source snapshot: {metadata['revision']}. Confirm deployment before use.",'Body'),Spacer(1,24),para(cover_note,'SmallText'),PageBreak(),para('Contents','Section')]
     toc=TableOfContents();toc.levelStyles=[ParagraphStyle(name='TOC',fontName=FONT,fontSize=10,leading=15,spaceBefore=5,leftIndent=0,rightIndent=18)]
     story.append(toc)
     text=source.read_text(encoding='utf-8')+extra
@@ -227,6 +232,9 @@ def build(name,title,subtitle,source,extra='',metadata=None):
     doc.multiBuild(story)
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--qa-only',action='store_true',help='Refresh QA artifacts without rebuilding the separately maintained user manual.')
+    args=parser.parse_args()
     rows=route_inventory();extra=appendix(rows)
     qa=(SRC/'qa-end-to-end-guide.md').read_text(encoding='utf-8')
     cases=re.findall(r'^### ([A-Z]+-\d+) - (.+)$',qa,re.M)
@@ -235,8 +243,9 @@ def main():
         w=csv.DictWriter(f,fieldnames=fields);w.writeheader()
         for ident,title in cases+[(r['id'],r['method']+' '+r['path']) for r in rows]:
             w.writerow({'case_id':ident,'title':title,'status':'NOT RUN','expected_reference':ident})
-    build('docman-user-manual.pdf','User manual','Navigate, share, review and manage documents with confidence.',SRC/'user-manual.md')
+    if not args.qa_only:
+        build('docman-user-manual.pdf','User manual','Navigate, share, review and manage documents with confidence.',SRC/'user-manual.md')
     build('docman-qa-end-to-end-guide.pdf','End-to-end QA guide','Repeatable journeys, permission boundaries and evidence for developers and testers.',SRC/'qa-end-to-end-guide.md',extra)
-    print(f'Built two PDFs; {len(cases)} scenario cases and {len(rows)} API route cases.')
+    print(f'Built {"QA PDF" if args.qa_only else "two PDFs"}; {len(cases)} scenario cases and {len(rows)} API route cases.')
 
 if __name__=='__main__': main()

@@ -40,7 +40,7 @@ describe("hash survives MongoDB casting + BSON round trip", () => {
             timestamp: new Date("2026-11-17T03:00:00.123Z"),
             action: "document.update",
             outcome: "success",
-            actor: toPlain({ id: "507f1f77bcf86cd799439011", email: "a@nmdoh.test", role: "editor", authType: "local-jwt" }),
+            actor: toPlain({ id: "507f1f77bcf86cd799439011", email: "a@example.test", role: "editor", authType: "local-jwt" }),
             resourceType: "document",
             resourceId: "507f1f77bcf86cd799439012",
             documentId: "507f1f77bcf86cd799439012",

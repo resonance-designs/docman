@@ -13,7 +13,7 @@ test('role moves and removal notify affected users, not unchanged assignees', ()
     expect(events).toHaveLength(1); expect(events[0].recipient).toBe('reader');
     expect(events[0].message).toContain('Review assignee');
 });
-test('no notices for logins and session/token/password writes', () => {
+test('no notices for logins and session/token writes or accidental secret fields without a verified password mutation', () => {
     expect(changeEvents('User', { _id: 'u', role: 'viewer', isActive: true }, { _id: 'u', role: 'viewer', isActive: true, password: 'secret', refreshTokenHash: 'secret' })).toEqual([]);
 });
 test('account role and disabled-state changes notify target, including disabled email', () => {
@@ -41,4 +41,23 @@ test('review tasks notify assignee and assigner without disclosing notes', () =>
     const events = changeEvents('ReviewAssignment', null, { document: 'doc', assignee: 'a', assignedBy: 'b', status: 'pending', notes: 'private' });
     expect(events).toHaveLength(2); expect(JSON.stringify(events)).not.toContain('private');
     expect(events.every(event => !Object.hasOwn(event, 'relatedDoc'))).toBe(true);
+});
+
+test('profile changes notify only the affected account without copying values', () => {
+    const before = { _id: 'u', firstname: 'Old name', title: 'Old title', avatarDataUrl: 'old-photo' };
+    const after = { ...before, firstname: 'Private name', title: 'Private title', avatarDataUrl: 'private-image', bio: 'Private bio' };
+    const events = changeEvents('User', before, after);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ recipient: 'u', type: 'profile_updated' });
+    expect(events[0].message).toContain('first name');
+    expect(events[0].message).toContain('profile photo');
+    expect(events[0].message).toContain('reset your credentials');
+    expect(events[0].message).toContain('contact your administrator');
+    expect(JSON.stringify(events)).not.toMatch(/Private|private-image|old-photo/);
+    expect(changeEvents('User', after, { ...after })).toEqual([]);
+});
+test('successful password mutation sends a security notice; invitation activation does not', () => {
+    const user = { _id: 'u', role: 'viewer' };
+    expect(changeEvents('User', user, user, { passwordChanged: true })[0].message).toContain('password');
+    expect(changeEvents('User', { ...user, invitationPending: true }, user, { passwordChanged: true })).toEqual([]);
 });

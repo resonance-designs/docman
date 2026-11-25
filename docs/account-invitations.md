@@ -41,6 +41,6 @@ Policy changes affect newly set passwords (invitation acceptance, registration, 
 - With self-registration off, both UI and direct API registration are unavailable. Enable it temporarily: a new account receives viewer role only, then switch it off again.
 - Verify successful activation and administration events in the audit log without passwords or invitation tokens.
 
-Local automated validation covers policy boundaries, token hashing/expiration filters, atomic consumption update, registration gating, and administration access. Live SMTP invitation delivery, browser activation and a real-database concurrent acceptance test remain deployment acceptance checks; the NMDOH test email alone does not establish invitation delivery.
+Local automated validation covers policy boundaries, token hashing/expiration filters, atomic consumption update, registration gating, and administration access. Live SMTP invitation delivery, browser activation and a real-database concurrent acceptance test remain deployment acceptance checks; development test email alone does not establish invitation delivery.
 
 Local verification for this change: 44 focused backend tests passed (account invitations/policy and user administration); Vue production build passed with the existing chunk-size warning. These are not live SMTP/browser or real-MongoDB concurrency acceptance results.

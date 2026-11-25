@@ -1,6 +1,6 @@
 # Dependency security review — November 18, 2026
 
-Status: fixes prepared locally; NMDOH has not received these dependency updates. No release/version bump or production security approval is implied.
+Status: fixes prepared locally; The development deployment has not received these dependency updates. No release/version bump or production security approval is implied.
 
 ## Changes
 
@@ -71,4 +71,4 @@ The GitHub dependency-audit workflow runs on relevant changes, manual dispatch, 
 
 Use the backup/update/rollback procedure in [the Ubuntu walkthrough](deployment/ubuntu-server-installation.md#19-existing-installations-and-updates). Both backend and Vue lockfiles changed: run `npm ci` in **both** directories after selecting the reviewed commit, rebuild/publish Vue, and restart `docman-backend`. A git pull or frontend build alone does not update the backend dependencies. Keep `.env.prod`, upload storage, and service-account permissions intact. No database migration was introduced by this dependency update; follow any migration requirements for other changes included in the selected release.
 
-Verify login, account management, document upload/replacement/approval/download, and unauthorized access after deployment. Record the deployed commit and audit results. Do not run `npm audit fix --force` on the server. Documentation and React builds are verified here but are not required software installs on the NMDOH Vue application server.
+Verify login, account management, document upload/replacement/approval/download, and unauthorized access after deployment. Record the deployed commit and audit results. Do not run `npm audit fix --force` on the server. Documentation and React builds are verified here but are not required software installs in development Vue application server.

@@ -2,9 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [3.1.1] - 2026-11-25
+
+### Fixed
+
+- Keep post-update notification cancellation outside deployment recovery so a healthy application remains running.
+- Preserve Activity badge refreshes requested during an active count request and reject stale helper-readiness responses after update completion.
+- Correct profile security notices and documentation to use available account-recovery paths.
+
+### Added
+
+- Surface updater-helper readiness in Software Updates, with stale/missing/unverified warnings, server refresh instructions and recheck controls. Warn before deployment and after completion that application success does not confirm helper readiness.
+- Refresh the end-to-end QA guide and PDF for settings/customization, My Profile, security notifications and stable-release updates; regenerate the mounted API appendix and blank execution worksheet without claiming deployment acceptance.
+- Send in-app and queued email notices after successful system updates, with installed-version changelog details and resumable, deduplicated delivery to active accounts. Refresh the installed web updater helper to enable background completion detection.
+- Notify affected users of profile/photo/contact and password changes, identifying changed fields without including their values and explaining how to respond to an unauthorized change. Add an unread Activity badge and readable multiline notice details.
+- Add My Profile navigation and a canonical `/profile` page for all signed-in roles, retaining `/account` redirects. Expand self-service details with a raster photo, position, bio, phone, contact email, location, and website.
+- Preserve current-password verification, configurable password policy, session revocation, and provider-managed account restrictions. Keep sign-in identity administrator-managed and profile contact email separate.
+
+## [3.1.0] - 2026-11-25
+
+### Added
+
+- Add application-wide UI Customization under System Settings for admins and superadmins: link/heading/paragraph colors and sizes, raster logo upload/removal, left/right/top navigation, and configurable footer with preview, save/discard and default restoration.
+- Persist validated branding in the database and expose only public appearance fields before sign-in; audit saves without logo bytes.
+
+### Fixed
+
+- Make visited-link previews use the normal link size and disable the unsupported visited-size control, while retaining customizable visited colors.
 
 ### Maintenance
+
+- Generalize public deployment guidance, acceptance records, fixtures, and installer examples; rename environment-specific records and remove an unrelated IDE project mapping. Keep real deployment identities and infrastructure details in private operator records.
 
 - Run audit and installation/update safety checks on every PR to support required master branch checks; document PR-only master updates with force pushes and deletion disabled.
 
@@ -21,7 +49,7 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
-- Record operator-confirmed NMDOH development UI update acceptance from 3.0.3 to 3.0.4 and successful corrected-helper installation. Keep restore, failure-recovery, and future corrected-helper update drills explicitly pending.
+- Record operator-confirmed development UI update acceptance from 3.0.3 to 3.0.4 and successful corrected-helper installation. Keep restore, failure-recovery, and future corrected-helper update drills explicitly pending.
 
 ## [3.0.4] - 2026-11-24
 
@@ -53,7 +81,7 @@ All notable changes to this project will be documented in this file.
 - Reject interrupted updater responses instead of leaving backend requests pending.
 - Serialize helper installation and broker starts, retaining the CLI update lock through helper restart to protect existing installations too.
 - Offer and revalidate only published, non-draft, non-prerelease GitHub releases with newer stable version tags and pinned commits.
-- Correct the deployment record: feature commit `e0da7c3` and helper setup passed NMDOH development checks; full UI update and restore acceptance remain pending. PR #54 follow-up validation passed 46 Linux updater tests, 15 backend tests, and Bash syntax checks.
+- Correct the deployment record: feature commit `e0da7c3` and helper setup passed development checks; full UI update and restore acceptance remain pending. PR #54 follow-up validation passed 46 Linux updater tests, 15 backend tests, and Bash syntax checks.
 
 ## [3.0.2] - 2026-11-24
 
@@ -93,7 +121,7 @@ All notable changes to this project will be documented in this file.
 - Account settings for minimum password length (14–24, default 18) and local self-registration (off by default), with a viewer-only signup page and shared backend password policy. The existing 72 UTF-8 byte limit remains.
 - Interactive `update.sh` for existing standard-layout Ubuntu deployments: staged unprivileged builds, encrypted pre-update snapshots, maintenance locking, preserved configuration/keys, migration/result checks, matching frontend publication and trusted HTTPS verification. Includes failure-boundary tests and beginner update/recovery documentation; full Ubuntu VM update acceptance remains pending.
 - Interactive `install.sh` for fresh latest-LTS Ubuntu servers, with prerequisite installation, authenticated MongoDB/Redis, protected application keys, initial superadmin, Vue build, Apache/HTTPS, systemd startup, and optional encrypted backups/audit scheduling. Includes resumable configuration guards, beginner documentation and installer safety tests; full disposable-VM installation acceptance remains pending.
-- NMDOH POC deployment/validation execution record, separating confirmed server evidence from pending checks.
+- development POC deployment/validation execution record, separating confirmed server evidence from pending checks.
 
 ### Changed
 
@@ -150,27 +178,27 @@ Follow-up changes and verification recorded on 2026-11-17 and 2026-11-18; these 
 
 ### Changed
 
-- Documented the reported NMDOH REDCap SMTP endpoint (`webmail.state.nm.us:25`) as a candidate for DocMan, with unconfirmed TLS/authentication, sender restrictions, network access, relay authorization, and delivery checkpoints.
+- Documented the reported development another application SMTP endpoint (`smtp.example.org:25`) as a candidate for DocMan, with unconfirmed TLS/authentication, sender restrictions, network access, relay authorization, and delivery checkpoints.
 - Aligned Jest/babel-jest, upgraded documentation tooling with explicit security overrides, and migrated legacy React validation to patched Zod/resolver versions with regression coverage.
 - Completed time-service installation/internal-source guidance, outbound dependency-access requirements, and application file-log rotation/retention instructions after a fresh-server dependency cross-check.
 - Reworked fresh-server preparation into ordered package/update/time checkpoints, documented stage completion criteria, separated backup-host prerequisites, protected existing settings and certificate requests on retries, and replaced conflicting handoff progress notes with a current-status table.
-- Consolidated fresh-server prerequisite installation, added explicit tool/time and backup-tool checks, corrected backup-user prompt sequencing, and reconciled current NMDOH deployment status with confirmed evidence.
+- Consolidated fresh-server prerequisite installation, added explicit tool/time and backup-tool checks, corrected backup-user prompt sequencing, and reconciled current development deployment status with confirmed evidence.
 - Added an explicit Apache installation/version checkpoint before website configuration; clarified that the www-data permission check does not prove Apache is installed.
 - Added an explicit save-before-edit checkpoint for encoded database/Redis credentials and the JWT key, with recovery after clearing the terminal or interrupting configuration editing.
-- Expanded Redis deployment instructions with startup-error diagnosis, malformed-line correction, restart-limit recovery, and step-by-step authentication checks; updated confirmed NMDOH installation checkpoints.
+- Expanded Redis deployment instructions with startup-error diagnosis, malformed-line correction, restart-limit recovery, and step-by-step authentication checks; updated confirmed development installation checkpoints.
 - Replaced generated hexadecimal password instructions with user-chosen passwords of at least 18 characters for the development walkthrough; clarified new-password prompts and safe configuration quoting/URL encoding, and synchronized Redis guidance and the handoff.
 - Revised the deployment walkthrough throughout for beginner usability: explicit prompts, file-edit commands, expected outputs, failure actions, and staged migration/backup/restore/update checks; corrected private-certificate Apache activation order.
 - Recorded the standing deployment-documentation requirement: one complete beginner-followable walkthrough for the latest stable Ubuntu Server LTS, covering all prerequisites and kept synchronized with guided installation steps.
-- Updated the Ubuntu deployment guide with a single Ubuntu 26.04 LTS installation path, the internal NMDOH POC installation sequence, MongoDB 9 repository commands, database authentication checks, and explicit completed/pending deployment checkpoints.
+- Updated the Ubuntu deployment guide with a single Ubuntu 26.04 LTS installation path, the internal development POC installation sequence, MongoDB 9 repository commands, database authentication checks, and explicit completed/pending deployment checkpoints.
 - Updated the GitHub deployment workflow to accept and validate Authentik build variables, run security/identity tests, build and publish the Vue remote bundle, and run migration preflight and migration.
 - Raised the documented MongoDB minimum to 6.0 for the partial active-version index; verified with MongoDB 8.0.34.
 - Expanded workflow smoke tests and added `backend/src/scripts/verifyWorkflowRecovery.js` for disposable-database recovery and signed-token revocation checks.
 
 ### Verification
 
-- Email settings: 130 targeted backend tests pass on Windows and Linux/Node 22, including 31 new email tests. Verified local relay/TLS/STARTTLS delivery, certificate rejection, encryption/redaction, role enforcement, rate limits, concurrent saves, and browser save/reload/test flows. NMDOH mail delivery and live AWS SES remain pending.
+- Email settings: 130 targeted backend tests pass on Windows and Linux/Node 22, including 31 new email tests. Verified local relay/TLS/STARTTLS delivery, certificate rejection, encryption/redaction, role enforcement, rate limits, concurrent saves, and browser save/reload/test flows. development mail delivery and live AWS SES remain pending.
 - Dependency update: 99 targeted backend tests and five audit/schema checks pass on Windows and Linux/Node 22; Vue production/remote, legacy React, documentation builds, and Swagger generation pass. Disposable-MongoDB smoke tests pass all 24 checks plus concurrent publication recovery (memory rate-limit store). See the dependency review for fixture/verification limitations. Full-tree audits remain nonzero only for unpatched Picomatch.
-- User management: passed 39 targeted tests and 25 disposable-MongoDB integration checks; built Vue and verified browser account creation and disabling. NMDOH deployment of this update remains pending.
+- User management: passed 39 targeted tests and 25 disposable-MongoDB integration checks; built Vue and verified browser account creation and disabling. development deployment of this update remains pending.
 - Passed 78 targeted security, compliance, and identity tests across seven suites.
 - Forced two independent Node processes to retry the same publication simultaneously against MongoDB; verified one publication audit entry, one history entry, one revision, database uniqueness, and a valid gap-free audit chain (`verifyAuditConcurrency.js`).
 - Passed 24 end-to-end checks against real MongoDB with both memory and local Redis 7 rate limiting, without Redis fallback.

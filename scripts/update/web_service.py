@@ -33,6 +33,10 @@ LOCAL_BACKUP = '/var/backups/docman-update-restic'
 TAG = re.compile(r'^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')
 ACTIVE = {'starting', 'running', 'waiting'}
 INSTALL_LOCK = Path('/run/lock/docman-web-updater-install.lock')
+# Fingerprint at startup: copying newer files without restarting this process must
+# not falsely report that the running broker has adopted the new code.
+HELPER_FILES = {name:hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+                for name in ('runner.py','web_service.py')}
 
 @contextmanager
 def start_guard(action):
@@ -117,8 +121,14 @@ class Broker:
 
     def control(self, body):
         action = body.get('action')
+        if action == 'capabilities': return {'protocol':1,'files':dict(HELPER_FILES)}
         if action == 'releases': return releases()
         with self.lock, start_guard(action):
+            if action == 'notification-status':
+                # Background observers must not mint or extend browser tickets.
+                report = self.state.get('report') or {}
+                return {**{key:self.state.get(key) for key in ('status','tag','commit')},
+                    'report':{key:report.get(key) for key in ('run_id','target_commit')}}
             if action == 'status':
                 # Authenticated superadmins may resume observation after a page refresh.
                 ticket = self.state.get('ticket') or secrets.token_urlsafe(32)

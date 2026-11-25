@@ -34,7 +34,9 @@ export async function deliverOne() {
             const doc = await Doc.findById(item.relatedDoc).lean();
             if (!doc || !canReadDocument(doc, { ...user, id: user._id })) { await finish({ emailStatus: 'skipped', emailLastError: 'Document access no longer available' }); return true; }
         }
-        await sendEmail(user.email, 'DocMan activity notification', `There is new activity affecting your DocMan account: ${item.title}.\n\nSign in to review it: ${activityUrl()}\n\nThis email contains no document files or passwords.`);
+        const detailed = ['profile_updated', 'system_updated'].includes(item.type);
+        const details = detailed ? `\n\n${item.message}` : '';
+        await sendEmail(user.email, detailed ? `DocMan: ${item.title}` : 'DocMan activity notification', `There is new activity affecting your DocMan account: ${item.title}.${details}\n\nSign in to review it: ${activityUrl()}\n\nThis email contains no document files or passwords.`);
         await finish({ emailStatus: 'sent', emailSentAt: new Date(), emailLastError: '' });
     } catch {
         await finish({ emailStatus: item.emailAttempts >= 5 ? 'failed' : 'pending', emailNextAttempt: new Date(Date.now() + Math.min(3600000, 60000 * 2 ** item.emailAttempts)), emailLastError: 'Delivery failed; check outgoing email, application URL, and connectivity.' });

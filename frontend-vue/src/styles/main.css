@@ -29,3 +29,28 @@ body {
 .authentik-linking__actions {
   white-space: nowrap;
 }
+
+/* Branding changes affect content text, not buttons, fields, or navigation controls. */
+.docman-appearance p { color: var(--appearance-paragraph-color); font-size: var(--appearance-paragraph-size); }
+.docman-appearance h1 { color: var(--appearance-h1-color); font-size: var(--appearance-h1-size) !important; line-height: 1.3; }
+.docman-appearance h2 { color: var(--appearance-h2-color); font-size: var(--appearance-h2-size) !important; line-height: 1.3; }
+.docman-appearance h3 { color: var(--appearance-h3-color); font-size: var(--appearance-h3-size) !important; line-height: 1.3; }
+.docman-appearance h4 { color: var(--appearance-h4-color); font-size: var(--appearance-h4-size) !important; line-height: 1.3; }
+.docman-appearance h5 { color: var(--appearance-h5-color); font-size: var(--appearance-h5-size) !important; line-height: 1.3; }
+.docman-appearance h6 { color: var(--appearance-h6-color); font-size: var(--appearance-h6-size) !important; line-height: 1.3; }
+
+.docman-appearance a:not(.v-btn):not(.v-list-item):not(.v-tab) { color: var(--appearance-link-color); font-size: var(--appearance-link-size); }
+.docman-appearance a:not(.v-btn):not(.v-list-item):not(.v-tab):visited { color: var(--appearance-linkVisited-color); }
+.docman-appearance a:not(.v-btn):not(.v-list-item):not(.v-tab):hover,
+.docman-appearance a:not(.v-btn):not(.v-list-item):not(.v-tab):focus-visible,
+.docman-appearance a.preview-link-hover:not(.v-btn):not(.v-list-item):not(.v-tab) { color: var(--appearance-linkHover-color); font-size: var(--appearance-linkHover-size); }
+.docman-appearance a:not(.v-btn):not(.v-list-item):not(.v-tab):active,
+.docman-appearance a.preview-link-active:not(.v-btn):not(.v-list-item):not(.v-tab) { color: var(--appearance-linkActive-color); font-size: var(--appearance-linkActive-size); }
+.docman-appearance a.preview-link-visited:not(.v-btn):not(.v-list-item):not(.v-tab) { color: var(--appearance-linkVisited-color); }
+.app-logo { display: block; max-width: min(200px, 100%); height: 42px; object-fit: contain; object-position: left center; }
+.top-navigation { display: flex; gap: 4px; overflow-x: auto; width: 100%; padding: 0 12px; }
+.top-navigation .v-btn { flex-shrink: 0; }
+.docman-appearance .v-main { display: flex; flex-direction: column; min-height: 100vh; }
+.app-page { flex: 1; min-width: 0; }
+.app-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 28px; overflow-wrap: anywhere; border-top: 1px solid rgba(0,0,0,.1); }
+.app-footer > * { min-width: 0; max-width: 100%; }

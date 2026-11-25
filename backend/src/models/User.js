@@ -77,6 +77,11 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: false,
         },
+        // Self-service contact/photo fields are explicitly selected by the account API only.
+        contactEmail: { type: String, maxlength: 254, select: false, default: '' },
+        location: { type: String, maxlength: 254, select: false, default: '' },
+        website: { type: String, maxlength: 2048, select: false, default: '' },
+        avatarDataUrl: { type: String, maxlength: 350000, select: false, default: '' },
         profilePicture: {
             type: String,
             required: false,

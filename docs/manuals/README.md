@@ -1,7 +1,15 @@
 # User and QA manuals
 
-Built for the current DocMan 3.0.0 Vue working tree, including the local account,
-notification, public-sharing and full category/book/team/project management changes. The edition is dated 20 November 2026.
+The QA guide was refreshed on **25 November 2026** for the 3.1.0 working tree plus
+pending My Profile and notification changes on `feature/ui-updates-profile`.
+It includes tabbed settings, UI customization, stable-release updates and helper
+refresh, profile/photo/password edits, update broadcasts and security notices.
+Record both application and installed-helper revisions before execution; a version
+label alone does not prove that the pending features are deployed.
+
+The separately maintained end-user manual remains the **20 November 2026** edition;
+it has not been rewritten as part of this QA refresh. Use the current feature guides
+for My Profile, UI customization, activity notifications and web updates.
 These are guides, not claims of deployment or completed acceptance testing.
 
 - [End-user source](user-manual.md)
@@ -30,6 +38,11 @@ API appendix, and a results template with every row set to `NOT RUN`.
 **Copy the results template to a separate run-specific file before recording
 results. Rebuilding overwrites the template; it must not hold live test results.**
 
+For a QA-only documentation change, use `python scripts/documentation/build_manuals.py --qa-only`.
+This refreshes the QA PDF, mounted-route inventory, API appendix and blank results
+sheet while preserving the end-user PDF. The PDF cover records the build-time
+package version and Git revision, including whether working-tree changes exist.
+
 The builder uses Segoe UI on Windows, DejaVu Sans where installed on Linux,
 or Helvetica as a fallback. No browser, database or mail service is required to
 build the documents. It does not run the app's test cases or send email.
@@ -54,4 +67,4 @@ router declarations; inspect its output if route declarations become multiline
 or dynamic. A generated route row is an execution obligation, not proof of
 coverage or passing authorization.
 
-Management procedures and QA cases were refreshed on 20 November 2026. Generated execution worksheets remain blank (`NOT RUN`); these documents do not assert live deployment acceptance.
+Generated execution worksheets remain blank (`NOT RUN`); these documents do not assert live deployment acceptance. The updater password-feedback/three-attempt improvement remains explicitly deferred; its requested behavior is not an implemented acceptance expectation.
