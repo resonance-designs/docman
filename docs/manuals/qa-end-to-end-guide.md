@@ -287,7 +287,11 @@ Steps: enumerate account, storage, email, notification and public-sharing GET/PU
 Expected: intended superadmin boundaries; storage read allowed to uploaders; no silent default on read failure; policy persistence and correct audit. New defaults do not accidentally publish private documents or enable self-registration.
 
 ### SYS-02 - Redis and operational information [P1]
-Steps: admin uses System Settings Redis Re-test/Apply; exercise configured self-hosted/Upstash/memory modes in isolated environment; simulate unavailable provider; read system info/performance as admin then viewer.
+Steps: admin uses System Settings → Security → Redis Re-test/Apply; exercise configured self-hosted/Upstash/memory modes in isolated environment; simulate unavailable provider; read system info/performance as admin then viewer.
+
+System Settings navigation regression: as superadmin, verify Security, Email & Notifications, Storage, and Software Updates tabs. Edit a setting without saving, switch tabs, and return; its unsaved value should remain without triggering a save. Confirm updater progress continues across tab changes. As admin, confirm only Security and Storage tabs appear, with existing Redis read-only behavior and deleted-document restoration; superadmin cards must remain hidden. Check keyboard tab navigation and horizontal tab scrolling at a narrow mobile width. Switching tabs must not trigger an update, send an email, or restore a document. A page reload is not expected to preserve unsaved form values.
+
+Security administration navigation: Users, Audit Log, and Authentik Linking must no longer appear as separate sidebar entries. Open them under System Settings → Security. Superadmins can reach all three; admins can reach Audit Log but not Users or Authentik Linking. Verify existing `/admin/users`, `/admin/audit`, and `/admin/authentik-linking` bookmarks reach the integrated panels with equivalent permissions. Test refresh and browser Back/Forward across tabs, user-form drafts, audit filters/exports, and identity-linking controls. Anonymous users must sign in; non-administrative users must not reach these panels.
 Expected: effective rate-limit store/error accurately reported, no passwords or internal secrets returned, authorized-only operational info, no accidental resetting of auth protections. Restore provider and retest limiter.
 
 ### SYS-03 - Maintenance guards [P0, disposable database only]

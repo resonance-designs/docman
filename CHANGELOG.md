@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Move Users, Audit Log, and Authentik Linking from the main sidebar into System Settings → Security, preserving role restrictions and existing deep links.
+- Group System Settings into Security, Email & Notifications, Storage, and Software Updates tabs. Preserve existing role restrictions, individual save actions, and form state when changing tabs.
+
 ### Documentation
 
 - Record operator-confirmed NMDOH development UI update acceptance from 3.0.3 to 3.0.4 and successful corrected-helper installation. Keep restore, failure-recovery, and future corrected-helper update drills explicitly pending.
