@@ -37,9 +37,9 @@ The left navigation menu contains the areas available to your role. Use the menu
 - Approvals: file versions awaiting a decision you are permitted to make. Click Refresh to update the list, then Review to open a document.
 - Books and Categories: view collections and classification values; permitted roles can create and manage them.
 - Teams and Projects: view your memberships, including read-only access for viewers. Editors and higher roles can create; ownership and assigned roles control management.
-- Audit Log: administrative activity records; visible to admins and superadmins.
-- Users and Authentik Linking: superadmin account administration.
-- System Settings: administrative configuration; individual cards require the appropriate administrative role.
+- System Settings → Security → Audit Log: administrative activity records; visible to admins and superadmins.
+- System Settings → Security → Users / Authentik Linking: superadmin account and identity administration.
+- System Settings: administrative configuration organized into Security (accounts/passwords, public sharing, rate limiting), Email & Notifications, Storage (upload settings and deleted documents), and Software Updates tabs. Individual cards retain their role restrictions; Email & Notifications and Software Updates are superadmin-only. Switching tabs retains unsaved entries while the page stays open; use each card's Save or Apply action to persist changes.
 
 List pages include Search this view. This searches the rows already loaded into the page, not necessarily every record on the server. A no-results message does not prove a document does not exist. Clear the search, check your assignments and ask its owner if necessary.
 
@@ -206,7 +206,7 @@ An account-wide Admin role alone does not grant team/project resource-management
 
 ## 13. Administrator reference
 
-**Users (superadmin):** click Create user; enter name, email, unique username and role, then Create user. Confirm Invitation pending. No initial password is entered. Use Resend invitation for delivery recovery, Edit for account details, Disable/Enable for access, and Reset password for an active local account when appropriate. A pending invitation must be handled through its invitation controls. Protect the last active superadmin and do not disable your own administrative access.
+**Users (superadmin):** open System Settings → Security → Users, then click Create user; enter name, email, unique username and role, then Create user. Confirm Invitation pending. No initial password is entered. Use Resend invitation for delivery recovery, Edit for account details, Disable/Enable for access, and Reset password for an active local account when appropriate. A pending invitation must be handled through its invitation controls. Protect the last active superadmin and do not disable your own administrative access.
 
 **Accounts and passwords (superadmin):** choose the minimum password length and whether local self-registration is allowed. Save and re-open the card to verify. Enabling self-registration currently activates viewer accounts without confirming mailbox ownership; invitations provide the confirmation flow.
 
@@ -218,9 +218,9 @@ An account-wide Admin role alone does not grant team/project resource-management
 
 ## 14. Delete, restore and inspect audits
 
-An admin/superadmin can open a document, choose Delete document, enter a reason and confirm Delete. This is soft deletion: normal access stops while retained history supports restoration. To restore, open System Settings, locate the deleted-document list and click Restore. Verify restored access and any retained public-sharing setting before telling users it is available.
+An admin/superadmin can open a document, choose Delete document, enter a reason and confirm Delete. This is soft deletion: normal access stops while retained history supports restoration. To restore, open System Settings → Storage, locate the deleted-document list and click Restore. Verify restored access and any retained public-sharing setting before telling users it is available.
 
-Open Audit Log to filter by Action, User email, Outcome, From and To, then click Search. Clear removes filters. Export CSV or Export JSON produces records for investigation; handle exported identities and activity information as sensitive organizational data. Superadmins can click Verify integrity. Chain intact is the expected healthy result. If integrity fails, preserve the result and contact the responsible administrator; do not try to edit the audit records.
+Open System Settings → Security → Audit Log to filter by Action, User email, Outcome, From and To, then click Search. Clear removes filters. Export CSV or Export JSON produces records for investigation; handle exported identities and activity information as sensitive organizational data. Superadmins can click Verify integrity. Chain intact is the expected healthy result. If integrity fails, preserve the result and contact the responsible administrator; do not try to edit the audit records.
 
 ## 15. Troubleshooting and getting help
 

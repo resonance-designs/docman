@@ -11,7 +11,7 @@ All frontend files should include a comment header with the following format:
  * @page [ComponentName]
  * @description [Brief description of the component/page]
  * @author Richard Bakos
- * @version 3.0.4
+ * @version 3.0.5
  * @license UNLICENSED
  */
 ```
@@ -21,7 +21,7 @@ All frontend files should include a comment header with the following format:
 The following values are used in the comment headers and should be kept consistent across all files:
 
 - Author: Richard Bakos
-- Version: 3.0.4
+- Version: 3.0.5
 - License: UNLICENSED
 
 These values are taken from the `package.json` file in the frontend root directory.

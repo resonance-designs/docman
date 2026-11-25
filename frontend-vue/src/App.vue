@@ -76,7 +76,6 @@ const drawer = ref(!mobile.value);
 const signingOut = ref(false);
 
 const navItems = [
-  { title: 'Users', subtitle: 'Accounts and access', icon: 'mdi-account-cog-outline', to: '/admin/users', roles: ['superadmin'] },
   {
     title: 'Documents',
     subtitle: 'Files and reviews',
@@ -116,25 +115,11 @@ const navItems = [
     roles: ['viewer', 'editor', 'admin', 'superadmin'],
   },
   {
-    title: 'Audit Log',
-    subtitle: 'Who did what, when',
-    icon: 'mdi-shield-search',
-    to: '/admin/audit',
-    roles: ['admin', 'superadmin'],
-  },
-  {
     title: 'System Settings',
-    subtitle: 'Storage, email, Redis',
+    subtitle: 'Security, users, email, storage',
     icon: 'mdi-cog-outline',
     to: '/admin/system',
     roles: ['admin', 'superadmin'],
-  },
-  {
-    title: 'Authentik Linking',
-    subtitle: 'Suite identity mapping',
-    icon: 'mdi-account-key-outline',
-    to: '/admin/authentik-linking',
-    roles: ['superadmin'],
   },
 ];
 

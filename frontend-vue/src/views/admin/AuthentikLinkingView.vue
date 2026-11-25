@@ -1,9 +1,9 @@
 <template>
-  <v-container class="py-8" fluid>
+  <v-container :class="embedded ? 'pa-0' : 'py-8'" fluid>
     <div class="d-flex flex-wrap align-center justify-space-between ga-4 mb-6">
       <div>
         <div class="text-overline text-primary">Suite Identity</div>
-        <h1 class="text-h4 font-weight-bold">Authentik Linking</h1>
+        <component :is="embedded ? 'h2' : 'h1'" :class="embedded ? 'text-h5 font-weight-bold' : 'text-h4 font-weight-bold'">Authentik Linking</component>
         <p class="text-body-1 text-medium-emphasis mb-0">
           Link existing RDocMan users to Authentik subject IDs so suite-issued tokens can resolve local authorization.
         </p>
@@ -122,6 +122,7 @@
 </template>
 
 <script setup>
+defineProps({ embedded: Boolean });
 import { onMounted, ref } from 'vue';
 import { fetchUnlinkedAuthentikUsers, linkAuthentikUser } from '@/services/authentikAdmin';
 

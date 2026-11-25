@@ -1,7 +1,7 @@
 <template>
-  <v-container class="py-8" fluid>
+  <v-container :class="embedded ? 'pa-0' : 'py-8'" fluid>
     <div class="d-flex flex-wrap align-center justify-space-between ga-4 mb-6">
-      <div><h1 class="text-h4 font-weight-bold">Users</h1><p class="text-medium-emphasis mt-2">Create accounts and manage access to DocMan.</p></div>
+      <div><component :is="embedded ? 'h2' : 'h1'" :class="embedded ? 'text-h5 font-weight-bold' : 'text-h4 font-weight-bold'">Users</component><p class="text-medium-emphasis mt-2">Create accounts and manage access to DocMan.</p></div>
       <v-btn color="primary" prepend-icon="mdi-account-plus-outline" @click="openCreate">Create user</v-btn>
     </div>
     <v-alert v-if="message" type="success" variant="tonal" class="mb-4" closable @click:close="message = ''">{{ message }}</v-alert>
@@ -84,6 +84,7 @@
 </template>
 
 <script setup>
+defineProps({ embedded: Boolean });
 import { onMounted, reactive, ref, watch } from 'vue';
 import { api } from '@/services/api';
 import { useAuth } from '@/composables/useAuth';
