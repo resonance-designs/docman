@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Documentation
+
+- Record operator-confirmed NMDOH development UI update acceptance from 3.0.3 to 3.0.4 and successful corrected-helper installation. Keep restore, failure-recovery, and future corrected-helper update drills explicitly pending.
+
+## [3.0.4] - 2026-11-24
+
 ### Fixed
 
 - Prevent stale updater polls from restoring answered prompts; start saved-ticket progress independently of backend status and release requests.
