@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.1] - 2026-11-25
+
+### Fixed
+
+- Keep post-update notification cancellation outside deployment recovery so a healthy application remains running.
+- Preserve Activity badge refreshes requested during an active count request and reject stale helper-readiness responses after update completion.
+- Correct profile security notices and documentation to use available account-recovery paths.
+
+### Added
+
+- Surface updater-helper readiness in Software Updates, with stale/missing/unverified warnings, server refresh instructions and recheck controls. Warn before deployment and after completion that application success does not confirm helper readiness.
+- Refresh the end-to-end QA guide and PDF for settings/customization, My Profile, security notifications and stable-release updates; regenerate the mounted API appendix and blank execution worksheet without claiming deployment acceptance.
+- Send in-app and queued email notices after successful system updates, with installed-version changelog details and resumable, deduplicated delivery to active accounts. Refresh the installed web updater helper to enable background completion detection.
+- Notify affected users of profile/photo/contact and password changes, identifying changed fields without including their values and explaining how to respond to an unauthorized change. Add an unread Activity badge and readable multiline notice details.
+- Add My Profile navigation and a canonical `/profile` page for all signed-in roles, retaining `/account` redirects. Expand self-service details with a raster photo, position, bio, phone, contact email, location, and website.
+- Preserve current-password verification, configurable password policy, session revocation, and provider-managed account restrictions. Keep sign-in identity administrator-managed and profile contact email separate.
+
 ## [3.1.0] - 2026-11-25
 
 ### Added

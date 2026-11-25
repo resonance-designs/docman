@@ -74,3 +74,10 @@ test('generic assignment notices still respect inactive-recipient safeguards', a
     expect(sendEmail).not.toHaveBeenCalled();
     expect(Notification.updateOne.mock.calls[0][1].$set.emailStatus).toBe('skipped');
 });
+
+test.each(['profile_updated', 'system_updated'])('%s emails contain the notice details', async type => {
+    queue({ type, title: 'Safe notice', message: 'Details and next steps.' });
+    await deliverOne();
+    expect(sendEmail.mock.calls[0]).toEqual(expect.arrayContaining(['test@example.org', 'DocMan: Safe notice']));
+    expect(sendEmail.mock.calls[0][2]).toContain('Details and next steps.');
+});

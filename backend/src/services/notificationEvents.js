@@ -3,6 +3,7 @@ export const idOf = value => value?._id?.toString() || value?.toString() || '';
 const ids = values => [...new Set((values || []).map(idOf).filter(Boolean))];
 const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 export const documentPeople = doc => ids([doc?.author, ...(doc?.owners || []), ...(doc?.approvers || []), ...(doc?.stakeholders || []), ...(doc?.reviewAssignees || [])]);
+export const profileFields = { firstname: 'first name', lastname: 'last name', username: 'username', email: 'sign-in email', telephone: 'phone', title: 'position', department: 'department', bio: 'bio', contactEmail: 'contact email', location: 'location', website: 'website', avatarDataUrl: 'profile photo', profilePicture: 'profile photo', backgroundImage: 'background image', theme: 'theme' };
 export function changeEvents(kind, before, after, context = {}) {
     const events = [], row = after || before;
     if (!row) return events;
@@ -24,6 +25,10 @@ export function changeEvents(kind, before, after, context = {}) {
         else if (before && after && ['title', 'description', 'category', 'opensForReview', 'reviewInterval', 'reviewPeriod', 'reviewCompleted'].some(k => !same(before[k], after[k]))) push(documentPeople(after), 'Document updated', 'Document details or review status changed. Open DocMan to review the changes.', extra);
     }
     if (kind === 'User' && before && after) {
+        const changed = [...new Set(Object.entries(profileFields).filter(([key]) => !same(before[key] || '', after[key] || '')).map(([, label]) => label))];
+        if (context.passwordChanged) changed.push('password');
+        if (changed.length && !before.invitationPending) push([row._id], 'Account/profile updated',
+            `Your DocMan account/profile was updated. Changed: ${changed.join(', ')}.\n\nIf you did not authorize this change, contact your administrator immediately. If you can still sign in to a local account, change your password from My Profile. If your account is managed by an identity provider, reset your credentials there.`, { type: 'profile_updated' });
         if (before.role !== after.role) push([row._id], 'Account role changed', `Your DocMan role is now ${after.role}.`);
         if (before.isActive !== after.isActive && !before.invitationPending) push([row._id], after.isActive ? 'Account enabled' : 'Account disabled', `Your DocMan account has been ${after.isActive ? 'enabled' : 'disabled'}.`, { allowInactiveEmail: true });
     }

@@ -1,6 +1,15 @@
 # DocMan
 
+## Update and profile notification acceptance
+
+- [x] Implement profile/password security notices, successful-release broadcasts with changelog details, resumable fan-out, and unread Activity badge. Keep existing email pause/retry controls and do not expose profile values or secrets.
+- [ ] Deploy backend/Vue and refresh the root-owned web updater helper. Verify one Activity/email notice per active account after a successful update, no broadcast for failure/cancellation, and no repeat after restart. Check incomplete broadcast recovery, actual SMTP receipt, profile/photo/password edits, no-op/failed-edit suppression and contact-email privacy. See [the acceptance checklist](docs/activity-notifications.md). This is not remote acceptance evidence.
+
 ## Web updater acceptance
+
+- [x] **3.1.0 development update:** operator confirmed the UI update succeeded after correcting the backup-password entry and the installed version is now 3.1.0. Customization workflow and restore acceptance remain pending; password-feedback/retry improvements below are still open.
+
+- [ ] **Next update — backup-password validation and bounded retries:** an operator confirmed that an entry below the character requirement stopped the UI updater at encrypted-backup verification with only a generic failure message. Show a safe, specific validation message (for example, at least 18 characters required, prohibited control characters, or confirmation mismatch), retain the interactive password step, and allow **three total attempts** (initial entry plus two retries). Display attempts remaining. After the third failed attempt, stop the update with the specific reason and a clear attempt-limit message; do not proceed to deployment. Never echo, log, or include entered passwords in progress/error responses. Preserve cancellation/timeouts and existing backup/recovery safeguards. Test success on attempts two/three, all three failures, confirmation mismatch, control characters, and secret redaction. This is deferred work, not implemented in 3.1.0.
 
 - [x] Complete development UI update from 3.0.3 to 3.0.4, confirm post-update version and existing-document download, and install the corrected helper. See [operator-reported acceptance and remaining drills](docs/reviews/development-3.0.4-acceptance.md). This does not complete restore/failure-recovery acceptance or test a future update using the corrected helper.
 - [x] Fix the [five PR #55 CodeRabbit findings](docs/reviews/pr-55-coderabbit-ui-updater.md) on the UI-update testing branch: retired-service preservation order, stale progress/control races, saved-ticket polling during backend delays, Apache rewrite validation/configuration rollback, and explicit backup-selection hooks. Local validation: 50 Linux tests, 20 frontend regressions, Vue build, and Bash syntax passed. The v3.0.3 tag is unchanged; live newer-release update/restore acceptance remains pending.
@@ -268,4 +277,5 @@ Authentication security, session lifetime, MFA, and operational checks are conso
 - [ ] Keep infrastructure disk/swap/backup encryption; application encryption does not replace it.
 
 - [ ] Add verified self-service email changes (confirmation to the new address, security notice to the old address, expiry and single-use tokens).
-- [ ] Validate My account in development: profile persistence, password policy/current-password checks, session revocation, and SSO restrictions.
+- [x] Add My Profile route/navigation, raster photo, position/bio/contact details, and preserve local password-change safeguards.
+- [ ] Validate [My Profile](docs/my-profile.md) in development: profile/photo persistence and removal, every role, mobile accessibility, password policy/current-password checks, session revocation, and SSO restrictions.

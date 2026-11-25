@@ -5,6 +5,18 @@
     <v-card-text>
       <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
       <v-alert v-if="connectionLost" type="info" class="mb-4">Waiting for updater progress. Keep this page open; an update may still be running. Do not start another update.</v-alert>
+      <v-alert class="mb-4" :type="helper.state === 'ready' ? 'success' : 'warning'" variant="tonal" role="status">
+        <strong>{{ helper.state === 'ready' ? 'Updater helper ready' : helper.state === 'update-required' ? 'Server action required: refresh updater helper' : 'Updater helper readiness not confirmed' }}</strong>
+        <p>{{ helper.message }}</p>
+        <template v-if="helper.state !== 'ready'">
+          <p>Helper-dependent features, including system-update notifications, may be unavailable until this is resolved. Profile notifications do not require the helper.</p>
+          <p>After the application update finishes and any recovery is resolved, ask the server operator to run on the server:</p>
+          <pre class="helper-command">cd /var/www/docman
+sudo bash scripts/update/enable-web-updater.sh</pre>
+          <p>Expect Syntax OK, active, and PASS. Then recheck below. Do not run helper setup during an update or unresolved recovery.</p>
+        </template>
+        <v-btn class="mt-2" variant="outlined" :loading="helperLoading" :disabled="busy || recoveryRequired" @click="checkHelper">Recheck helper readiness</v-btn>
+      </v-alert>
       <div class="d-flex align-center ga-3 mb-4">
         <span v-if="installed">Installed version: {{ installed }}</span>
         <v-btn variant="tonal" :disabled="busy || loading" @click="check">Check for updates</v-btn>
@@ -16,6 +28,7 @@
       <v-alert v-if="job.status && job.status !== 'idle'" class="mt-4" :type="job.status === 'complete' ? 'success' : recoveryRequired || job.status === 'failed' ? 'error' : 'info'" role="status">
         <strong>{{ job.tag }} — {{ job.stage || job.status }}</strong>
         <div>{{ job.message || 'Update in progress. This page will reconnect while the application restarts.' }}</div>
+        <div v-if="job.status === 'complete'">Reload the updated application and check helper readiness. Application success does not confirm that the separate server helper is current.</div>
         <div v-if="job.report?.run_id">Recovery/report ID: <code>{{ job.report.run_id }}</code></div>
         <div v-if="job.report?.backup_snapshot">Backup snapshot: <code>{{ job.report.backup_snapshot }}</code></div>
       </v-alert>
@@ -35,6 +48,7 @@
           <p>Update to <strong>{{ selected?.tag }}</strong> at commit <code class="text-break">{{ selected?.commit }}</code>?</p>
           <p class="mt-3">The updater checks this server, asks you to confirm the release and backup settings, builds the release, then stops DocMan for backup and migration. Make sure other administrators, imports, and custom jobs will not write to the database or uploads during maintenance.</p>
           <p class="mt-3">If migration fails after changes begin, the app may remain stopped until the server operator restores the matching backup. This page can still show recovery status.</p>
+          <p class="mt-3">The application update does not replace the separate server helper. This release may require a server-operator step afterward. When the update finishes, reload the application and check Helper readiness before treating the upgrade as fully configured.</p>
         </v-card-text>
         <v-card-actions><v-spacer /><v-btn :disabled="sending" @click="confirm = false">Back</v-btn><v-btn color="primary" :loading="sending" @click="start">Start interactive update</v-btn></v-card-actions>
       </v-card>
@@ -48,12 +62,13 @@ import { api } from '@/services/api';
 import { getStorageKey } from '@/runtime/config';
 const installed=ref(''), releases=ref([]), checked=ref(false), loading=ref(false), sending=ref(false), error=ref('');
 const job=ref({status:'idle'}), answer=ref(''), selected=ref(null), confirm=ref(false), connectionLost=ref(false);
+const helper=ref({state:'unknown',message:'Checking the separately installed server helper...'}), helperLoading=ref(false);
 const busy=computed(()=>['starting','running','waiting'].includes(job.value.status));
 const recoveryRequired=computed(()=>['interrupted','recovery-required'].includes(job.value.status));
 const headers=[{title:'Release',key:'tag'},{title:'Commit',key:'commit'},{title:'',key:'action',sortable:false}];
 const ticketKey=getStorageKey('update-progress-ticket');
 let ticket=sessionStorage.getItem(ticketKey) || '', timer, disposed=false;
-let controlEpoch=0, controls=0, stateRevision=0;
+let controlEpoch=0, controls=0, stateRevision=0, helperGeneration=0;
 async function control(request){
   controls++;controlEpoch++;
   try{return await request();}finally{controls--;}
@@ -65,7 +80,19 @@ function accept(data) {
   stateRevision++;
   if(data.ticket){ticket=data.ticket;sessionStorage.setItem(ticketKey,ticket);}
   if(job.value.prompt?.id!==data.prompt?.id)answer.value='';
+  if(data.status==='complete' && job.value.status!=='complete'){helperGeneration++;helper.value={state:'unknown',message:'The application update completed. Reload the updated application, then verify the helper against the new release.'};}
   job.value=data;connectionLost.value=false;
+}
+async function checkHelper(){
+  if(helperLoading.value)return;
+  helperLoading.value=true;
+  const generation=helperGeneration;
+  try{
+    const {data}=await api.get('/software-updates/helper');
+    if(!disposed && generation===helperGeneration)helper.value=['ready','update-required','unavailable','unknown'].includes(data?.state)
+      ? data : {state:'unknown',message:'Helper readiness could not be verified. Ask the server operator to check setup.'};
+  }catch{if(!disposed && generation===helperGeneration)helper.value={state:'unknown',message:'Helper readiness could not be verified. Retry after the backend returns or contact the server operator.'};}
+  finally{helperLoading.value=false;}
 }
 async function check(){loading.value=true;error.value='';try{const {data}=await api.get('/software-updates/releases');installed.value=data.installedVersion;releases.value=data.releases;checked.value=true;}catch(e){error.value=failure(e);}finally{loading.value=false;}}
 function choose(item){selected.value=item;confirm.value=true;}
@@ -106,6 +133,9 @@ async function poll(){
   finally{if(!disposed)timer=setTimeout(poll,3000);}
 }
 function reload(){window.location.reload();}
-onMounted(()=>{void resume();void check();void poll();});
+onMounted(()=>{void resume();void check();void checkHelper();void poll();});
 onUnmounted(()=>{disposed=true;clearTimeout(timer);ticket='';answer.value='';});
 </script>
+<style scoped>
+.helper-command { white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0; }
+</style>

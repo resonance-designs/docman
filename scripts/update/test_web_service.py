@@ -14,6 +14,23 @@ spec=importlib.util.spec_from_file_location('web_service',Path(__file__).with_na
 web=importlib.util.module_from_spec(spec);spec.loader.exec_module(web)
 
 class BrokerTests(unittest.TestCase):
+    def test_capabilities_are_read_only_startup_fingerprints(self):
+        with patch.object(web,'atomic_state') as persist,patch.object(web.Path,'read_bytes',side_effect=AssertionError('must use startup fingerprint')):
+            response=self.broker.control({'action':'capabilities'})
+        self.assertEqual(response,{'protocol':1,'files':web.HELPER_FILES})
+        self.assertEqual(set(response['files']),{'runner.py','web_service.py'})
+        self.assertTrue(all(len(value)==64 for value in response['files'].values()))
+        persist.assert_not_called()
+    def test_notification_observer_does_not_refresh_ticket_or_expose_private_report(self):
+        self.broker.state={'status':'complete','tag':'v3.1.1','commit':'a'*40,
+            'ticket':'private-ticket','ticketHash':'private-hash','expires':123,
+            'report':{'run_id':'run-1','target_commit':'a'*40,'backup_snapshot':'private-snapshot'}}
+        with patch.object(web,'atomic_state') as persist:
+            result=self.broker.control({'action':'notification-status'})
+        self.assertEqual(result,{'status':'complete','tag':'v3.1.1','commit':'a'*40,
+            'report':{'run_id':'run-1','target_commit':'a'*40}})
+        self.assertEqual(self.broker.state['expires'],123)
+        persist.assert_not_called()
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.state=patch.object(web,'STATE',Path(self.temp.name));self.state.start()

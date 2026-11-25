@@ -484,9 +484,9 @@ Stored credentials use AES-256-GCM with a dedicated server-side `EMAIL_SETTINGS_
 
 Stored document files can be encrypted at rest, invisibly to users: files are encrypted while they stream to disk (no plaintext is ever written) and decrypted only for accounts allowed to download them. Each file has its own key, wrapped by the server's `DOCUMENT_ENCRYPTION_KEY`; nobody handles keys or document passwords. Superadmins turn encryption on and set the maximum upload size in **System Settings → Document storage**. See [Ubuntu guide section 15.1](docs/deployment/ubuntu-server-installation.md#151-encryption-at-rest-and-upload-size).
 
-Activity and email notifications: see [event coverage, setup, queue status and recovery](docs/activity-notifications.md).
+Activity and email notifications include successful system-update release notes and profile/password-change security notices. The toolbar shows unread activity; existing email pause/retry controls apply. See [event coverage, helper refresh, setup, queue status and recovery](docs/activity-notifications.md).
 
-Users can open **My account** in the toolbar to edit their profile or change a local password. Password changes require the current password and sign out existing sessions. SSO profiles remain provider-managed; username and email changes require a superadmin.
+Every signed-in user can open **My Profile** from the menu or toolbar (`/profile`; old `/account` links redirect). Add a photo, position, bio, and contact details, or change a local password. Password changes require the current password and sign out existing sessions. SSO profiles remain provider-managed; username and sign-in email changes require a superadmin. See the [My Profile guide](docs/my-profile.md).
 
 Document editors/owners and administrators can enable **Public sharing** on a document details page. Anyone with the random link can download the current approved file without signing in. Disable sharing to revoke the link; re-enabling issues a new link. Private versions, assignments, and audit history are excluded. Public access still requires network access to the server.
 
@@ -498,7 +498,7 @@ Superadmins can disable new public sharing in System Settings and optionally sus
 - [End-to-end QA guide (PDF)](output/pdf/docman-qa-end-to-end-guide.pdf)
 - [Editable sources, blank results sheet and rebuild instructions](docs/manuals/README.md)
 
-The guides reflect the current Vue source, distinguish API-only functionality, and do not imply that local changes are deployed or that acceptance tests have been run.
+The QA guide was refreshed on November 25, 2026 for the current working tree, with 87 scenario cases and 164 API-route cases covering the latest profile, notifications, customization and updater workflows. Its execution sheet remains entirely NOT RUN. The end-user manual remains the earlier November 20 edition; current feature guides supplement it. Neither document establishes deployment or completed acceptance.
 
 ### Categories, books, teams and projects
 

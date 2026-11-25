@@ -38,6 +38,8 @@ const notificationSchema = new mongoose.Schema(
                 'document_review_due',
                 'document_review_completed',
                 'document_updated',
+                'profile_updated',
+                'system_updated',
                 'message'
             ],
             required: true

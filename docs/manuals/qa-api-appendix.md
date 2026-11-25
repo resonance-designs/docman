@@ -1,7 +1,7 @@
 
 ## Appendix A. Route-by-route execution inventory
 
-This inventory includes every explicit mounted GET/POST/PUT/PATCH/DELETE declaration in backend/src/routes at generation time. Router-wide notification authentication is included. Global rate limiting/security middleware also applies. Conditional API documentation and SPA/static handling in server.js are tested by ENV-01/SEC-02; they are not business API declarations.
+This inventory includes every explicit mounted GET/POST/PUT/PATCH/DELETE declaration in backend/src/routes at generation time. Preceding router-wide verifyAccessToken declarations and their role middleware are included. Global rate limiting/security middleware also applies. Conditional API documentation and SPA/static handling in server.js are tested by ENV-01/SEC-02; they are not business API declarations.
 
 For EACH row run this procedure using the corresponding domain fixture and request recipe:
 
@@ -539,266 +539,296 @@ Handler: removeDocument. Source: backend/src/routes/projectsRoutes.js:94.
 Declared guards: verifyAccessToken, requireRole("editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-106 - GET /api/system/public-sharing
-Handler: readPublicSharingPolicy. Source: backend/src/routes/systemRoutes.js:38.
+Handler: readPublicSharingPolicy. Source: backend/src/routes/systemRoutes.js:40.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-107 - PUT /api/system/public-sharing
-Handler: savePublicSharingPolicy. Source: backend/src/routes/systemRoutes.js:39.
+Handler: savePublicSharingPolicy. Source: backend/src/routes/systemRoutes.js:41.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-108 - GET /api/system/notifications
-Handler: readNotificationSettings. Source: backend/src/routes/systemRoutes.js:40.
+Handler: readNotificationSettings. Source: backend/src/routes/systemRoutes.js:42.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-109 - PUT /api/system/notifications
-Handler: saveNotificationSettings. Source: backend/src/routes/systemRoutes.js:41.
+Handler: saveNotificationSettings. Source: backend/src/routes/systemRoutes.js:43.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-110 - POST /api/system/notifications/retry
-Handler: retryNotifications. Source: backend/src/routes/systemRoutes.js:42.
+Handler: retryNotifications. Source: backend/src/routes/systemRoutes.js:44.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-111 - GET /api/system/accounts
-Handler: readPolicy. Source: backend/src/routes/systemRoutes.js:43.
+Handler: readPolicy. Source: backend/src/routes/systemRoutes.js:45.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-112 - PUT /api/system/accounts
-Handler: savePolicy. Source: backend/src/routes/systemRoutes.js:44.
+Handler: savePolicy. Source: backend/src/routes/systemRoutes.js:46.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-113 - GET /api/system/storage
-Handler: getStorageSettingsHandler. Source: backend/src/routes/systemRoutes.js:46.
+Handler: getStorageSettingsHandler. Source: backend/src/routes/systemRoutes.js:48.
 
 Declared guards: verifyAccessToken, requireRole('viewer', 'editor', 'admin', 'superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-114 - PUT /api/system/storage
-Handler: updateStorageSettingsHandler. Source: backend/src/routes/systemRoutes.js:47.
+Handler: updateStorageSettingsHandler. Source: backend/src/routes/systemRoutes.js:49.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-115 - GET /api/system/email
-Handler: getEmailSettings. Source: backend/src/routes/systemRoutes.js:48.
+Handler: getEmailSettings. Source: backend/src/routes/systemRoutes.js:50.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-116 - PUT /api/system/email
-Handler: updateEmailSettings. Source: backend/src/routes/systemRoutes.js:49.
+Handler: updateEmailSettings. Source: backend/src/routes/systemRoutes.js:51.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-117 - POST /api/system/email/test
-Handler: testEmailSettings. Source: backend/src/routes/systemRoutes.js:50.
+Handler: testEmailSettings. Source: backend/src/routes/systemRoutes.js:52.
 
 Declared guards: verifyAccessToken, requireRole('superadmin'). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-118 - GET /api/system/redis
-Handler: getRedisSettings. Source: backend/src/routes/systemRoutes.js:73.
+Handler: getRedisSettings. Source: backend/src/routes/systemRoutes.js:75.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-119 - PUT /api/system/redis
-Handler: updateRedisSettings. Source: backend/src/routes/systemRoutes.js:74.
+Handler: updateRedisSettings. Source: backend/src/routes/systemRoutes.js:76.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-120 - GET /api/system/info
-Handler: getSystemInfo. Source: backend/src/routes/systemRoutes.js:76.
+Handler: getSystemInfo. Source: backend/src/routes/systemRoutes.js:78.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-121 - GET /api/system/performance
-Handler: getPerformanceMetrics. Source: backend/src/routes/systemRoutes.js:79.
+Handler: getPerformanceMetrics. Source: backend/src/routes/systemRoutes.js:81.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-122 - POST /api/system/clear/:collection
-Handler: clearCollection. Source: backend/src/routes/systemRoutes.js:82.
+Handler: clearCollection. Source: backend/src/routes/systemRoutes.js:84.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"), guardDestructiveTool. Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-123 - POST /api/system/restore/:collection
-Handler: restoreCollection. Source: backend/src/routes/systemRoutes.js:85.
+Handler: restoreCollection. Source: backend/src/routes/systemRoutes.js:87.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"), guardDestructiveTool. Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-124 - POST /api/system/archive-files
-Handler: archiveFiles. Source: backend/src/routes/systemRoutes.js:88.
+Handler: archiveFiles. Source: backend/src/routes/systemRoutes.js:90.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"), guardDestructiveTool. Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-125 - POST /api/system/restore-files
-Handler: restoreFiles. Source: backend/src/routes/systemRoutes.js:91.
+Handler: restoreFiles. Source: backend/src/routes/systemRoutes.js:93.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"), guardDestructiveTool. Execute steps 1-5 above and record the authorized plus negative actor variants.
 
 ### API-126 - POST /api/system/generate-dummy-data
-Handler: generateDummyData. Source: backend/src/routes/systemRoutes.js:94.
+Handler: generateDummyData. Source: backend/src/routes/systemRoutes.js:96.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"), guardDestructiveTool. Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-127 - GET /api/analytics
+### API-127 - GET /api/software-updates/releases
+Handler: handle(() => updaterRequest({action:'releases'})). Source: backend/src/routes/softwareUpdateRoutes.js:20.
+
+Declared guards: verifyAccessToken, requireRole('superadmin') (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
+
+### API-128 - GET /api/software-updates/helper
+Handler: handle(() => updaterHelperStatus()). Source: backend/src/routes/softwareUpdateRoutes.js:21.
+
+Declared guards: verifyAccessToken, requireRole('superadmin') (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
+
+### API-129 - GET /api/software-updates/status
+Handler: handle(() => updaterRequest({action:'status'})). Source: backend/src/routes/softwareUpdateRoutes.js:22.
+
+Declared guards: verifyAccessToken, requireRole('superadmin') (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
+
+### API-130 - POST /api/software-updates/start
+Handler: handle(async req => {. Source: backend/src/routes/softwareUpdateRoutes.js:23.
+
+Declared guards: verifyAccessToken, requireRole('superadmin') (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
+
+### API-131 - POST /api/software-updates/answer
+Handler: handle(req => {. Source: backend/src/routes/softwareUpdateRoutes.js:33.
+
+Declared guards: verifyAccessToken, requireRole('superadmin') (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
+
+### API-132 - POST /api/software-updates/cancel
+Handler: handle(() => updaterRequest({action:'cancel'})). Source: backend/src/routes/softwareUpdateRoutes.js:41.
+
+Declared guards: verifyAccessToken, requireRole('superadmin') (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
+
+### API-133 - GET /api/analytics
 Handler: getAnalyticsData. Source: backend/src/routes/analyticsRoutes.js:24.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-128 - GET /api/analytics/export
+### API-134 - GET /api/analytics/export
 Handler: getAnalyticsExport. Source: backend/src/routes/analyticsRoutes.js:27.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-129 - GET /api/custom-charts
+### API-135 - GET /api/custom-charts
 Handler: getAllCustomCharts. Source: backend/src/routes/customChartsRoutes.js:31.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-130 - GET /api/custom-charts/:id
+### API-136 - GET /api/custom-charts/:id
 Handler: getCustomChartById. Source: backend/src/routes/customChartsRoutes.js:34.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-131 - GET /api/custom-charts/:id/data
+### API-137 - GET /api/custom-charts/:id/data
 Handler: getChartData. Source: backend/src/routes/customChartsRoutes.js:37.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-132 - POST /api/custom-charts
+### API-138 - POST /api/custom-charts
 Handler: createCustomChart. Source: backend/src/routes/customChartsRoutes.js:40.
 
 Declared guards: verifyAccessToken, requireRole("editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-133 - PUT /api/custom-charts/:id
+### API-139 - PUT /api/custom-charts/:id
 Handler: updateCustomChart. Source: backend/src/routes/customChartsRoutes.js:43.
 
 Declared guards: verifyAccessToken, requireRole("editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-134 - DELETE /api/custom-charts/:id
+### API-140 - DELETE /api/custom-charts/:id
 Handler: deleteCustomChart. Source: backend/src/routes/customChartsRoutes.js:46.
 
 Declared guards: verifyAccessToken, requireRole("editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-135 - POST /api/reviews
+### API-141 - POST /api/reviews
 Handler: createReviewAssignments. Source: backend/src/routes/reviewRoutes.js:31.
 
 Declared guards: verifyAccessToken, requireRole("editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-136 - GET /api/reviews/document/:documentId
+### API-142 - GET /api/reviews/document/:documentId
 Handler: getDocumentReviewAssignments. Source: backend/src/routes/reviewRoutes.js:34.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-137 - GET /api/reviews/user/:userId
+### API-143 - GET /api/reviews/user/:userId
 Handler: getUserReviewAssignments. Source: backend/src/routes/reviewRoutes.js:37.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-138 - PUT /api/reviews/:id
+### API-144 - PUT /api/reviews/:id
 Handler: updateReviewAssignment. Source: backend/src/routes/reviewRoutes.js:40.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-139 - GET /api/reviews/overdue
+### API-145 - GET /api/reviews/overdue
 Handler: getOverdueReviewAssignments. Source: backend/src/routes/reviewRoutes.js:43.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-140 - POST /api/reviews/document/:documentId/cleanup
+### API-146 - POST /api/reviews/document/:documentId/cleanup
 Handler: cleanupDocumentReviewAssignments. Source: backend/src/routes/reviewRoutes.js:46.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-141 - GET /api/external-contacts/types
+### API-147 - GET /api/external-contacts/types
 Handler: getAllExternalContactTypes. Source: backend/src/routes/externalContactsRoutes.js:34.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-142 - POST /api/external-contacts/types
+### API-148 - POST /api/external-contacts/types
 Handler: createExternalContactType. Source: backend/src/routes/externalContactsRoutes.js:37.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-143 - PUT /api/external-contacts/types/:id
+### API-149 - PUT /api/external-contacts/types/:id
 Handler: updateExternalContactType. Source: backend/src/routes/externalContactsRoutes.js:40.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-144 - DELETE /api/external-contacts/types/:id
+### API-150 - DELETE /api/external-contacts/types/:id
 Handler: deleteExternalContactType. Source: backend/src/routes/externalContactsRoutes.js:43.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-145 - GET /api/external-contacts
+### API-151 - GET /api/external-contacts
 Handler: getAllExternalContacts. Source: backend/src/routes/externalContactsRoutes.js:46.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-146 - POST /api/external-contacts
+### API-152 - POST /api/external-contacts
 Handler: createExternalContact. Source: backend/src/routes/externalContactsRoutes.js:49.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-147 - GET /api/external-contacts/document/:id
+### API-153 - GET /api/external-contacts/document/:id
 Handler: getExternalContactsByDocument. Source: backend/src/routes/externalContactsRoutes.js:52.
 
 Declared guards: verifyAccessToken, requireRole("viewer", "editor", "admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-148 - PUT /api/external-contacts/:id
+### API-154 - PUT /api/external-contacts/:id
 Handler: updateExternalContact. Source: backend/src/routes/externalContactsRoutes.js:55.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-149 - DELETE /api/external-contacts/:id
+### API-155 - DELETE /api/external-contacts/:id
 Handler: deleteExternalContact. Source: backend/src/routes/externalContactsRoutes.js:58.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-150 - GET /api/notifications
+### API-156 - GET /api/notifications
 Handler: getUserNotifications. Source: backend/src/routes/notificationsRoutes.js:32.
 
 Declared guards: verifyAccessToken (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-151 - GET /api/notifications/unread-count
+### API-157 - GET /api/notifications/unread-count
 Handler: getUnreadNotificationsCount. Source: backend/src/routes/notificationsRoutes.js:35.
 
 Declared guards: verifyAccessToken (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-152 - PATCH /api/notifications/:id/read
+### API-158 - PATCH /api/notifications/:id/read
 Handler: markAsRead. Source: backend/src/routes/notificationsRoutes.js:38.
 
 Declared guards: verifyAccessToken (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-153 - PATCH /api/notifications/read-all
+### API-159 - PATCH /api/notifications/read-all
 Handler: markAllAsRead. Source: backend/src/routes/notificationsRoutes.js:41.
 
 Declared guards: verifyAccessToken (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-154 - DELETE /api/notifications/:id
+### API-160 - DELETE /api/notifications/:id
 Handler: deleteNotification. Source: backend/src/routes/notificationsRoutes.js:44.
 
 Declared guards: verifyAccessToken (router-wide); . Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-155 - GET /api/audit
+### API-161 - GET /api/audit
 Handler: listAuditEntries. Source: backend/src/routes/auditRoutes.js:17.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-156 - GET /api/audit/export
+### API-162 - GET /api/audit/export
 Handler: exportAuditEntries. Source: backend/src/routes/auditRoutes.js:18.
 
 Declared guards: verifyAccessToken, requireRole("admin", "superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-157 - GET /api/audit/verify
+### API-163 - GET /api/audit/verify
 Handler: verifyAuditChain. Source: backend/src/routes/auditRoutes.js:19.
 
 Declared guards: verifyAccessToken, requireRole("superadmin"). Execute steps 1-5 above and record the authorized plus negative actor variants.
 
-### API-158 - GET /uploads/:filename
+### API-164 - GET /uploads/:filename
 Handler: inline handler. Source: backend/src/routes/mediaRoutes.js:24.
 
 Declared guards: No route-level auth; inspect handler/global middleware. Execute steps 1-5 above and record the authorized plus negative actor variants.
