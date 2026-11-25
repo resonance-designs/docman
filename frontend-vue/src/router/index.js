@@ -12,10 +12,7 @@ import BooksView from '@/views/books/BooksView.vue';
 import CategoriesView from '@/views/categories/CategoriesView.vue';
 import TeamsView from '@/views/teams/TeamsView.vue';
 import ProjectsView from '@/views/projects/ProjectsView.vue';
-import AuthentikLinkingView from '@/views/admin/AuthentikLinkingView.vue';
-import AuditLogView from '@/views/admin/AuditLogView.vue';
 import SystemSettingsView from '@/views/admin/SystemSettingsView.vue';
-import UsersView from '@/views/admin/UsersView.vue';
 import ApprovalsView from '@/views/approvals/ApprovalsView.vue';
 import { useAuth } from '@/composables/useAuth';
 
@@ -25,7 +22,7 @@ const routes = [
   { path: '/accept-invitation', component: AcceptInvitationView },
   { path: '/register', component: RegisterView },
   { path: '/notifications', component: () => import('@/views/NotificationsView.vue'), meta: { requiresAuth: true } },
-  { path: '/admin/users', name: 'user-management', component: UsersView, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/admin/users', name: 'user-management', redirect: to => ({ name: 'system-settings', query: { ...to.query, tab: 'security', section: 'users' }, hash: to.hash }), meta: { requiresAuth: true, roles: ['superadmin'] } },
   {
     path: '/',
     name: 'home',
@@ -100,7 +97,7 @@ const routes = [
   {
     path: '/admin/audit',
     name: 'audit-log',
-    component: AuditLogView,
+    redirect: to => ({ name: 'system-settings', query: { ...to.query, tab: 'security', section: 'audit' }, hash: to.hash }),
     meta: { requiresAuth: true, roles: ['admin', 'superadmin'] },
   },
   {
@@ -112,7 +109,7 @@ const routes = [
   {
     path: '/admin/authentik-linking',
     name: 'authentik-linking',
-    component: AuthentikLinkingView,
+    redirect: to => ({ name: 'system-settings', query: { ...to.query, tab: 'security', section: 'authentik' }, hash: to.hash }),
     meta: { requiresAuth: true, roles: ['superadmin'] },
   },
 ];
@@ -135,6 +132,13 @@ export function createDocManRouter(runtimeConfig = {}) {
     }
 
     if (to.meta.roles && !hasRole(to.meta.roles)) {
+      return { name: 'home' };
+    }
+
+    // Redirect source guards do not execute: enforce privileged settings on the target.
+    if (to.name === 'system-settings' && (
+      ['email', 'updates'].includes(to.query.tab) || ['users', 'authentik'].includes(to.query.section)
+    ) && !hasRole(['superadmin'])) {
       return { name: 'home' };
     }
 

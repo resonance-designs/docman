@@ -1,8 +1,8 @@
 <template>
-  <v-container class="py-8" fluid>
+  <v-container :class="embedded ? 'pa-0' : 'py-8'" fluid>
     <div class="d-flex flex-wrap align-center justify-space-between ga-3 mb-4">
       <div>
-        <h1 class="text-h4 font-weight-bold">Audit log</h1>
+        <component :is="embedded ? 'h2' : 'h1'" :class="embedded ? 'text-h5 font-weight-bold' : 'text-h4 font-weight-bold'">Audit log</component>
         <div class="text-medium-emphasis">Append-only and hash-chained. Entries cannot be edited or deleted.</div>
       </div>
       <div class="d-flex ga-2">
@@ -60,6 +60,7 @@
 </template>
 
 <script setup>
+defineProps({ embedded: Boolean });
 import { computed, onMounted, reactive, ref } from 'vue';
 import { api } from '@/services/api';
 import { downloadFromApi } from '@/services/download';

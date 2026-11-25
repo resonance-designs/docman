@@ -1,5 +1,15 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## System Settings navigation — feature/ui-updates
+
+Users, Audit Log, and Authentik Linking now belong under System Settings → Security rather than separate sidebar entries. Preserve admin/superadmin audit access and superadmin-only user/identity administration; existing URLs must continue reaching the corresponding integrated panels. Check navigation history and direct links as well as draft retention before deploying.
+
+Group `/admin/system` into Security (accounts/passwords, public sharing, Redis rate limiting), Email & Notifications, Storage (document storage and deleted-document restoration), and Software Updates. Keep existing superadmin restrictions and preserve component state while switching tabs, including updater progress. No version bump is included in this navigation change. Validate the next tagged release through the UI updater; this branch has not been deployed to NMDOH.
+
+## Current deployment acceptance — November 24, 2026
+
+The operator completed the NMDOH development UI update from 3.0.3 (`e0da7c3`) to published 3.0.4 (`c656a4a`), using LOCAL encrypted backup setup, and confirmed service-check success, installed version, no newer releases, and existing-document download/content checks. The corrected helper was then installed with `Syntax OK`, `active`, and PASS. See the [acceptance record and evidence limits](docs/reviews/nmdoh-3.0.4-acceptance.md). Restore and failure-recovery drills remain pending; the successful update used the previous helper, so a future run must validate the corrected helper. These results supersede earlier deployment-pending statements below, which describe the state during implementation. Release PR #57 merged into master and dev was synchronized; v3.0.4 remains unchanged.
+
 ## PR #55 release review — fixed locally November 24, 2026
 
 The user explicitly deferred the four inline CodeRabbit findings plus one additional nitpick from the 3.0.3 release PR to the UI-update testing branch. All five, including both Apache setup gaps, are captured with sources and acceptance criteria in [the PR #55 record](docs/reviews/pr-55-coderabbit-ui-updater.md) and TODO. The user subsequently authorized all five fixes on `test/ui-updater-acceptance`; they are implemented locally. Validation passed: 50 Linux updater tests, 20 frontend regressions, Vue build, and Bash syntax. No server deployment or complete UI update/restore was performed. Preserve `v3.0.3` at `fc39b5e`. Refresh review comments before starting the follow-up; coordinate polling race fixes with independent saved-ticket recovery, and restore current-invocation Apache configuration rather than blindly using an old backup. Helper fixes require operator installation separately from web application updates.
