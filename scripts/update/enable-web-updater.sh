@@ -45,31 +45,7 @@ TimeoutStopSec=90
 [Install]
 WantedBy=multi-user.target
 UNIT
-cat > /etc/docman/web-updater-apache.conf <<'APACHE'
-# Read-only progress socket. Control socket is never proxied by Apache.
-ProxyPass /_docman-update/ unix:/run/docman-web-updater/progress.sock|http://localhost/ timeout=15
-ProxyPassReverse /_docman-update/ http://localhost/
-<Location /_docman-update/>
-    Header always set Cache-Control "no-store"
-    Header always set Referrer-Policy "no-referrer"
-</Location>
-APACHE
-python3 - <<'PY'
-from pathlib import Path
-import shutil
-config=Path('/etc/apache2/sites-available/docman.conf')
-text=config.read_text()
-include='Include /etc/docman/web-updater-apache.conf'
-if include not in text:
-    if text.count('ProxyRequests Off') != 1:
-        raise SystemExit('STOP: expected one ProxyRequests Off in the HTTPS virtual host. Add the Include there manually, then rerun.')
-    backup=config.with_name('docman.conf.before-web-updater')
-    if not backup.exists(): shutil.copyfile(config,backup); backup.chmod(0o600)
-    text=text.replace('ProxyRequests Off', 'ProxyRequests Off\n    '+include)
-    text=text.replace('RewriteCond %{REQUEST_URI} !^/(api|uploads)', 'RewriteCond %{REQUEST_URI} !^/(api|uploads|_docman-update)')
-    config.write_text(text)
-PY
-apache2ctl configtest
+python3 "$SOURCE/configure_web_apache.py"
 systemctl daemon-reload
 systemctl enable docman-web-updater
 systemctl restart docman-web-updater

@@ -231,12 +231,14 @@ def worker(tag, commit):
     class WebUpdater(base):
         def interactive(self): return True
         def ask(self,text):
-            if text.startswith('Restic repository'):
-                choice=prompt('Backup destination: enter LOCAL for the local POC repository, or SAVED to use the server-configured repository.')
-                if choice=='LOCAL': return LOCAL_BACKUP
-                if choice=='SAVED' and runner.RESTIC_REPOSITORY_FILE.is_file(): return runner.RESTIC_REPOSITORY_FILE.read_text().strip()
-                raise runner.Stop('Choose LOCAL or configure a saved repository on the server')
             return prompt(text)
+        def ask_backup_repository(self,default):
+            choice=prompt('Backup destination: enter LOCAL for the local POC repository, or SAVED to use the server-configured repository.')
+            if choice=='LOCAL': return LOCAL_BACKUP
+            if choice=='SAVED' and runner.RESTIC_REPOSITORY_FILE.is_file():
+                saved=runner.RESTIC_REPOSITORY_FILE.read_text().strip()
+                if saved: return saved
+            raise runner.Stop('Choose LOCAL or configure a saved repository on the server')
         def ask_password(self,text): return prompt(text,True)
         def say(self,stage):
             super().say(stage)
