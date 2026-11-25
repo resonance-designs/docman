@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [3.1.0] - 2026-11-25
+
+### Added
+
+- Add application-wide UI Customization under System Settings for admins and superadmins: link/heading/paragraph colors and sizes, raster logo upload/removal, left/right/top navigation, and configurable footer with preview, save/discard and default restoration.
+- Persist validated branding in the database and expose only public appearance fields before sign-in; audit saves without logo bytes.
+
+### Fixed
+
+- Make visited-link previews use the normal link size and disable the unsupported visited-size control, while retaining customizable visited colors.
 
 ### Maintenance
 

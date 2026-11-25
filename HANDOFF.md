@@ -1,5 +1,9 @@
 # HANDOFF — DocMan 2.3.0 compliance hardening
 
+## UI customization — November 25, 2026
+
+Application-wide Vue branding is available to admins and superadmins in System Settings → UI Customization. Public GET `/api/system/appearance` exposes branding only; PUT requires either administrator role. `SystemSetting` key `ui.appearance` stores validated typography, a small raster logo, menu placement and footer. No migration or environment changes are required. Database backups include branding. See [configuration, restrictions and acceptance checks](docs/ui-customization.md). Preserve existing superadmin-only permissions for other settings. This feature has not been deployed or accepted on a remote server. Local validation: 47 focused backend tests passed; frontend regression tests and production build passed. Independent Chromium checks with mocked API passed admin access, draft isolation, saved typography, default restoration/discard, top/right/mobile navigation, footer escaping, and anonymous branding at desktop/tablet/phone widths. These browser fixtures do not prove real-database restart or deployment acceptance.
+
 ## Public repository documentation policy
 
 Keep DocMan organization-neutral. Use reserved example domains, documentation IP addresses, and generic accounts in public guidance and fixtures. Keep customer names, real hosts, mail endpoints, network addresses, and deployment-specific access details in private operator records outside version control. Historical acceptance records are anonymized evidence, not default deployment configurations. Current-file cleanup does not remove earlier Git history or external PR/release content.

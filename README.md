@@ -2,8 +2,8 @@
 
 __by Resonance Designs__
 
-![Static Badge](https://img.shields.io/badge/Version-3.0.5-orange)
-![Static Badge](https://img.shields.io/badge/Latest_Release-v3.0.5-green)
+![Static Badge](https://img.shields.io/badge/Version-3.1.0-orange)
+![Static Badge](https://img.shields.io/badge/Latest_Release-v3.1.0-green)
 
 A modern, full-stack document management system built with Node.js, MongoDB, and a frontend currently migrating from React to Vue/Vuetify. DocMan provides secure document storage, collaborative workflows, and comprehensive review management.
 
@@ -16,6 +16,10 @@ The interactive [`install.sh`](install.sh) installs prerequisites and configures
 After cloning the reviewed release on a **fresh server**, run `bash install.sh --check`, then `sudo bash install.sh`. For an existing deployment, use [the update procedure](docs/deployment/ubuntu-server-installation.md#19-existing-installations-and-updates), not this installer.
 
 For an existing standard-layout server, [`update.sh`](update.sh) stages the selected release, requires an encrypted pre-update backup, preserves settings/keys, runs migrations and verifies the published application. Read the [guided update and recovery walkthrough](docs/deployment/automated-updates.md). Obtain it in a separate tools clone before changing an older live checkout, then run `sudo bash update.sh --check`. Full Ubuntu VM update acceptance remains pending.
+
+## UI customization
+
+Admins and superadmins can use **System Settings → UI Customization** to configure application-wide text/link colors and sizes, upload a logo, choose menu placement, and configure a footer. Preview changes before saving. See the [customization guide](docs/ui-customization.md) for supported values, logo limits, backup behavior, and acceptance checks.
 
 ## ✨ Features
 

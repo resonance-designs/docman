@@ -77,16 +77,19 @@ Current accepted POC behavior: one eligible approval publishes a version; self-a
 
 ## UI theming and customization — Vue application
 
-The current Vue shell has a fixed navigation drawer, wordmark, and configured Vuetify palette. Earlier theme-switcher completion notes do not establish that these customization features exist in Vue. Implement the following as a coherent appearance-settings feature.
+The first application-wide customization pass is implemented for admins and superadmins. See [configuration and acceptance checks](docs/ui-customization.md). These settings are global; personal theme overrides are not implemented.
 
-- [ ] **Settings and permissions:** provide a superadmin-only Appearance page and server-enforced settings API for organization-wide branding. Persist validated settings across sessions, restarts, and upgrades. Define which preferences users may override (for example light/dark mode), with organization defaults for new users and the sign-in page.
-- [ ] **Color scheme:** offer presets and custom color pickers/hex input for primary/secondary accents, page and surface backgrounds, headings, body/muted text, links (normal/hover/focus/visited), buttons, borders, navigation, and footer. Include readable error/warning/success states and light/dark variants. Apply shared design tokens throughout components instead of scattered hard-coded colors.
-- [ ] **Logo and branding:** allow selecting/uploading, replacing, and removing a logo; configure organization/application display name, logo size, accessible alternative text, and light/dark variants. Include favicon selection and a sensible default when no asset is set. Validate actual image content, dimensions and size; reject active content or safely sanitize it, and prevent arbitrary script/HTML injection through branding assets.
-- [ ] **Menu placement:** support left sidebar, right sidebar, and top navigation, with collapse/expand behavior and usable overflow. Preserve route access restrictions and visible active-page state. On small screens, provide an accessible drawer/menu regardless of desktop placement; verify keyboard focus and reading order in all layouts.
-- [ ] **Footer:** configure visibility, text/copyright, approved links (support/privacy/accessibility), alignment, and background/text/link colors. Validate link destinations and render safe content; no unrestricted HTML, JavaScript, or arbitrary CSS. Ensure the footer does not obscure page content.
-- [ ] **Preview and recovery:** preview unsaved changes across representative screens, save/cancel explicitly, and offer confirmed reset to defaults. Provide recovery from an unreadable/broken configuration and fallback for missing assets or invalid saved values. Audit organization-wide appearance changes.
-- [ ] **Accessibility and verification:** validate text/background contrast, distinguish links beyond color, preserve visible focus and semantic status cues, and test keyboard use, zoom, screen-reader labels, light/dark mode, and desktop/mobile layouts. Verify persistence, permissions, unsafe-input rejection, and coverage on sign-in, forms, tables, dialogs, and document pages.
-- [ ] **Documentation:** explain organization defaults versus personal preferences, supported color/logo/menu/footer options, preview/reset behavior, asset restrictions, and configuration backup/restore. Include beginner-friendly instructions and expected results.
+- [x] **Settings and permissions:** add UI Customization to System Settings with server-enforced admin/superadmin writes and public branding reads for sign-in/public pages.
+- [x] **Initial typography:** colors and pixel sizes for links (normal/hover/active/visited), headings H1–H6, and paragraphs.
+- [x] **Initial branding and layout:** raster logo upload/removal with alternative text, left/right/top menus, and footer visibility/text/colors/one HTTPS link.
+- [x] **Preview and recovery:** local draft preview, explicit save/discard/default restoration, safe fallback, and audited saves.
+- [x] **Documentation:** configuration steps, image restrictions, public-data boundary, database backups, and acceptance checklist.
+- [ ] **Extended themes:** presets, light/dark variants, primary/secondary accents, page/surface backgrounds, muted text, buttons, borders, and navigation tokens.
+- [ ] **Extended branding:** application display name, logo sizing and dark-mode variants, favicon selection, and explicit image dimension limits.
+- [ ] **Extended footer:** multiple support/privacy/accessibility links and alignment choices.
+- [ ] **Personal preferences:** define optional per-user overrides while preserving organization defaults.
+- [ ] **Deployment acceptance:** verify saved settings after restart/update, signed-out/public views, all menu placements on real desktop/mobile browsers, keyboard/zoom/screen-reader behavior, and backup restore. Automated tests do not establish remote acceptance.
+- [ ] **Accessibility tooling:** automatic contrast warnings and broader representative-screen previews.
 
 ## Historical feature backlog
 
