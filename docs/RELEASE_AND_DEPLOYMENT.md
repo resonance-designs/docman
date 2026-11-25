@@ -26,6 +26,8 @@ Each deployment must use its intended database. Keep development/POC data separa
 
 ## Release Branch Workflow
 
+Master protection requires a pull request and passing `audit` and `safety` checks from GitHub Actions, including for administrators. Force pushes and branch deletion are disabled. No second human approval is required. Both workflows run on every pull request so required checks are not skipped by path filters; push filters remain unchanged. Keep these check names stable when editing workflows. CodeRabbit remains advisory rather than a required status check.
+
 The release workflow is automated by `npm run git:release`.
 
 Before creating a release:

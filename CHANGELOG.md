@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Maintenance
+
+- Run audit and installation/update safety checks on every PR to support required master branch checks; document PR-only master updates with force pushes and deletion disabled.
+
 ## [3.0.5] - 2026-11-24
 
 ### Fixed
