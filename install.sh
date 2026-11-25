@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # @author Richard Bakos
-# @version 3.0.4
+# @version 3.0.5
 # @license UNLICENSED
 # Interactive fresh-server installation. See docs/deployment/automated-installation.md.
 set -Eeuo pipefail
