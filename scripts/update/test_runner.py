@@ -30,6 +30,19 @@ class FakeOperations:
         return action
 
 class UpdateSafetyTests(unittest.TestCase):
+    def test_notification_failure_does_not_fail_a_completed_update(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'ACTIVE').touch()
+            updater=runner.Updater()
+            updater.report={'target_commit':'a'*40,'run_id':'run-1','backup_snapshot':'snapshot'}
+            updater.run_dir=root
+            updater.git=Mock(return_value='a'*40)
+            updater.save=Mock()
+            updater.run=Mock(side_effect=OSError('notification command unavailable'))
+            with patch.object(runner,'STATE',root): updater.complete()
+            self.assertFalse((root/'ACTIVE').exists())
+            self.assertEqual(updater.report['status'],'service checks passed; browser validation pending')
+            self.assertIn('src/scripts/notifySystemUpdate.js',updater.run.call_args.args[0])
     def test_fixture_rejects_exited_child_before_probe(self):
         mongo=Mock(pid=123)
         mongo.poll.return_value=48

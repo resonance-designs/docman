@@ -2,6 +2,7 @@ import express from 'express';
 import { verifyAccessToken } from '../lib/secretToken.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { updaterRequest } from '../services/softwareUpdateService.js';
+import { updaterHelperStatus } from '../services/updaterHelperStatus.js';
 import { record, AUDIT_ACTIONS } from '../services/auditService.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ const handle = fn => async (req,res) => {
     }
 };
 router.get('/releases',handle(() => updaterRequest({action:'releases'})));
+router.get('/helper',handle(() => updaterHelperStatus()));
 router.get('/status',handle(() => updaterRequest({action:'status'})));
 router.post('/start',handle(async req => {
     const {tag,commit} = req.body;

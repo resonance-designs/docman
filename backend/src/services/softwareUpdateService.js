@@ -1,11 +1,11 @@
 import http from 'node:http';
 
 // Fixed local endpoint; the web application receives no sudo or arbitrary command access.
-export function updaterRequest(payload) {
+export function updaterRequest(payload, timeout = 60000) {
     return new Promise((resolve, reject) => {
         const body = JSON.stringify(payload);
         const request = http.request({ socketPath: '/run/docman-web-updater/control.sock', path: '/control', method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, timeout: 60000 }, response => {
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }, timeout }, response => {
             let data = '';
             response.setEncoding('utf8');
             response.on('aborted', () => reject(new Error('Updater response aborted')));

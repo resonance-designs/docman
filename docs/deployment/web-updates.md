@@ -29,11 +29,21 @@ Replace `YOUR-DOCMAN-HOST` with the application's existing HTTPS hostname. Expec
 
 Helper code is deliberately outside the application checkout and is not replaced by web updates. If a later release requires a helper upgrade, the server operator must rerun this setup from that reviewed release while no update/recovery is active. The ordinary app remains unprivileged; the installed helper is privileged and should be treated as deployment infrastructure.
 
+**System-update notification support requires this helper refresh.** After deploying the release containing update notifications, rerun the setup command above and expect `Syntax OK`, `active`, and PASS. The backend can then observe completed updates without minting or extending browser access tickets. Within roughly one minute, a matching completed update is queued for active users with its release notes; email delivery follows the normal queue. An old helper cannot supply this endpoint. See [notification setup and acceptance](../activity-notifications.md#system-update-notices).
+
 Setup holds `/run/lock/docman-web-updater-install.lock` and the CLI's `/run/lock/docman-update.lock` until restart finishes. A start during setup is rejected; an already-running update prevents setup. This also protects installation over the original helper, whose workers already honor the CLI lock. Do not remove lock files to bypass contention. The PR #54 helper fixes require rerunning setup after deploying the corrected code.
 
 The PR #55 follow-up validates the supported HTTPS virtual host and SPA rewrite condition before changing Apache configuration. Unsupported custom layouts stop with an explanation instead of reporting success. If configtest fails, both the site file and updater include are restored to their state immediately before that invocation (a newly created include is removed). Apache is not reloaded and setup does not print PASS. The historical `.before-web-updater` copy is retained for reference, not used to overwrite newer operator settings. Rerun setup from the complete reviewed checkout, including `configure_web_apache.py`, to install the updated helper and validate the configuration.
 
 ## Interactive update
+
+### Helper readiness in the UI
+
+Software Updates checks the running helper separately from GitHub release discovery. **Updater helper ready** means its startup fingerprints match the two helper files shipped with the installed application. **Server action required: refresh updater helper** means those files differ, or the installed helper predates readiness checks. **Updater helper readiness not confirmed** means the helper is unavailable or the check failed; it does not mean the helper is current.
+
+The warning identifies helper-dependent functions (including system-update notifications), shows the server setup command, and provides **Recheck helper readiness**. Run setup only after the application update finishes and recovery is resolved. Expect `Syntax OK`, `active`, and PASS; recheck should then show ready. Profile notifications do not depend on this helper. A copied file without a helper restart must not produce a false ready result.
+
+The confirmation dialog warns that the selected release may require a separate server step. After completion, reload the updated application and verify readiness against the newly installed release. This is a check against the installed application, not a prediction of every future release's helper requirements. Older deployed frontends do not acquire these messages until upgraded/reloaded; communicate the server step in release/deployment notes for that first upgrade. No helper installation command is executed by the browser.
 
 1. Sign in as a superadmin and open **System settings → Software updates**. Click **Check for updates**.
 2. Choose a newer stable release. Read the release/commit and downtime confirmation, then choose **Start interactive update**. The UI verifies its independent progress route before starting.

@@ -1,4 +1,5 @@
 import { startNotificationWorker } from './services/notificationDeliveryService.js';
+import { startSystemUpdateNotificationWorker } from './services/systemUpdateNotifications.js';
 import softwareUpdateRoutes from './routes/softwareUpdateRoutes.js';
 import { startProjectTeamReconciliationWorker } from './services/projectTeamReconciliation.js';
 /*
@@ -143,6 +144,7 @@ const startServer = async () => {
     await initRedisProvider();
     await (await import('./models/Notification.js')).default.init();
     startNotificationWorker();
+    startSystemUpdateNotificationWorker();
     startProjectTeamReconciliationWorker();
 
     if (String(process.env.SEED_ON_DEPLOY || '').toLowerCase() === 'true') {

@@ -2,6 +2,8 @@ import express from 'express';
 import request from 'supertest';
 import router from '../routes/softwareUpdateRoutes.js';
 import { updaterRequest } from '../services/softwareUpdateService.js';
+import { updaterHelperStatus } from '../services/updaterHelperStatus.js';
+jest.mock('../services/updaterHelperStatus.js',()=>({updaterHelperStatus:jest.fn()}));
 import { record } from '../services/auditService.js';
 jest.mock('../services/softwareUpdateService.js',()=>({updaterRequest:jest.fn()}));
 jest.mock('../services/auditService.js',()=>({record:jest.fn(),AUDIT_ACTIONS:{SYSTEM_SETTING_CHANGE:'settings.change'}}));
@@ -13,11 +15,19 @@ const app=express();app.use(express.json());app.use('/updates',router);
 const admin=req=>req.set('x-test-role','superadmin');
 beforeEach(()=>{updaterRequest.mockResolvedValue({status:'running'});record.mockResolvedValue({_id:'audit'});});
 test.each([undefined,'viewer','editor','admin'])('all updater endpoints reject role %s',async role=>{
-    for(const [method,path] of [['get','releases'],['get','status'],['post','start'],['post','answer'],['post','cancel']]){
+    for(const [method,path] of [['get','releases'],['get','helper'],['get','status'],['post','start'],['post','answer'],['post','cancel']]){
         const req=request(app)[method]('/updates/'+path);if(role)req.set('x-test-role',role);
         expect((await req).status).toBe(role?403:401);
     }
     expect(updaterRequest).not.toHaveBeenCalled();
+    expect(updaterHelperStatus).not.toHaveBeenCalled();
+});
+
+test('superadmin can check helper independently of GitHub release discovery',async()=>{
+    updaterHelperStatus.mockResolvedValue({state:'update-required',message:'Refresh helper'});
+    const response=await admin(request(app).get('/updates/helper'));
+    expect(response.status).toBe(200);expect(response.body.state).toBe('update-required');
+    expect(response.headers['cache-control']).toBe('no-store');expect(updaterRequest).not.toHaveBeenCalled();
 });
 test.each(['origin/dev','v3.1.0-rc1','v03.1.0','v3.1.0;id'])('rejects nonstable/arbitrary ref %s',async tag=>{
     expect((await admin(request(app).post('/updates/start')).send({tag,commit:'a'.repeat(40)})).status).toBe(400);

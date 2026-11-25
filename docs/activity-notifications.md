@@ -23,6 +23,8 @@ No new package, Redis queue, cron job or service is required. The running backen
 | Version rejected or withdrawn | Uploader, owners and eligible designated approvers; no reader-only recipients |
 | Account role changed | The affected account |
 | Account enabled/disabled | The affected account, including a disablement notice to an inactive account |
+| Profile/photo/contact information or password changed | The affected account, with field names and unauthorized-change guidance |
+| System update passes deployment service checks | All active, accepted accounts, with installed-version release notes |
 | Team membership added/removed or member role/owner changed | Affected members |
 | Team invitation to an existing user | Invited user through the existing in-app invitation flow, now also emailed |
 | Team metadata/resource associations changed or team deleted | Current/removed members as appropriate |
@@ -37,7 +39,7 @@ This does not implement per-user preferences, digests, arbitrary messaging, emai
 
 Review-task notices are generic account activity and contain no document reference. A newly assigned reviewer can receive them without separate document access; assigning a task does not grant that access. The notice is queued by the assignment's post-save hook, so there is no separate access mutation to coordinate with the task save. Ordinary document notices still require current document access. Previously queued notices retain their original fields and delivery behavior.
 
-Email contains a generic event category and a sign-in link, not document titles/content, attachments, review notes, passwords or tokens. Specific in-app notices link to the relevant resource. Current document authorization is checked again before delivering queued document events; stale events are skipped when access has been removed. Assignment-removal/deletion notices are generic and may still be mailed. Missing/pending/inactive recipients are skipped, except explicit account-status notices. Recipient email is read at delivery time.
+Ordinary resource-activity email contains a generic event category and a sign-in link, not document titles/content, attachments, review notes, passwords or tokens. System-update emails additionally contain release notes; profile-security emails contain changed field names and recovery guidance, never their values. Specific in-app notices link to the relevant resource. Current document authorization is checked again before delivering queued document events; stale events are skipped when access has been removed. Assignment-removal/deletion notices are generic and may still be mailed. Missing/pending/inactive recipients are skipped, except explicit account-status notices. Recipient email is read at delivery time.
 
 Each event is an in-app Notification document with hidden email-delivery fields. Workers atomically claim jobs with a two-minute lease. Failed submissions retry with backoff; after five failed attempts they remain Failed for administrator action. Process crashes can recover expired leases. SMTP acceptance followed by a process crash before acknowledgement can produce a duplicate email: this is not an exactly-once SMTP guarantee.
 
@@ -70,3 +72,47 @@ Use synthetic documents and real test inboxes; do not send external notification
 Local focused event/delivery/hook/account tests and the Vue build pass. The legacy `notifications.test.js` suite cannot currently start under the repository's Jest server-module setup (ES module import error). Live SMTP, browser delivery, and real-database concurrency/failure recovery remain deployment acceptance checks.
 
 Verification result: 85 focused backend tests passed across event detection, queue delivery, mutation hooks, account invitations/administration, SMTP transport, and approval-service regression suites. Vue build and notification model/service imports passed. The separate legacy integration-suite startup failure described above remains unresolved.
+
+## System-update notices
+
+A successful UI or CLI update creates an Activity notice and queues an email for every active, accepted account, regardless of role. Disabled accounts and pending invitations are excluded. The message identifies the installed version and includes that version's section from the installed commit's `CHANGELOG.md`, as plain text, bounded to 12,000 characters. It is not a diff of every skipped release. Missing release notes are reported explicitly rather than invented.
+
+For UI updates, after deploying this feature, run the following **on the server**, once the update has completed and no recovery is pending:
+
+```bash
+cd /var/www/docman
+sudo bash scripts/update/enable-web-updater.sh
+```
+
+Expected: `Syntax OK`, `active`, and `PASS: updater service installed...`. If setup stops, resolve the reported issue before continuing. This refresh is necessary because the root-owned helper is intentionally outside the application checkout. It adds a read-only completion endpoint that does not create or extend browser progress tickets. The backend scans it every minute; the browser does not need to remain open. A matching completed update can be announced after this refresh, including the update that installed the feature. A helper's stale completion for a different installed commit is ignored.
+
+The CLI updater queues notices only after its service checks succeed. Cancellations, failures, recovery-required states and ordinary backend restarts do not create new broadcasts. This confirms deployment service checks, not completion of browser acceptance. Manual deployments bypass the updater; after independently confirming success, an operator may invoke the notification command below with a unique run ID and the installed full commit hash.
+
+Broadcast receipts persist in MongoDB with an initial recipient cutoff. Per-run/per-user event keys prevent duplicate queue entries during retries. Incomplete broadcasts resume after restarts even if a newer update has replaced the helper's latest status. Accounts created after the cutoff do not receive that earlier broadcast. Deleting an already-completed notification does not cause it to reappear on restart.
+
+If a CLI update reports a notification-queuing warning, the healthy deployment remains running. Fix the database/configuration issue first. To retry only the notices, read the successful update's private `report.json` for `run_id` and `target_commit`, then replace both placeholders before running:
+
+```bash
+cd /var/www/docman/backend
+sudo -u docman env NODE_ENV=production /usr/bin/node \
+  src/scripts/notifySystemUpdate.js RUN_ID FULL_TARGET_COMMIT
+```
+
+Expected: `System update notifications queued.` A nonzero exit or failure message is not success. This command verifies that the supplied commit is still installed; do not use it for failed updates or invent a new run ID when retrying, because the run ID provides deduplication. It does not perform a deployment or directly send SMTP. Existing receipts are resumed automatically; this command is useful when the initial receipt could not be written. Provider errors are handled separately by **Retry failed emails** in System Settings.
+
+## Profile security notices and in-app alerts
+
+An actual profile change—including photo upload/removal, position, bio, contact details or names—creates a notice for that account. Password changes and successful password resets also create one; login/session-token writes, unchanged saves, rejected changes and initial invitation activation do not. Email is sent to the account's current sign-in address, never the optional profile contact email. The message lists changed field names, never their old/new values, image bytes, passwords, hashes or reset tokens. It instructs the recipient to reset credentials and contact an administrator if the change was unauthorized; SSO users are directed to their identity provider.
+
+The Activity toolbar button shows unread counts and refreshes about every 30 seconds while the page is visible, as well as on navigation and after marking a notice read. Open Activity to read the full notice and use **Refresh activity** to fetch newly queued items. Update notes preserve line breaks and remain escaped text.
+
+The existing **Send activity notifications by email** switch applies to both new notice types: switching it off pauses email but leaves in-app notices available. The outgoing provider must be configured for email to arrive. These are queued security notices, not a separate guaranteed-delivery channel; existing retry limits, SMTP duplicate possibilities and the profile mutation/queue-write gap described above still apply.
+
+Additional acceptance checks:
+
+1. Change a test profile's position, bio, contact email and photo. Expect one Activity notice and email listing those changed fields, with unauthorized-change guidance and none of their values. Confirm the email arrives at the sign-in inbox rather than the new contact address.
+2. Save unchanged values and attempt an invalid photo/profile save. Expect no new notice. Successfully change/reset a local password: expect a security notice; wrong-current-password and rejected-policy requests must not create one.
+3. With a viewer, editor, admin and superadmin already active, complete an update. Expect one version-and-release-notes notice per account, followed by email. An inactive account or pending invitation must not receive it. Restart the backend and refresh the updater: no extra notice.
+4. Cancel an update or simulate a failed update in a disposable test environment. Expect no success broadcast. Exercise queue interruption/resumption without duplicate per-user entries.
+5. Pause activity email, perform profile/update events, then resume. In-app notices remain available while paused and pending emails resume afterward. Confirm actual inbox receipt; Sent only means provider acceptance.
+6. Check the unread badge, marking read, full multiline notes, mobile layout and signed-out navigation. No Activity badge/API polling should run while signed out.

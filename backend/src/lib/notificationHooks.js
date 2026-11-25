@@ -1,10 +1,10 @@
 import crypto from 'node:crypto';
 import Notification from '../models/Notification.js';
-import { changeEvents } from '../services/notificationEvents.js';
+import { changeEvents, profileFields } from '../services/notificationEvents.js';
 // Capture only fields used to select recipients/events; never read passwords or keys.
 const fields = {
     Document: 'author owners approvers stakeholders reviewAssignees title description category opensForReview reviewInterval reviewPeriod reviewCompleted deletedAt updatedAt',
-    User: 'role isActive invitationPending updatedAt',
+    User: `role isActive invitationPending updatedAt ${Object.keys(profileFields).join(' ')}`,
     Team: 'owner members name description documents books projects updatedAt',
     Project: 'owner collaborators name description status documents books teams updatedAt',
     ReviewAssignment: 'document assignee assignedBy dueDate status requiresUpdates updateNotes updatedAt',
@@ -13,12 +13,12 @@ const fields = {
 export function notificationHooks(schema, { kind }) {
     const selection = fields[kind];
     const read = (model, filter) => model.findOne(filter).setOptions({ includeDeleted: true }).select(selection).lean();
-    async function emit(model, before, after) {
+    async function emit(model, before, after, passwordChanged = false) {
         try {
             let document;
             if (kind === 'File' && before?.status === after?.status) return;
             if (kind === 'File') document = await model.db.model('Document').findById((after || before).documentId).lean();
-            const events = changeEvents(kind, before, after, { document });
+            const events = changeEvents(kind, before, after, { document, passwordChanged });
             const row = after || before;
             for (const event of events) {
                 const eventKey = crypto.createHash('sha256').update(JSON.stringify([kind, String(row._id), row.updatedAt, event])).digest('hex');
@@ -30,6 +30,7 @@ export function notificationHooks(schema, { kind }) {
         }
     }
     schema.pre('save', async function() {
+        this.$locals.notificationPasswordChanged = kind === 'User' && !this.isNew && this.isModified('password');
         this.$locals.notificationBefore = this.isNew ? null : await read(this.constructor, { _id: this._id });
         // A stale Mongoose instance saves modified paths only. Do not compare its
         // unchanged in-memory role/membership against freshly persisted values.
@@ -42,15 +43,19 @@ export function notificationHooks(schema, { kind }) {
             }
         }
     });
-    schema.post('save', async function(doc) { await emit(doc.constructor, doc.$locals.notificationBefore, doc.$locals.notificationAfter || doc.toObject()); });
+    schema.post('save', async function(doc) { await emit(doc.constructor, doc.$locals.notificationBefore, doc.$locals.notificationAfter || doc.toObject(), doc.$locals.notificationPasswordChanged); });
     for (const operation of ['findOneAndUpdate', 'updateOne', 'findOneAndDelete', 'deleteOne']) {
-        schema.pre(operation, { query: true, document: false }, async function() { this.notificationBefore = await read(this.model, this.getFilter()); });
+        schema.pre(operation, { query: true, document: false }, async function() {
+            this.notificationBefore = await read(this.model, this.getFilter());
+            const update = this.getUpdate?.();
+            this.notificationPasswordChanged = kind === 'User' && typeof (update?.$set?.password ?? update?.password) === 'string';
+        });
         schema.post(operation, { query: true, document: false }, async function(result) {
             try {
             if (!this.notificationBefore) return;
-            if (result?.matchedCount === 0 || result?.deletedCount === 0 || result === null) return;
+            if (result?.matchedCount === 0 || result?.modifiedCount === 0 || result?.deletedCount === 0 || result === null) return;
             const after = operation.includes('Delete') || operation === 'deleteOne' ? null : await read(this.model, { _id: this.notificationBefore._id });
-            await emit(this.model, this.notificationBefore, after);
+            await emit(this.model, this.notificationBefore, after, this.notificationPasswordChanged);
             } catch (error) { console.error('Notification observation failed:', kind, error?.name || 'Error'); }
         });
     }

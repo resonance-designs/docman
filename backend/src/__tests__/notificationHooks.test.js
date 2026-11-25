@@ -50,3 +50,22 @@ test('queue failure is logged without making a committed business write appear f
     await expect(hooks.post.save({ constructor: {}, $locals: { notificationBefore: { _id: 'u', role: 'viewer' } }, toObject: () => ({ _id: 'u', role: 'editor' }) })).resolves.toBeUndefined();
     expect(log).toHaveBeenCalled(); expect(JSON.stringify(log.mock.calls)).not.toContain('private diagnostic');
 });
+
+test('successful password query writes queue a notice without reading or persisting credentials', async () => {
+    const hooks = harness();
+    const user = { _id: 'u', role: 'viewer', updatedAt: new Date(0) };
+    const select = jest.fn(() => ({ lean: async () => user }));
+    const query = { model: { findOne: () => ({ setOptions: () => ({ select }) }) },
+        getFilter: () => ({ _id: 'u' }), getUpdate: () => ({ $set: { password: 'private-hash' } }) };
+    await hooks.pre.updateOne.call(query);
+    await hooks.post.updateOne.call(query, { matchedCount: 1, modifiedCount: 1 });
+    expect(select.mock.calls[0][0]).not.toContain('password');
+    const event = Notification.updateOne.mock.calls[0][1].$setOnInsert;
+    expect(event.type).toBe('profile_updated'); expect(event.message).toContain('password');
+    expect(JSON.stringify(event)).not.toContain('private-hash');
+});
+test('failed or unchanged password writes do not notify', async () => {
+    const hooks = harness();
+    await hooks.post.updateOne.call({ notificationBefore: { _id: 'u' }, notificationPasswordChanged: true }, { matchedCount: 1, modifiedCount: 0 });
+    expect(Notification.updateOne).not.toHaveBeenCalled();
+});

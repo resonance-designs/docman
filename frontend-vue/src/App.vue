@@ -30,15 +30,13 @@
         </v-app-bar-title>
         <v-spacer />
         <template v-if="mobile && isAuthenticated">
-          <v-btn icon="mdi-account-outline" aria-label="My account" title="My account" to="/account" />
-          <v-btn icon="mdi-bell-outline" aria-label="Activity" title="Activity" to="/notifications" />
+          <v-btn icon="mdi-account-outline" aria-label="My Profile" title="My Profile" to="/profile" />
+          <ActivityButton compact />
           <v-btn icon="mdi-logout" aria-label="Sign out" title="Sign out" :loading="signingOut" @click="handleLogout" />
         </template>
         <template v-else>
-        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-account-outline" to="/account">My account</v-btn>
-        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-bell-outline" to="/notifications">
-          Activity
-        </v-btn>
+        <v-btn v-if="isAuthenticated" variant="text" prepend-icon="mdi-account-outline" to="/profile">My Profile</v-btn>
+        <ActivityButton v-if="isAuthenticated" />
         <v-btn
           v-if="isAuthenticated"
           variant="outlined"
@@ -80,6 +78,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useAuth } from '@/composables/useAuth';
+import ActivityButton from '@/components/ActivityButton.vue';
 
 import { useAppearance } from '@/composables/useAppearance';
 import { appearanceVariables } from '@/lib/appearance';
@@ -96,6 +95,7 @@ watch(() => appearance.value.logo.dataUrl, () => { logoFailed.value = false; });
 watch([mobile, () => appearance.value.menuPosition], () => { drawer.value = !mobile.value; });
 
 const navItems = [
+  { title: 'My Profile', subtitle: 'Your details and password', icon: 'mdi-account-circle-outline', to: '/profile' },
   {
     title: 'Documents',
     subtitle: 'Files and reviews',

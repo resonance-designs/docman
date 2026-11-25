@@ -9,7 +9,7 @@ function fixture(overrides={}){
     sessionStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},
     api:{get:async()=>({data:{status:'idle',ticket:'read-only'}}),post:async(path,body)=>{calls.push([path,body]);return {data:{status:'running',ticket:'read-only'}};}},
     fetch:async()=>({ok:true,json:async()=>({status:'running'})}),AbortSignal,setTimeout:()=>1,clearTimeout(){},window:{location:{reload(){}}},...overrides};
-  const card=new Function(...Object.keys(bindings),source+';return {job,answer,selected,confirm,error,sending,accept,start,answerPrompt,cancel,resume,poll,busy,recoveryRequired,connectionLost};')(...Object.values(bindings));
+  const card=new Function(...Object.keys(bindings),source+';return {job,answer,selected,confirm,error,sending,accept,start,answerPrompt,cancel,resume,poll,busy,recoveryRequired,connectionLost,helper,helperLoading,checkHelper};')(...Object.values(bindings));
   return {card,calls,store};
 }
 test('start verifies independent progress endpoint before scheduling',async()=>{
@@ -68,4 +68,21 @@ test('progress reconnects independently of the stopped application API',async()=
   const {card}=fixture({api:{get(){throw new Error('backend stopped');}},fetch:async()=>({ok:true,json:async()=>({status:'recovery-required',message:'Recovery required'})})});
   card.accept({status:'running',ticket:'read-only'});await card.poll();
   assert.equal(card.recoveryRequired.value,true);assert.equal(card.busy.value,false);
+});
+
+
+test('helper readiness is independent and reports legacy, failure and recovery states',async()=>{
+  let result={state:'update-required',message:'Refresh required'};
+  const {card}=fixture({api:{get:async()=>({data:result})}});
+  await card.checkHelper();assert.equal(card.helper.value.state,'update-required');
+  result={state:'ready',message:'Matched'};await card.checkHelper();assert.equal(card.helper.value.state,'ready');
+  card.accept({status:'running'});card.accept({status:'complete'});
+  assert.equal(card.helper.value.state,'unknown');assert.match(card.helper.value.message,/Reload/);
+  result={};await card.checkHelper();assert.equal(card.helper.value.state,'unknown');
+});
+test('helper check failure never implies ready or overwrites update progress',async()=>{
+  const {card}=fixture({api:{get:async()=>{throw new Error('offline');}}});
+  card.accept({status:'running',stage:'Backup'});
+  await card.checkHelper();assert.equal(card.helper.value.state,'unknown');
+  assert.equal(card.job.value.stage,'Backup');assert.equal(card.helperLoading.value,false);
 });

@@ -1,7 +1,8 @@
 import User from '../models/User.js';
 import bcrypt from 'bcrypt';
 import { getAccountPolicy } from '../services/accountPolicyService.js';
-import { validateProfile, changePassword, saveProfile } from '../controllers/accountController.js';
+import { validateProfile, changePassword, saveProfile, getAccount } from '../controllers/accountController.js';
+import { MAX_AVATAR_BYTES } from '../lib/profileAvatar.js';
 jest.mock('../models/User.js', () => ({ __esModule: true, default: { findById: jest.fn(), updateOne: jest.fn(), findOneAndUpdate: jest.fn() } }));
 jest.mock('bcrypt', () => ({ __esModule: true, default: { compare: jest.fn(), hash: jest.fn() } }));
 jest.mock('../services/accountPolicyService.js', () => ({ ...jest.requireActual('../services/accountPolicyService.js'), getAccountPolicy: jest.fn() }));
@@ -57,4 +58,54 @@ test('concurrent credential change rejects stale update', async () => {
 test('profile writes target authenticated user and cannot change protected fields', async () => {
     const response = res(); await saveProfile({ user: { id: 'self' }, body: { role: 'superadmin' } }, response);
     expect(response.status).toHaveBeenCalledWith(400); expect(User.findOneAndUpdate).not.toHaveBeenCalled();
+});
+
+const photo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+test('profile supports position, contact details and a bounded raster photo without changing login identity', async () => {
+    const input = { title: ' Team lead ', contactEmail: ' contact@example.org ', location: 'Office', website: 'https://example.org/about', avatarDataUrl: photo };
+    User.findOneAndUpdate.mockReturnValue({ select: () => ({ lean: async () => ({ ...validateProfile(input), username: 'member', email: 'login@example.org', identityProvider: 'local' }) }) });
+    const response = res(); await saveProfile({ user: { id: 'self' }, body: input }, response);
+    const [filter, update] = User.findOneAndUpdate.mock.calls[0];
+    expect(filter).toMatchObject({ _id: 'self', isActive: { $ne: false }, invitationPending: { $ne: true }, identityProvider: { $ne: 'authentik' } });
+    expect(update.$set).toMatchObject({ title: 'Team lead', contactEmail: 'contact@example.org', avatarDataUrl: photo });
+    expect(update.$set).not.toHaveProperty('email');
+    expect(response.json).toHaveBeenCalledWith({ user: expect.objectContaining({ email: 'login@example.org', externallyManaged: false }) });
+});
+test('account read selects private photo/contact fields only for the authenticated user', async () => {
+    const select = jest.fn(() => ({ lean: async () => ({ avatarDataUrl: photo, contactEmail: 'contact@example.org', authentikSub: 'external-subject', identityProvider: 'authentik' }) }));
+    User.findById.mockReturnValue({ select });
+    const response = res(); await getAccount({ user: { id: 'self' } }, response);
+    expect(User.findById).toHaveBeenCalledWith('self');
+    expect(select.mock.calls[0][0]).toContain('avatarDataUrl');
+    expect(response.json.mock.calls[0][0].user).not.toHaveProperty('authentikSub');
+    expect(response.json.mock.calls[0][0].user).toMatchObject({ avatarDataUrl: photo, externallyManaged: true });
+});
+test('empty photo removes custom image without accepting legacy filenames', () => {
+    expect(validateProfile({ avatarDataUrl: '' })).toEqual({ avatarDataUrl: '' });
+    expect(() => validateProfile({ avatarDataUrl: '/uploads/photo.png' })).toThrow();
+});
+test.each([
+    { avatarDataUrl: 'https://example.org/photo.png' },
+    { avatarDataUrl: 'data:image/svg+xml;base64,' + Buffer.from('<svg/>').toString('base64') },
+    { avatarDataUrl: 'data:image/png;base64,' + Buffer.from('<script/>').toString('base64') },
+    { avatarDataUrl: 'data:image/png;base64,' + Buffer.alloc(MAX_AVATAR_BYTES + 1).toString('base64') },
+    { avatarDataUrl: null },
+    { contactEmail: 'not an email' },
+    { contactEmail: 'contact@example.org\r\nBcc:other@example.org' },
+    { location: 'x'.repeat(255) },
+    { website: 'javascript:alert(1)' },
+    { website: '//example.org' },
+    { website: 'https:example.org' },
+    { website: 'https://user:password@example.org' },
+    { website: 'https://example.org\\path' },
+    { website: 'https://example.org/' + 'x'.repeat(2048) },
+    { _id: 'someone-else' },
+    { profilePicture: '../../other-file' },
+])('rejects unsafe profile/photo input %#', input => {
+    expect(() => validateProfile(input)).toThrow();
+});
+test('profile write blocked by active-local-account filter reports denial', async () => {
+    User.findOneAndUpdate.mockReturnValue({ select: () => ({ lean: async () => null }) });
+    const response = res(); await saveProfile({ user: { id: 'self' }, body: { avatarDataUrl: photo } }, response);
+    expect(response.status).toHaveBeenCalledWith(403);
 });

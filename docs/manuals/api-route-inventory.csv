@@ -104,56 +104,62 @@ API-102,GET,/api/projects/:id/available-documents,getAvailableProjectDocuments,"
 API-103,POST,/api/projects/:id/documents,addDocumentsToProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:90
 API-104,DELETE,/api/projects/:id/documents,removeDocumentsFromProject,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:91
 API-105,DELETE,/api/projects/:id/documents/:documentId,removeDocument,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/projectsRoutes.js:94
-API-106,GET,/api/system/public-sharing,readPublicSharingPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:38
-API-107,PUT,/api/system/public-sharing,savePublicSharingPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:39
-API-108,GET,/api/system/notifications,readNotificationSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:40
-API-109,PUT,/api/system/notifications,saveNotificationSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:41
-API-110,POST,/api/system/notifications/retry,retryNotifications,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:42
-API-111,GET,/api/system/accounts,readPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:43
-API-112,PUT,/api/system/accounts,savePolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:44
-API-113,GET,/api/system/storage,getStorageSettingsHandler,"verifyAccessToken, requireRole('viewer', 'editor', 'admin', 'superadmin')",backend/src/routes/systemRoutes.js:46
-API-114,PUT,/api/system/storage,updateStorageSettingsHandler,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:47
-API-115,GET,/api/system/email,getEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:48
-API-116,PUT,/api/system/email,updateEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:49
-API-117,POST,/api/system/email/test,testEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:50
-API-118,GET,/api/system/redis,getRedisSettings,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:73
-API-119,PUT,/api/system/redis,updateRedisSettings,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/systemRoutes.js:74
-API-120,GET,/api/system/info,getSystemInfo,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:76
-API-121,GET,/api/system/performance,getPerformanceMetrics,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:79
-API-122,POST,/api/system/clear/:collection,clearCollection,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:82
-API-123,POST,/api/system/restore/:collection,restoreCollection,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:85
-API-124,POST,/api/system/archive-files,archiveFiles,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:88
-API-125,POST,/api/system/restore-files,restoreFiles,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:91
-API-126,POST,/api/system/generate-dummy-data,generateDummyData,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:94
-API-127,GET,/api/analytics,getAnalyticsData,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/analyticsRoutes.js:24
-API-128,GET,/api/analytics/export,getAnalyticsExport,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/analyticsRoutes.js:27
-API-129,GET,/api/custom-charts,getAllCustomCharts,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:31
-API-130,GET,/api/custom-charts/:id,getCustomChartById,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:34
-API-131,GET,/api/custom-charts/:id/data,getChartData,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:37
-API-132,POST,/api/custom-charts,createCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:40
-API-133,PUT,/api/custom-charts/:id,updateCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:43
-API-134,DELETE,/api/custom-charts/:id,deleteCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:46
-API-135,POST,/api/reviews,createReviewAssignments,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:31
-API-136,GET,/api/reviews/document/:documentId,getDocumentReviewAssignments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:34
-API-137,GET,/api/reviews/user/:userId,getUserReviewAssignments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:37
-API-138,PUT,/api/reviews/:id,updateReviewAssignment,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:40
-API-139,GET,/api/reviews/overdue,getOverdueReviewAssignments,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:43
-API-140,POST,/api/reviews/document/:documentId/cleanup,cleanupDocumentReviewAssignments,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:46
-API-141,GET,/api/external-contacts/types,getAllExternalContactTypes,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:34
-API-142,POST,/api/external-contacts/types,createExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:37
-API-143,PUT,/api/external-contacts/types/:id,updateExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:40
-API-144,DELETE,/api/external-contacts/types/:id,deleteExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:43
-API-145,GET,/api/external-contacts,getAllExternalContacts,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:46
-API-146,POST,/api/external-contacts,createExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:49
-API-147,GET,/api/external-contacts/document/:id,getExternalContactsByDocument,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:52
-API-148,PUT,/api/external-contacts/:id,updateExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:55
-API-149,DELETE,/api/external-contacts/:id,deleteExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:58
-API-150,GET,/api/notifications,getUserNotifications,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:32
-API-151,GET,/api/notifications/unread-count,getUnreadNotificationsCount,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:35
-API-152,PATCH,/api/notifications/:id/read,markAsRead,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:38
-API-153,PATCH,/api/notifications/read-all,markAllAsRead,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:41
-API-154,DELETE,/api/notifications/:id,deleteNotification,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:44
-API-155,GET,/api/audit,listAuditEntries,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/auditRoutes.js:17
-API-156,GET,/api/audit/export,exportAuditEntries,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/auditRoutes.js:18
-API-157,GET,/api/audit/verify,verifyAuditChain,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/auditRoutes.js:19
-API-158,GET,/uploads/:filename,inline handler,No route-level auth; inspect handler/global middleware,backend/src/routes/mediaRoutes.js:24
+API-106,GET,/api/system/public-sharing,readPublicSharingPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:40
+API-107,PUT,/api/system/public-sharing,savePublicSharingPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:41
+API-108,GET,/api/system/notifications,readNotificationSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:42
+API-109,PUT,/api/system/notifications,saveNotificationSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:43
+API-110,POST,/api/system/notifications/retry,retryNotifications,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:44
+API-111,GET,/api/system/accounts,readPolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:45
+API-112,PUT,/api/system/accounts,savePolicy,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:46
+API-113,GET,/api/system/storage,getStorageSettingsHandler,"verifyAccessToken, requireRole('viewer', 'editor', 'admin', 'superadmin')",backend/src/routes/systemRoutes.js:48
+API-114,PUT,/api/system/storage,updateStorageSettingsHandler,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:49
+API-115,GET,/api/system/email,getEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:50
+API-116,PUT,/api/system/email,updateEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:51
+API-117,POST,/api/system/email/test,testEmailSettings,"verifyAccessToken, requireRole('superadmin')",backend/src/routes/systemRoutes.js:52
+API-118,GET,/api/system/redis,getRedisSettings,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:75
+API-119,PUT,/api/system/redis,updateRedisSettings,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/systemRoutes.js:76
+API-120,GET,/api/system/info,getSystemInfo,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:78
+API-121,GET,/api/system/performance,getPerformanceMetrics,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/systemRoutes.js:81
+API-122,POST,/api/system/clear/:collection,clearCollection,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:84
+API-123,POST,/api/system/restore/:collection,restoreCollection,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:87
+API-124,POST,/api/system/archive-files,archiveFiles,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:90
+API-125,POST,/api/system/restore-files,restoreFiles,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:93
+API-126,POST,/api/system/generate-dummy-data,generateDummyData,"verifyAccessToken, requireRole(""superadmin""), guardDestructiveTool",backend/src/routes/systemRoutes.js:96
+API-127,GET,/api/software-updates/releases,handle(() => updaterRequest({action:'releases'})),"verifyAccessToken, requireRole('superadmin') (router-wide); ",backend/src/routes/softwareUpdateRoutes.js:20
+API-128,GET,/api/software-updates/helper,handle(() => updaterHelperStatus()),"verifyAccessToken, requireRole('superadmin') (router-wide); ",backend/src/routes/softwareUpdateRoutes.js:21
+API-129,GET,/api/software-updates/status,handle(() => updaterRequest({action:'status'})),"verifyAccessToken, requireRole('superadmin') (router-wide); ",backend/src/routes/softwareUpdateRoutes.js:22
+API-130,POST,/api/software-updates/start,handle(async req => {,"verifyAccessToken, requireRole('superadmin') (router-wide); ",backend/src/routes/softwareUpdateRoutes.js:23
+API-131,POST,/api/software-updates/answer,handle(req => {,"verifyAccessToken, requireRole('superadmin') (router-wide); ",backend/src/routes/softwareUpdateRoutes.js:33
+API-132,POST,/api/software-updates/cancel,handle(() => updaterRequest({action:'cancel'})),"verifyAccessToken, requireRole('superadmin') (router-wide); ",backend/src/routes/softwareUpdateRoutes.js:41
+API-133,GET,/api/analytics,getAnalyticsData,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/analyticsRoutes.js:24
+API-134,GET,/api/analytics/export,getAnalyticsExport,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/analyticsRoutes.js:27
+API-135,GET,/api/custom-charts,getAllCustomCharts,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:31
+API-136,GET,/api/custom-charts/:id,getCustomChartById,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:34
+API-137,GET,/api/custom-charts/:id/data,getChartData,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:37
+API-138,POST,/api/custom-charts,createCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:40
+API-139,PUT,/api/custom-charts/:id,updateCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:43
+API-140,DELETE,/api/custom-charts/:id,deleteCustomChart,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/customChartsRoutes.js:46
+API-141,POST,/api/reviews,createReviewAssignments,"verifyAccessToken, requireRole(""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:31
+API-142,GET,/api/reviews/document/:documentId,getDocumentReviewAssignments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:34
+API-143,GET,/api/reviews/user/:userId,getUserReviewAssignments,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:37
+API-144,PUT,/api/reviews/:id,updateReviewAssignment,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:40
+API-145,GET,/api/reviews/overdue,getOverdueReviewAssignments,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:43
+API-146,POST,/api/reviews/document/:documentId/cleanup,cleanupDocumentReviewAssignments,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/reviewRoutes.js:46
+API-147,GET,/api/external-contacts/types,getAllExternalContactTypes,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:34
+API-148,POST,/api/external-contacts/types,createExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:37
+API-149,PUT,/api/external-contacts/types/:id,updateExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:40
+API-150,DELETE,/api/external-contacts/types/:id,deleteExternalContactType,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:43
+API-151,GET,/api/external-contacts,getAllExternalContacts,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:46
+API-152,POST,/api/external-contacts,createExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:49
+API-153,GET,/api/external-contacts/document/:id,getExternalContactsByDocument,"verifyAccessToken, requireRole(""viewer"", ""editor"", ""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:52
+API-154,PUT,/api/external-contacts/:id,updateExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:55
+API-155,DELETE,/api/external-contacts/:id,deleteExternalContact,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/externalContactsRoutes.js:58
+API-156,GET,/api/notifications,getUserNotifications,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:32
+API-157,GET,/api/notifications/unread-count,getUnreadNotificationsCount,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:35
+API-158,PATCH,/api/notifications/:id/read,markAsRead,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:38
+API-159,PATCH,/api/notifications/read-all,markAllAsRead,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:41
+API-160,DELETE,/api/notifications/:id,deleteNotification,verifyAccessToken (router-wide); ,backend/src/routes/notificationsRoutes.js:44
+API-161,GET,/api/audit,listAuditEntries,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/auditRoutes.js:17
+API-162,GET,/api/audit/export,exportAuditEntries,"verifyAccessToken, requireRole(""admin"", ""superadmin"")",backend/src/routes/auditRoutes.js:18
+API-163,GET,/api/audit/verify,verifyAuditChain,"verifyAccessToken, requireRole(""superadmin"")",backend/src/routes/auditRoutes.js:19
+API-164,GET,/uploads/:filename,inline handler,No route-level auth; inspect handler/global middleware,backend/src/routes/mediaRoutes.js:24
