@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Add application-wide UI Customization under System Settings for admins and superadmins: link/heading/paragraph colors and sizes, raster logo upload/removal, left/right/top navigation, and configurable footer with preview, save/discard and default restoration.
+- Persist validated branding in the database and expose only public appearance fields before sign-in; audit saves without logo bytes.
+
 ### Maintenance
 
 - Generalize public deployment guidance, acceptance records, fixtures, and installer examples; rename environment-specific records and remove an unrelated IDE project mapping. Keep real deployment identities and infrastructure details in private operator records.

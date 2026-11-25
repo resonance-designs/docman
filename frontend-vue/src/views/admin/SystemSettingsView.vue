@@ -1,7 +1,7 @@
 <template>
   <v-container class="py-8" fluid>
     <h1 class="text-h4 font-weight-bold mb-1">System settings</h1>
-    <div class="text-medium-emphasis mb-6">Manage access, email, storage, and software updates for this server.</div>
+    <div class="text-medium-emphasis mb-6">Manage access, appearance, email, storage, and software updates for this server.</div>
 
     <v-alert v-if="message" class="mb-4" :type="messageType" variant="tonal" closable @click:close="message = ''">{{ message }}</v-alert>
 
@@ -9,6 +9,7 @@
       <v-tab id="settings-tab-security" value="security" aria-controls="settings-panel-security" prepend-icon="mdi-shield-lock-outline">Security</v-tab>
       <v-tab v-if="isSuperadmin" id="settings-tab-email" value="email" aria-controls="settings-panel-email" prepend-icon="mdi-email-outline">Email &amp; Notifications</v-tab>
       <v-tab id="settings-tab-storage" value="storage" aria-controls="settings-panel-storage" prepend-icon="mdi-folder-outline">Storage</v-tab>
+      <v-tab id="settings-tab-customization" value="customization" aria-controls="settings-panel-customization" prepend-icon="mdi-palette-outline">UI Customization</v-tab>
       <v-tab v-if="isSuperadmin" id="settings-tab-updates" value="updates" aria-controls="settings-panel-updates" prepend-icon="mdi-update">Software Updates</v-tab>
     </v-tabs>
 
@@ -122,6 +123,10 @@
         </div>
       </v-window-item>
 
+      <v-window-item id="settings-panel-customization" value="customization" role="tabpanel" aria-labelledby="settings-tab-customization" eager :transition="false" :reverse-transition="false">
+        <AppearanceSettingsCard />
+      </v-window-item>
+
       <v-window-item v-if="isSuperadmin" id="settings-panel-updates" value="updates" role="tabpanel" aria-labelledby="settings-tab-updates" eager :transition="false" :reverse-transition="false">
         <SoftwareUpdatesCard />
       </v-window-item>
@@ -130,6 +135,7 @@
 </template>
 
 <script setup>
+import AppearanceSettingsCard from '@/components/admin/AppearanceSettingsCard.vue';
 import SoftwareUpdatesCard from '@/components/admin/SoftwareUpdatesCard.vue';
 import PublicSharingSettingsCard from '@/components/admin/PublicSharingSettingsCard.vue';
 import NotificationSettingsCard from '@/components/admin/NotificationSettingsCard.vue';
@@ -159,7 +165,7 @@ const isSuperadmin = computed(() => hasRole(['superadmin']));
 
 const route = useRoute();
 const router = useRouter();
-const availableTabs = computed(() => isSuperadmin.value ? ['security', 'email', 'storage', 'updates'] : ['security', 'storage']);
+const availableTabs = computed(() => isSuperadmin.value ? ['security', 'email', 'storage', 'customization', 'updates'] : ['security', 'storage', 'customization']);
 const availableSecurityTabs = computed(() => isSuperadmin.value ? ['settings', 'users', 'audit', 'authentik'] : ['settings', 'audit']);
 const activeTab = computed({
   get: () => availableTabs.value.includes(route.query.tab) ? route.query.tab : 'security',

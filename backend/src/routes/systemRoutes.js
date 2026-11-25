@@ -12,6 +12,7 @@ import { readPolicy, savePolicy } from '../controllers/accountPolicyController.j
  */
 import { getStorageSettingsHandler, updateStorageSettingsHandler } from '../controllers/storageSettingsController.js';
 import express from "express";
+import appearanceRoutes from './appearanceRoutes.js';
 import { getEmailSettings, updateEmailSettings, testEmailSettings } from "../controllers/emailSettingsController.js";
 import { verifyAccessToken } from "../lib/secretToken.js";
 import { record, AUDIT_ACTIONS } from "../services/auditService.js";
@@ -31,10 +32,11 @@ import {
 /**
  * Express router for system administration endpoints
  * Handles system information, health checks, and administrative operations
- * All routes require admin authentication
+ * Permissions are enforced per route; appearance GET exposes public branding only.
  * @type {express.Router}
  */
 const router = express.Router();
+router.use('/appearance', appearanceRoutes);
 router.get('/public-sharing', verifyAccessToken, requireRole('superadmin'), readPublicSharingPolicy);
 router.put('/public-sharing', verifyAccessToken, requireRole('superadmin'), savePublicSharingPolicy);
 router.get('/notifications', verifyAccessToken, requireRole('superadmin'), readNotificationSettings);

@@ -29,7 +29,7 @@ for (const [path, section] of [['users', 'users'], ['audit', 'audit'], ['authent
 
 test('admins retain audit and ordinary settings access but cannot bypass privileged tabs', async () => {
   const router = routerFor('admin');
-  for (const path of ['/admin/system', '/admin/system?tab=storage', '/admin/audit']) {
+  for (const path of ['/admin/system', '/admin/system?tab=storage', '/admin/system?tab=customization', '/admin/audit']) {
     await router.push(path);
     assert.equal(router.currentRoute.value.name, 'system-settings');
   }
@@ -49,7 +49,7 @@ test('unauthenticated legacy navigation retains the integrated login return dest
 test('nonadministrative roles cannot open system settings through a legacy redirect', async () => {
   for (const role of ['viewer', 'editor']) {
     const router = routerFor(role);
-    for (const path of ['/admin/audit', '/admin/users', '/admin/authentik-linking', '/admin/system']) {
+    for (const path of ['/admin/audit', '/admin/users', '/admin/authentik-linking', '/admin/system', '/admin/system?tab=customization']) {
       await router.push(path);
       assert.equal(router.currentRoute.value.name, 'home');
     }
@@ -78,12 +78,12 @@ test('tab setter removes inactive Security sections and produces admin-accessibl
     let destination;
     const route = { query: { tab: 'security', section, source: 'bookmark' } };
     const activeTab = new Function('computed', 'route', 'router', 'availableTabs', `${binding};return activeTab;`)(
-      computed, route, { push: value => { destination = value; } }, ref(['security', 'storage', 'email', 'updates']),
+      computed, route, { push: value => { destination = value; } }, ref(['security', 'storage', 'customization', 'email', 'updates']),
     );
-    for (const tab of ['storage', 'email', 'updates']) {
+    for (const tab of ['storage', 'customization', 'email', 'updates']) {
       activeTab.value = tab;
       assert.deepEqual(destination.query, { tab, source: 'bookmark' });
-      if (tab === 'storage') {
+      if (['storage', 'customization'].includes(tab)) {
         const admin = routerFor('admin');
         await admin.push(destination);
         assert.equal(admin.currentRoute.value.name, 'system-settings');
