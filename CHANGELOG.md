@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [3.0.5] - 2026-11-24
 
+### Fixed
+
+- Remove inactive Security section parameters when switching System Settings tabs, so shared Storage links remain accessible to admins after a superadmin visits Users or Authentik Linking (PR #59).
+
 ### Changed
 
 - Move Users, Audit Log, and Authentik Linking from the main sidebar into System Settings → Security, preserving role restrictions and existing deep links.

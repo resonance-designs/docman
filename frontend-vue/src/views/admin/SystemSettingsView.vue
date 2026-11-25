@@ -163,7 +163,12 @@ const availableTabs = computed(() => isSuperadmin.value ? ['security', 'email', 
 const availableSecurityTabs = computed(() => isSuperadmin.value ? ['settings', 'users', 'audit', 'authentik'] : ['settings', 'audit']);
 const activeTab = computed({
   get: () => availableTabs.value.includes(route.query.tab) ? route.query.tab : 'security',
-  set: tab => { if (availableTabs.value.includes(tab)) router.push({ name: 'system-settings', query: { ...route.query, tab } }); },
+  set: tab => {
+    if (!availableTabs.value.includes(tab)) return;
+    const query = { ...route.query, tab };
+    if (tab !== 'security') delete query.section;
+    router.push({ name: 'system-settings', query });
+  },
 });
 const securityTab = computed({
   get: () => availableSecurityTabs.value.includes(route.query.section) ? route.query.section : 'settings',

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createMemoryHistory, createRouter } from 'vue-router';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 function routerFor(role) {
   // Exercise the application's actual route records/guard, substituting view stubs only.
@@ -59,7 +59,7 @@ test('nonadministrative roles cannot open system settings through a legacy redir
 test('browser history restores the selected settings tab and security section', async () => {
   const router = routerFor('superadmin');
   await router.push('/admin/system?tab=security&section=users');
-  await router.push('/admin/system?tab=storage&section=users');
+  await router.push('/admin/system?tab=storage');
   const navigation = () => new Promise(resolve => {
     const remove = router.afterEach(() => { remove(); resolve(); });
   });
@@ -68,4 +68,29 @@ test('browser history restores the selected settings tab and security section', 
   assert.equal(router.currentRoute.value.query.section, 'users');
   settled = navigation();router.forward();await settled;
   assert.equal(router.currentRoute.value.query.tab, 'storage');
+  assert.equal(router.currentRoute.value.query.section, undefined);
+});
+
+test('tab setter removes inactive Security sections and produces admin-accessible Storage links', async () => {
+  const source = readFileSync(new URL('./views/admin/SystemSettingsView.vue', import.meta.url), 'utf8');
+  const binding = source.slice(source.indexOf('const activeTab = computed('), source.indexOf('const securityTab = computed('));
+  for (const section of ['users', 'authentik']) {
+    let destination;
+    const route = { query: { tab: 'security', section, source: 'bookmark' } };
+    const activeTab = new Function('computed', 'route', 'router', 'availableTabs', `${binding};return activeTab;`)(
+      computed, route, { push: value => { destination = value; } }, ref(['security', 'storage', 'email', 'updates']),
+    );
+    for (const tab of ['storage', 'email', 'updates']) {
+      activeTab.value = tab;
+      assert.deepEqual(destination.query, { tab, source: 'bookmark' });
+      if (tab === 'storage') {
+        const admin = routerFor('admin');
+        await admin.push(destination);
+        assert.equal(admin.currentRoute.value.name, 'system-settings');
+      }
+    }
+    activeTab.value = 'security';
+    assert.equal(destination.query.section, section);
+    assert.equal(route.query.section, section, 'the existing route must not be mutated');
+  }
 });
